@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import TabBar from '@/components/TabBar';
+import { Providers } from './providers';
+import { LayoutShell } from './layout-shell';
 
 export const metadata: Metadata = {
   title: 'NextRep — Workout Tracker',
@@ -23,17 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <main
-          style={{
-            maxWidth: '480px',
-            margin: '0 auto',
-            padding: '0 16px 80px',
-            minHeight: '100vh',
-          }}
-        >
-          {children}
-        </main>
-        <TabBar />
+        <Providers>
+          <LayoutShell>{children}</LayoutShell>
+          <TabBar />
+        </Providers>
       </body>
     </html>
   );

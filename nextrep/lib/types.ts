@@ -15,29 +15,55 @@ export interface Exercise {
   name: string;
   muscleGroups: MuscleGroup[];
   equipment: string;
+  description?: string;
+  howTo?: string;
 }
 
 export type MuscleGroup = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core';
 
 export interface WorkoutSet {
-  reps: number;
+  id: string;
   weight: number;
+  reps: number;
+  completed: boolean;
+  createdAt: string;
 }
 
+export type ExerciseStatus = 'pending' | 'completed';
+
 export interface WorkoutExercise {
+  id: string;
   exerciseId: string;
   exerciseName: string;
+  muscleGroups: MuscleGroup[];
+  equipment: string;
+  order: number;
   sets: WorkoutSet[];
+  status: ExerciseStatus;
 }
 
 export interface Workout {
   id: string;
   name: string;
   date: string;
+  startedAt: string;
+  endedAt: string;
   exercises: WorkoutExercise[];
   totalVolume: number;
   duration: number;
   improvement: number;
+}
+
+export type WorkoutStatus = 'planning' | 'active' | 'finished';
+
+export interface WorkoutDraft {
+  id: string;
+  name: string;
+  status: WorkoutStatus;
+  startedAt: string | null;
+  endedAt: string | null;
+  exercises: WorkoutExercise[];
+  activeExerciseId: string | null;
 }
 
 export interface WeeklyDataPoint {

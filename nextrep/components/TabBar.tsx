@@ -56,6 +56,9 @@ export default function TabBar() {
   const pathname = usePathname();
   const router = useRouter();
 
+  const isWorkoutRoute = pathname.startsWith('/workout');
+  if (isWorkoutRoute) return null;
+
   const getActiveTab = (): TabId => {
     if (pathname === '/') return 'home';
     const segment = pathname.split('/')[1];
