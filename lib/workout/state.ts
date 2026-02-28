@@ -23,6 +23,17 @@ import {
 const STORAGE_KEY = 'nextrep_workout_draft';
 const HISTORY_KEY = 'nextrep_workout_history';
 
+/** Deterministic initial state for SSR — same on server and client to avoid hydration mismatch. */
+const INITIAL_DRAFT: WorkoutDraft = {
+  id: 'init',
+  name: 'Workout',
+  status: 'planning',
+  startedAt: null,
+  endedAt: null,
+  exercises: [],
+  activeExerciseId: null,
+};
+
 function createEmptyDraft(): WorkoutDraft {
   return {
     id: generateId(),
@@ -212,7 +223,7 @@ export function useWorkout(): WorkoutContextValue {
 // ─── Provider ─────────────────────────────────────────────
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
-  const [draft, dispatch] = useReducer(reducer, createEmptyDraft());
+  const [draft, dispatch] = useReducer(reducer, INITIAL_DRAFT);
   const [savedWorkouts, setSavedWorkouts] = React.useState<Workout[]>([]);
   const hydrated = useRef(false);
 

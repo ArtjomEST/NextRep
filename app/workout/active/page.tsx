@@ -676,7 +676,7 @@ export default function ActiveWorkoutPage() {
           <ModalStat label="Sets" value={String(totalSets)} />
           <ModalStat
             label="Volume"
-            value={`${totalVolume.toLocaleString()} kg`}
+            value={`${totalVolume.toLocaleString('en-US')} kg`}
           />
         </div>
         <div

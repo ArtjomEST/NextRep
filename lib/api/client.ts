@@ -153,6 +153,33 @@ export async function fetchWorkoutsApi(
   };
 }
 
+export async function fetchWorkoutStatsApi(): Promise<{
+  total: number;
+  totalVolume: number;
+  totalSets: number;
+}> {
+  const res = await fetch('/api/workouts/stats', {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch stats (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data;
+}
+
+export async function deleteWorkoutApi(id: string): Promise<void> {
+  const res = await fetch(`/api/workouts/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to delete workout (${res.status})`);
+  }
+}
+
 export async function fetchWorkoutDetailApi(
   id: string,
 ): Promise<WorkoutDetail> {
@@ -236,4 +263,66 @@ export async function updateSettings(
   }
   const json = await res.json();
   return json.data as UserSettings;
+}
+
+// ─── Progress ────────────────────────────────────────────────
+
+export interface ProgressExercise {
+  id: string;
+  name: string;
+  category: string | null;
+  lastUsedAt: string;
+  usageCount: number;
+}
+
+export interface ProgressExerciseDetail {
+  measurementType: string;
+  pr: {
+    bestWeight?: number;
+    bestReps?: number;
+    bestVolume?: number;
+    bestSeconds?: number;
+    date: string;
+  } | null;
+  last5: {
+    workoutId: string;
+    date: string;
+    bestWeight?: number | null;
+    bestReps?: number | null;
+    bestSeconds?: number | null;
+    volume: number;
+  }[];
+  progress30d: {
+    deltaWeight?: number;
+    deltaReps?: number;
+    deltaVolume?: number;
+    deltaSeconds?: number;
+    label: string;
+  } | null;
+}
+
+export async function fetchProgressExercisesApi(): Promise<ProgressExercise[]> {
+  const res = await fetch('/api/progress/exercises', {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch progress exercises (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as ProgressExercise[];
+}
+
+export async function fetchProgressExerciseDetailApi(
+  exerciseId: string,
+): Promise<ProgressExerciseDetail> {
+  const res = await fetch(`/api/progress/exercises/${exerciseId}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch progress (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as ProgressExerciseDetail;
 }

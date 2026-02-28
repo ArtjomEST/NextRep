@@ -14,6 +14,61 @@ import type {
   WorkoutDetailSet,
 } from '@/lib/api/types';
 
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const db = getDb();
+    const auth = await authenticateRequest(req);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 },
+      );
+    }
+
+    const { id } = await params;
+
+    const [workout] = await db
+      .select({ id: workouts.id, userId: workouts.userId })
+      .from(workouts)
+      .where(eq(workouts.id, id))
+      .limit(1);
+
+    if (!workout || workout.userId !== auth.userId) {
+      return NextResponse.json(
+        { error: 'Workout not found' },
+        { status: 404 },
+      );
+    }
+
+    const weRows = await db
+      .select({ id: workoutExercises.id })
+      .from(workoutExercises)
+      .where(eq(workoutExercises.workoutId, id));
+    const weIds = weRows.map((r) => r.id);
+
+    if (weIds.length > 0) {
+      await db
+        .delete(workoutSets)
+        .where(inArray(workoutSets.workoutExerciseId, weIds));
+    }
+    await db
+      .delete(workoutExercises)
+      .where(eq(workoutExercises.workoutId, id));
+    await db.delete(workouts).where(eq(workouts.id, id));
+
+    return new NextResponse(null, { status: 204 });
+  } catch (err) {
+    console.error('DELETE /api/workouts/[id] error:', err);
+    return NextResponse.json(
+      { error: 'Failed to delete workout', message: String(err) },
+      { status: 500 },
+    );
+  }
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },

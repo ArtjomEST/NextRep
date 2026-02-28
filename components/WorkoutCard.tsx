@@ -50,7 +50,7 @@ export default function WorkoutCard({ workout, compact = false }: WorkoutCardPro
               margin: 0,
             }}
           >
-            {workout.totalVolume.toLocaleString()} kg
+            {workout.totalVolume.toLocaleString('en-US')} kg
           </p>
           <p
             style={{

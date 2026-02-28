@@ -91,9 +91,12 @@ export default function AccountPage() {
   const [editWeight, setEditWeight] = useState('');
   const [editHeight, setEditHeight] = useState('');
   const [editAge, setEditAge] = useState('');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
-  const tgUser = typeof window !== 'undefined' ? getTelegramUser() : null;
-  const photoUrl = tgUser?.photo_url ?? null;
+  useEffect(() => {
+    const tgUser = getTelegramUser();
+    setPhotoUrl(tgUser?.photo_url ?? null);
+  }, []);
 
   const units = settings?.units ?? 'kg';
   const isImperial = units === 'lb';

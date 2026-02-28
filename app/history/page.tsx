@@ -6,8 +6,11 @@ import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { theme } from '@/lib/theme';
-import { fetchWorkoutsApi } from '@/lib/api/client';
+import { fetchWorkoutsApi, fetchWorkoutStatsApi } from '@/lib/api/client';
 import type { WorkoutListItem } from '@/lib/api/types';
+import { HistoryProgressSection } from '@/components/HistoryProgressSection';
+
+export const RECENT_LIMIT = 3;
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -25,7 +28,7 @@ function formatDuration(sec: number | null): string {
 export default function HistoryPage() {
   const router = useRouter();
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
-  const [total, setTotal] = useState(0);
+  const [stats, setStats] = useState<{ total: number; totalVolume: number; totalSets: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,9 +36,12 @@ export default function HistoryPage() {
     setLoading(true);
     setError(null);
     try {
-      const result = await fetchWorkoutsApi(50);
-      setWorkouts(result.data);
-      setTotal(result.total);
+      const [workoutsRes, statsRes] = await Promise.all([
+        fetchWorkoutsApi(RECENT_LIMIT, 0),
+        fetchWorkoutStatsApi(),
+      ]);
+      setWorkouts(workoutsRes.data);
+      setStats(statsRes);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : 'Failed to load history',
@@ -49,8 +55,9 @@ export default function HistoryPage() {
     load();
   }, [load]);
 
-  const totalVolume = workouts.reduce((sum, w) => sum + w.totalVolume, 0);
-  const totalSets = workouts.reduce((sum, w) => sum + w.totalSets, 0);
+  const total = stats?.total ?? 0;
+  const totalVolume = stats?.totalVolume ?? 0;
+  const totalSets = stats?.totalSets ?? 0;
 
   return (
     <div
@@ -172,6 +179,7 @@ export default function HistoryPage() {
             <Card
               key={w.id}
               onClick={() => router.push(`/history/${w.id}`)}
+              style={{ cursor: 'pointer' }}
             >
               <div
                 style={{
@@ -217,7 +225,7 @@ export default function HistoryPage() {
                       margin: 0,
                     }}
                   >
-                    {w.totalVolume.toLocaleString()} kg
+                    {w.totalVolume.toLocaleString('en-US')} kg
                   </p>
                   <p
                     style={{
@@ -253,8 +261,45 @@ export default function HistoryPage() {
               </div>
             </Card>
           ))}
+
+          {!loading && !error && total > RECENT_LIMIT && (
+            <Card
+              onClick={() => router.push('/history/all')}
+              style={{
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px',
+              }}
+            >
+              <span
+                style={{
+                  color: theme.colors.primary,
+                  fontSize: '15px',
+                  fontWeight: 600,
+                }}
+              >
+                View all workouts
+              </span>
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={theme.colors.primary}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </Card>
+          )}
         </div>
       </section>
+
+      <HistoryProgressSection />
     </div>
   );
 }

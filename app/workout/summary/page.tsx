@@ -230,7 +230,7 @@ export default function WorkoutSummaryPage() {
         <StatCard label="Duration" value={`${stats.duration}`} unit="min" />
         <StatCard
           label="Volume"
-          value={stats.volume.toLocaleString()}
+          value={stats.volume.toLocaleString('en-US')}
           unit="kg"
         />
         <StatCard label="Sets" value={stats.sets} />
@@ -259,7 +259,7 @@ export default function WorkoutSummaryPage() {
           <HighlightRow
             icon="+"
             iconColor={theme.colors.success}
-            text={`${stats.volume.toLocaleString()} kg total volume`}
+            text={`${stats.volume.toLocaleString('en-US')} kg total volume`}
           />
           {draft.exercises.length > 0 && (
             <HighlightRow
