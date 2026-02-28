@@ -121,8 +121,13 @@ export async function saveWorkoutApi(
     headers: getAuthHeaders(),
     body: JSON.stringify(request),
   });
-  const json = await res.json();
-  if (!res.ok) throw new Error(json.error ?? 'Failed to save workout');
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail = json.message ? `: ${json.message}` : '';
+    throw new Error(
+      (json.error ?? 'Failed to save workout') + ` (${res.status})` + detail,
+    );
+  }
   return json.data as SaveWorkoutResponse;
 }
 

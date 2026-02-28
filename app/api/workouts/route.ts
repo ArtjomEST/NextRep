@@ -110,15 +110,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json(
+        { error: 'Invalid JSON body' },
+        { status: 400 },
+      );
+    }
+
     const result = validateSaveWorkout(body);
 
     if (!result.data) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
+      console.warn(`[POST /api/workouts] validation failed: ${result.error}`);
+      return NextResponse.json(
+        { error: result.error },
+        { status: 400 },
+      );
     }
 
     const data = result.data;
     const userId = auth.userId;
+
+    console.log(
+      `[POST /api/workouts] userId=${userId} name="${data.name}" exercises=${data.exercises.length} totalSetPayloads=${data.exercises.reduce((n, e) => n + e.sets.length, 0)}`,
+    );
 
     let totalVolume = 0;
     let totalSets = 0;
@@ -159,12 +176,13 @@ export async function POST(req: NextRequest) {
 
     for (const ex of data.exercises) {
       const weId = randomUUID();
+      const status = ex.status === 'completed' ? 'completed' as const : 'pending' as const;
       workoutExerciseRows.push({
         id: weId,
         workoutId,
         exerciseId: ex.exerciseId,
         order: ex.order,
-        status: ex.status ?? 'pending',
+        status,
       });
       for (const s of ex.sets) {
         workoutSetRows.push({
@@ -172,15 +190,16 @@ export async function POST(req: NextRequest) {
           workoutExerciseId: weId,
           setIndex: s.setIndex,
           weight: s.weight != null ? String(s.weight) : null,
-          reps: s.reps,
+          reps: s.reps ?? null,
           seconds: s.seconds ?? null,
           completed: s.completed ?? false,
         });
       }
     }
 
-    await db.transaction(async (tx) => {
-      await tx.insert(workouts).values({
+    // Insert step-by-step for clearer error isolation
+    try {
+      await db.insert(workouts).values({
         id: workoutId,
         userId,
         name: data.name.trim(),
@@ -191,15 +210,40 @@ export async function POST(req: NextRequest) {
         totalSets,
         notes: data.notes ?? null,
       });
+    } catch (err) {
+      console.error('[POST /api/workouts] INSERT workouts failed:', err);
+      return NextResponse.json(
+        { error: 'Failed to insert workout row', message: String(err) },
+        { status: 500 },
+      );
+    }
 
-      if (workoutExerciseRows.length > 0) {
-        await tx.insert(workoutExercises).values(workoutExerciseRows);
+    if (workoutExerciseRows.length > 0) {
+      try {
+        await db.insert(workoutExercises).values(workoutExerciseRows);
+      } catch (err) {
+        console.error('[POST /api/workouts] INSERT workout_exercises failed:', err);
+        console.error('[POST /api/workouts] exerciseIds:', workoutExerciseRows.map(r => r.exerciseId));
+        await db.delete(workouts).where(eq(workouts.id, workoutId)).catch(() => {});
+        return NextResponse.json(
+          { error: 'Failed to insert exercises', message: String(err) },
+          { status: 500 },
+        );
       }
+    }
 
-      if (workoutSetRows.length > 0) {
-        await tx.insert(workoutSets).values(workoutSetRows);
+    if (workoutSetRows.length > 0) {
+      try {
+        await db.insert(workoutSets).values(workoutSetRows);
+      } catch (err) {
+        console.error('[POST /api/workouts] INSERT workout_sets failed:', err);
+        await db.delete(workouts).where(eq(workouts.id, workoutId)).catch(() => {});
+        return NextResponse.json(
+          { error: 'Failed to insert sets', message: String(err) },
+          { status: 500 },
+        );
       }
-    });
+    }
 
     const response: SaveWorkoutResponse = {
       workoutId,
@@ -209,17 +253,17 @@ export async function POST(req: NextRequest) {
       durationSec,
     };
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(
-        `[POST /api/workouts] auth=${auth.mode} userId=${userId} workoutId=${workoutId} exercises=${workoutExerciseRows.length} sets=${workoutSetRows.length}`,
-      );
-    }
+    console.log(
+      `[POST /api/workouts] OK workoutId=${workoutId} exercises=${workoutExerciseRows.length} sets=${workoutSetRows.length}`,
+    );
 
     return NextResponse.json({ data: response }, { status: 201 });
   } catch (err) {
-    console.error('POST /api/workouts error:', err);
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : '';
+    console.error(`[POST /api/workouts] unhandled error: ${msg}\n${stack}`);
     return NextResponse.json(
-      { error: 'Failed to create workout', message: String(err) },
+      { error: 'Failed to create workout', message: msg },
       { status: 500 },
     );
   }
