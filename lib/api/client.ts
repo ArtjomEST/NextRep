@@ -174,14 +174,13 @@ export interface MeResponse {
 }
 
 export async function fetchMe(): Promise<MeResponse | null> {
-  try {
-    const res = await fetch('/api/me', { headers: getAuthHeaders() });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.data as MeResponse;
-  } catch {
-    return null;
+  const res = await fetch('/api/me', { headers: getAuthHeaders() });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Authentication failed (${res.status})`);
   }
+  const json = await res.json();
+  return json.data as MeResponse;
 }
 
 export async function linkAccount(): Promise<boolean> {
@@ -194,4 +193,42 @@ export async function linkAccount(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// ─── Settings ────────────────────────────────────────────────
+
+export interface UserSettings {
+  userId: string;
+  heightCm: number | null;
+  weightKg: string | null;
+  age: number | null;
+  units: 'kg' | 'lb';
+  experienceLevel: string | null;
+  goal: string | null;
+}
+
+export async function fetchSettings(): Promise<UserSettings> {
+  const res = await fetch('/api/me/settings', { headers: getAuthHeaders() });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch settings (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as UserSettings;
+}
+
+export async function updateSettings(
+  updates: Partial<Omit<UserSettings, 'userId'>>,
+): Promise<UserSettings> {
+  const res = await fetch('/api/me/settings', {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(updates),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to update settings (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as UserSettings;
 }

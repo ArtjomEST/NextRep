@@ -34,10 +34,22 @@ declare global {
         };
         MainButton?: TelegramMainButton;
         showAlert?: (message: string, callback?: () => void) => void;
+        showConfirm?: (message: string, callback?: (confirmed: boolean) => void) => void;
         ready?: () => void;
         close?: () => void;
+        expand?: () => void;
       };
     };
+  }
+}
+
+export function callTelegramReady(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.Telegram?.WebApp?.ready?.();
+    window.Telegram?.WebApp?.expand?.();
+  } catch {
+    // Telegram SDK not available
   }
 }
 

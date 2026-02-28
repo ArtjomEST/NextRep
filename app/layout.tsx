@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import './globals.css';
 import TabBar from '@/components/TabBar';
 import { Providers } from './providers';
@@ -24,6 +25,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          src="https://telegram.org/js/telegram-web-app.js"
+          strategy="beforeInteractive"
+        />
+      </head>
       <body>
         <Providers>
           <LayoutShell>{children}</LayoutShell>

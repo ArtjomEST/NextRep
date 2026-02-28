@@ -1,41 +1,19 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { getTelegramUser } from '@/lib/auth/client';
-import { fetchMe } from '@/lib/api/client';
+import React from 'react';
+import { useAuth } from '@/lib/auth/context';
 import { theme } from '@/lib/theme';
 
 export default function UserGreeting() {
-  const [name, setName] = useState<string | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
+  const { status, user } = useAuth();
 
-  useEffect(() => {
-    setMounted(true);
-
-    const tgUser = getTelegramUser();
-    if (tgUser) {
-      setName(tgUser.first_name);
-      setUsername(tgUser.username ?? null);
-    }
-
-    fetchMe().then((me) => {
-      if (me) {
-        if (me.firstName) setName(me.firstName);
-        if (me.username) setUsername(me.username);
-      } else if (!tgUser) {
-        setName('there');
-      }
-    });
-  }, []);
-
-  if (!mounted) {
+  if (status === 'loading') {
     return (
       <div style={{ padding: `${theme.spacing.md} 0` }}>
         <div
           style={{
-            height: '28px',
-            width: '120px',
+            height: 28,
+            width: 120,
             backgroundColor: theme.colors.surface,
             borderRadius: theme.radius.sm,
           }}
@@ -43,6 +21,10 @@ export default function UserGreeting() {
       </div>
     );
   }
+
+  const name = user?.firstName || user?.lastName || null;
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+  const username = user?.username || null;
 
   return (
     <div
@@ -57,19 +39,19 @@ export default function UserGreeting() {
         <h1
           style={{
             color: theme.colors.textPrimary,
-            fontSize: '24px',
+            fontSize: 24,
             fontWeight: 700,
             margin: 0,
             lineHeight: 1.3,
           }}
         >
-          {name ? `Hey, ${name}` : 'Hey'}
+          {name ? `Hey, ${fullName}` : 'Hey, there'}
         </h1>
         {username && (
           <p
             style={{
               color: theme.colors.textMuted,
-              fontSize: '13px',
+              fontSize: 13,
               margin: '2px 0 0',
             }}
           >
@@ -79,7 +61,7 @@ export default function UserGreeting() {
         <p
           style={{
             color: theme.colors.textSecondary,
-            fontSize: '14px',
+            fontSize: 14,
             margin: '4px 0 0 0',
           }}
         >

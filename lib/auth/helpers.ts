@@ -22,23 +22,21 @@ export async function authenticateRequest(
 ): Promise<AuthResult | null> {
   const db = getDb();
   const initData = req.headers.get('x-telegram-init-data');
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  console.log(`[auth] initData present: ${!!initData} (len=${initData?.length ?? 0})`);
 
   if (initData) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
 
     if (!botToken) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.warn('[auth] TELEGRAM_BOT_TOKEN not set — skipping initData validation in dev');
-      } else {
-        console.error('[auth] TELEGRAM_BOT_TOKEN not configured in production');
-        return null;
-      }
+      console.error('[auth] TELEGRAM_BOT_TOKEN not configured');
+      if (!isDev) return null;
+      console.warn('[auth] Skipping initData validation in dev (no bot token)');
     } else {
       const validated = validateTelegramInitData(initData, botToken);
       if (!validated) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[auth] Invalid Telegram initData');
-        }
+        console.warn(`[auth] initData validation FAILED (len=${initData.length})`);
         return null;
       }
 
@@ -61,9 +59,7 @@ export async function authenticateRequest(
           })
           .where(eq(users.id, existing[0].id));
 
-        if (process.env.NODE_ENV !== 'production') {
-          console.log(`[auth] Telegram auth OK → userId: ${existing[0].id}`);
-        }
+        console.log(`[auth] Telegram OK → userId=${existing[0].id} tgId=${telegramId}`);
         return { userId: existing[0].id, telegramUser: tgUser, mode: 'telegram' };
       }
 
@@ -77,20 +73,15 @@ export async function authenticateRequest(
         })
         .returning({ id: users.id });
 
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[auth] New Telegram user created → userId: ${newUser.id}`);
-      }
+      console.log(`[auth] New Telegram user → userId=${newUser.id} tgId=${telegramId}`);
       return { userId: newUser.id, telegramUser: tgUser, mode: 'telegram' };
     }
   }
 
-  // Dev-only fallback
-  if (process.env.NODE_ENV !== 'production') {
+  if (isDev) {
     const devUserId = process.env.NEXT_PUBLIC_DEV_USER_ID;
     if (!devUserId) {
-      console.error(
-        '[auth] NEXT_PUBLIC_DEV_USER_ID not set. Run: npm run seed:dev-user',
-      );
+      console.error('[auth] NEXT_PUBLIC_DEV_USER_ID not set');
       return null;
     }
 
@@ -102,9 +93,7 @@ export async function authenticateRequest(
         .limit(1);
 
       if (!row) {
-        console.error(
-          `[auth] Dev user ${devUserId} not found in DB. Run: npm run seed:dev-user`,
-        );
+        console.error(`[auth] Dev user ${devUserId} not found in DB`);
         return null;
       }
     } catch (err) {
@@ -112,9 +101,10 @@ export async function authenticateRequest(
       return null;
     }
 
-    console.log(`[auth] Dev fallback → userId: ${devUserId}`);
+    console.log(`[auth] Dev fallback → userId=${devUserId}`);
     return { userId: devUserId, mode: 'dev' };
   }
 
+  console.warn('[auth] No initData, no dev fallback → rejecting');
   return null;
 }

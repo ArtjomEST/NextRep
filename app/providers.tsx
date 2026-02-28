@@ -2,13 +2,17 @@
 
 import React from 'react';
 import { WorkoutProvider } from '@/lib/workout/state';
-import TelegramLinkButton from '@/components/TelegramLinkButton';
+import { AuthProvider } from '@/lib/auth/context';
+import AuthGate from '@/components/AuthGate';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <WorkoutProvider>
-      {children}
-      <TelegramLinkButton />
-    </WorkoutProvider>
+    <AuthProvider>
+      <AuthGate>
+        <WorkoutProvider>
+          {children}
+        </WorkoutProvider>
+      </AuthGate>
+    </AuthProvider>
   );
 }
