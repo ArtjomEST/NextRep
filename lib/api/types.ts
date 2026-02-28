@@ -10,6 +10,7 @@ export interface SaveWorkoutSetPayload {
 
 export interface SaveWorkoutExercisePayload {
   exerciseId: string;
+  exerciseName?: string;
   order: number;
   status: 'pending' | 'completed';
   sets: SaveWorkoutSetPayload[];

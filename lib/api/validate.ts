@@ -26,6 +26,15 @@ export function validateSaveWorkout(
         error: `exercises[${i}].exerciseId must be a valid UUID`,
       };
     }
+    if (
+      ex.exerciseName != null &&
+      (typeof ex.exerciseName !== 'string' || ex.exerciseName.trim().length === 0)
+    ) {
+      return {
+        data: null,
+        error: `exercises[${i}].exerciseName must be a non-empty string when provided`,
+      };
+    }
     if (typeof ex.order !== 'number') {
       return { data: null, error: `exercises[${i}].order must be a number` };
     }

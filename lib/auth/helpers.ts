@@ -14,14 +14,18 @@ export interface AuthResult {
  * Authenticate an API request.
  *
  * 1. If x-telegram-init-data header is present and valid → upsert user, return userId.
- * 2. In development, fall back to NEXT_PUBLIC_DEV_USER_ID (verified against DB).
- * 3. In production with no valid initData → return null (caller should 401).
+ * 2. If DEV auth fallback is enabled, fall back to NEXT_PUBLIC_DEV_USER_ID
+ *    (verified against DB).
+ * 3. Otherwise with no valid initData → return null (caller should 401).
  */
 export async function authenticateRequest(
   req: NextRequest,
 ): Promise<AuthResult | null> {
   const db = getDb();
   const initData = req.headers.get('x-telegram-init-data');
+  const devFallbackEnabled =
+    process.env.NODE_ENV !== 'production' ||
+    process.env.ALLOW_DEV_AUTH_IN_PROD === 'true';
 
   if (initData) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -84,8 +88,8 @@ export async function authenticateRequest(
     }
   }
 
-  // Dev-only fallback
-  if (process.env.NODE_ENV !== 'production') {
+  // Dev fallback (and optionally in production when explicitly enabled)
+  if (devFallbackEnabled) {
     const devUserId = process.env.NEXT_PUBLIC_DEV_USER_ID;
     if (!devUserId) {
       console.error(
@@ -110,6 +114,12 @@ export async function authenticateRequest(
     } catch (err) {
       console.error(`[auth] Failed to verify dev user: ${err}`);
       return null;
+    }
+
+    if (process.env.NODE_ENV === 'production') {
+      console.warn(
+        '[auth] Production fallback auth is enabled (ALLOW_DEV_AUTH_IN_PROD=true).',
+      );
     }
 
     console.log(`[auth] Dev fallback → userId: ${devUserId}`);

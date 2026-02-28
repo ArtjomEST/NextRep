@@ -46,6 +46,7 @@ export default function WorkoutSummaryPage() {
         durationSec: stats.duration > 0 ? stats.duration * 60 : undefined,
         exercises: draft.exercises.map((ex) => ({
           exerciseId: ex.exerciseId,
+          exerciseName: ex.exerciseName,
           order: ex.order,
           status: ex.status,
           sets: ex.sets.map((s, idx) => ({

@@ -34,3 +34,20 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Auth notes (Telegram WebApp)
+
+`/api/workouts`, `/api/workouts/[id]`, and `/api/me` require auth.
+
+- In Telegram WebApp, the client sends `x-telegram-init-data` automatically.
+- In local development, API auth can fall back to `NEXT_PUBLIC_DEV_USER_ID`.
+- In production outside Telegram, fallback is disabled by default and requests return `Authentication required`.
+- If you intentionally want temporary fallback in production (for testing), set:
+
+```bash
+ALLOW_DEV_AUTH_IN_PROD=true
+NEXT_PUBLIC_DEV_USER_ID=<existing user uuid>
+```
+
+> ⚠️ Do not keep `ALLOW_DEV_AUTH_IN_PROD=true` in a real public production environment.

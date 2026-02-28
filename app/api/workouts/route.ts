@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { workouts, workoutExercises, workoutSets } from '@/lib/db/schema';
-import { eq, desc, sql, count as drizzleCount } from 'drizzle-orm';
+import { workouts, workoutExercises, workoutSets, exercises } from '@/lib/db/schema';
+import { eq, desc, sql, count as drizzleCount, inArray } from 'drizzle-orm';
 import { validateSaveWorkout } from '@/lib/api/validate';
 import { authenticateRequest } from '@/lib/auth/helpers';
 import type { SaveWorkoutResponse, WorkoutListItem } from '@/lib/api/types';
@@ -119,6 +119,41 @@ export async function POST(req: NextRequest) {
 
     const data = result.data;
     const userId = auth.userId;
+
+    const requestedExerciseIds = [...new Set(data.exercises.map((ex) => ex.exerciseId))];
+    const existingExerciseRows = requestedExerciseIds.length
+      ? await db
+          .select({ id: exercises.id })
+          .from(exercises)
+          .where(inArray(exercises.id, requestedExerciseIds))
+      : [];
+    const existingExerciseIds = new Set(existingExerciseRows.map((r) => r.id));
+
+    const missingExercises = data.exercises.filter((ex) => !existingExerciseIds.has(ex.exerciseId));
+
+    if (missingExercises.length > 0) {
+      const customExercisesToInsert = new Map<string, { id: string; name: string }>();
+      for (const [idx, ex] of missingExercises.entries()) {
+        const fallbackName = ex.exerciseName?.trim() || `Recovered exercise ${idx + 1}`;
+        if (!customExercisesToInsert.has(ex.exerciseId)) {
+          customExercisesToInsert.set(ex.exerciseId, {
+            id: ex.exerciseId,
+            name: fallbackName,
+          });
+        }
+      }
+
+      await db
+        .insert(exercises)
+        .values(
+          Array.from(customExercisesToInsert.values()).map((ex) => ({
+            id: ex.id,
+            source: 'custom' as const,
+            name: ex.name,
+          })),
+        )
+        .onConflictDoNothing();
+    }
 
     let totalVolume = 0;
     let totalSets = 0;
