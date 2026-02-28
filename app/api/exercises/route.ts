@@ -4,14 +4,14 @@ import { exercises } from '@/lib/db/schema';
 import { ilike, and, sql } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
-  const db = getDb();
-  const { searchParams } = req.nextUrl;
-  const query = searchParams.get('q') ?? '';
-  const category = searchParams.get('category');
-  const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200);
-  const offset = Math.max(parseInt(searchParams.get('offset') ?? '0'), 0);
-
   try {
+    const db = getDb();
+    const { searchParams } = req.nextUrl;
+    const query = searchParams.get('q') ?? '';
+    const category = searchParams.get('category');
+    const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200);
+    const offset = Math.max(parseInt(searchParams.get('offset') ?? '0'), 0);
+
     const conditions = [];
 
     if (query.length > 0) {

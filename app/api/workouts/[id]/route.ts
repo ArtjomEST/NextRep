@@ -18,18 +18,18 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const db = getDb();
-  const auth = await authenticateRequest(req);
-  if (!auth) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 },
-    );
-  }
-
-  const { id } = await params;
-
   try {
+    const db = getDb();
+    const auth = await authenticateRequest(req);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 },
+      );
+    }
+
+    const { id } = await params;
+
     const [workout] = await db
       .select()
       .from(workouts)

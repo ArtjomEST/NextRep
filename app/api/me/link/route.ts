@@ -5,16 +5,16 @@ import { eq } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
 export async function POST(req: NextRequest) {
-  const db = getDb();
-  const auth = await authenticateRequest(req);
-  if (!auth) {
-    return NextResponse.json(
-      { error: 'Authentication required' },
-      { status: 401 },
-    );
-  }
-
   try {
+    const db = getDb();
+    const auth = await authenticateRequest(req);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 },
+      );
+    }
+
     await db
       .update(users)
       .set({ isLinked: true })

@@ -7,10 +7,10 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const db = getDb();
-  const { id } = await params;
-
   try {
+    const db = getDb();
+    const { id } = await params;
+
     const [row] = await db
       .select()
       .from(exercises)
@@ -45,7 +45,7 @@ export async function GET(
       },
     });
   } catch (err) {
-    console.error(`GET /api/exercises/${id} error:`, err);
+    console.error('GET /api/exercises/[id] error:', err);
     return NextResponse.json(
       { error: 'Failed to fetch exercise', message: String(err) },
       { status: 500 },

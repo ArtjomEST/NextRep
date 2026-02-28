@@ -1,3 +1,12 @@
 {"sessionId":"974076","location":"lib/db/index.ts:getDb","message":"Lazy DB init","data":{"urlDefined":true},"timestamp":1772290173021,"hypothesisId":"H1"}
 {"sessionId":"974076","location":"lib/db/index.ts:getDb","message":"Lazy DB init","data":{"urlDefined":true},"timestamp":1772290174234,"hypothesisId":"H1"}
 {"sessionId":"974076","location":"lib/db/index.ts:getDb","message":"Lazy DB init","data":{"urlDefined":true},"timestamp":1772290184374,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"api/workouts/route.ts:GET","message":"GET /api/workouts entered","data":{"nodeEnv":"development","hasDbUrl":true},"timestamp":1772290824796,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"lib/db/index.ts:getDb","message":"Lazy DB init","data":{"urlDefined":true},"timestamp":1772290824797,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"api/workouts/route.ts:GET","message":"GET /api/workouts entered","data":{"nodeEnv":"development","hasDbUrl":true},"timestamp":1772290828629,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"api/workouts/route.ts:GET","message":"GET /api/workouts entered","data":{"nodeEnv":"development","hasDbUrl":true},"timestamp":1772290833808,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"api/workouts/route.ts:GET","message":"GET /api/workouts entered","data":{"nodeEnv":"development","hasDbUrl":true},"timestamp":1772290907111,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"lib/db/index.ts:getDb","message":"Lazy DB init","data":{"urlDefined":true},"timestamp":1772290908774,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"lib/db/index.ts:getDb","message":"Lazy DB init","data":{"urlDefined":true},"timestamp":1772290910289,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"api/workouts/route.ts:GET","message":"GET /api/workouts entered","data":{"nodeEnv":"development","hasDbUrl":true},"timestamp":1772290918164,"hypothesisId":"H1"}
+{"sessionId":"974076","location":"api/workouts/route.ts:GET","message":"GET /api/workouts entered","data":{"nodeEnv":"development","hasDbUrl":true},"timestamp":1772290918392,"hypothesisId":"H1"}

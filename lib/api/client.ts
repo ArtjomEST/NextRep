@@ -62,7 +62,10 @@ export async function searchExercisesApi(
   const res = await fetch(`/api/exercises?${params}`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error('Failed to fetch exercises');
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch exercises (${res.status})`);
+  }
   const json = await res.json();
   return (json.data as DbExercise[]).map(mapDbExercise);
 }
@@ -82,7 +85,10 @@ export async function searchExercisesRaw(
   const res = await fetch(`/api/exercises?${params}`, {
     headers: getAuthHeaders(),
   });
-  if (!res.ok) throw new Error('Failed to fetch exercises');
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch exercises (${res.status})`);
+  }
   const json = await res.json();
   return {
     data: (json.data as DbExercise[]).map(mapDbExercise),
@@ -97,8 +103,9 @@ export async function fetchExerciseDetailApi(
     headers: getAuthHeaders(),
   });
   if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
     if (res.status === 404) throw new Error('Exercise not found');
-    throw new Error('Failed to fetch exercise');
+    throw new Error(json.error ?? `Failed to fetch exercise (${res.status})`);
   }
   const json = await res.json();
   return json.data as ExerciseDetail;
