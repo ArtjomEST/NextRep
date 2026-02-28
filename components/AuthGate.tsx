@@ -36,6 +36,56 @@ function LoadingScreen() {
   );
 }
 
+function AppLogo() {
+  const [imgError, setImgError] = useState(false);
+
+  if (!imgError) {
+    return (
+      <img
+        src="/nextrep-avatar.png"
+        alt="NextRep"
+        width={80}
+        height={80}
+        onError={() => setImgError(true)}
+        style={{
+          borderRadius: 20,
+          marginBottom: 24,
+          flexShrink: 0,
+          objectFit: 'cover',
+          boxShadow: `0 8px 32px ${theme.colors.primary}40`,
+        }}
+      />
+    );
+  }
+
+  return (
+    <div
+      style={{
+        width: 80,
+        height: 80,
+        borderRadius: 20,
+        background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.primaryHover})`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 24,
+        flexShrink: 0,
+        boxShadow: `0 8px 32px ${theme.colors.primary}40`,
+      }}
+    >
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6.5 6.5h11" />
+        <path d="M6.5 17.5h11" />
+        <path d="M4 6.5a2.5 2.5 0 0 1 0-5h0a2.5 2.5 0 0 1 0 5" />
+        <path d="M20 6.5a2.5 2.5 0 0 0 0-5h0a2.5 2.5 0 0 0 0 5" />
+        <path d="M4 20a2.5 2.5 0 0 1 0-5h0a2.5 2.5 0 0 1 0 5" />
+        <path d="M20 20a2.5 2.5 0 0 0 0-5h0a2.5 2.5 0 0 0 0 5" />
+        <path d="M12 3v18" />
+      </svg>
+    </div>
+  );
+}
+
 function AuthScreen() {
   const { link, isTelegram, refetch, errorMessage } = useAuth();
   const [linking, setLinking] = useState(false);
@@ -85,31 +135,7 @@ function AuthScreen() {
         overflow: 'auto',
       }}
     >
-      {/* Logo */}
-      <div
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 20,
-          background: `linear-gradient(135deg, ${theme.colors.primary}, ${theme.colors.primaryHover})`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 24,
-          flexShrink: 0,
-          boxShadow: `0 8px 32px ${theme.colors.primary}40`,
-        }}
-      >
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M6.5 6.5h11" />
-          <path d="M6.5 17.5h11" />
-          <path d="M4 6.5a2.5 2.5 0 0 1 0-5h0a2.5 2.5 0 0 1 0 5" />
-          <path d="M20 6.5a2.5 2.5 0 0 0 0-5h0a2.5 2.5 0 0 0 0 5" />
-          <path d="M4 20a2.5 2.5 0 0 1 0-5h0a2.5 2.5 0 0 1 0 5" />
-          <path d="M20 20a2.5 2.5 0 0 0 0-5h0a2.5 2.5 0 0 0 0 5" />
-          <path d="M12 3v18" />
-        </svg>
-      </div>
+      <AppLogo />
 
       <h1 style={{ color: theme.colors.textPrimary, fontSize: 28, fontWeight: 700, margin: 0, textAlign: 'center' }}>
         NextRep
