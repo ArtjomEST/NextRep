@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { workouts, workoutExercises, workoutSets } from '@/lib/db/schema';
 import { eq, desc, sql, count as drizzleCount } from 'drizzle-orm';
 import { validateSaveWorkout } from '@/lib/api/validate';
@@ -10,6 +10,7 @@ import { randomUUID } from 'crypto';
 // ─── GET /api/workouts ───────────────────────────────────────
 
 export async function GET(req: NextRequest) {
+  const db = getDb();
   const auth = await authenticateRequest(req);
   if (!auth) {
     return NextResponse.json(
@@ -99,6 +100,7 @@ export async function GET(req: NextRequest) {
 // ─── POST /api/workouts ─────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const db = getDb();
   const auth = await authenticateRequest(req);
   if (!auth) {
     return NextResponse.json(

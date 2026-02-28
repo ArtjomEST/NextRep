@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import {
   workouts,
   workoutExercises,
@@ -18,6 +18,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const db = getDb();
   const auth = await authenticateRequest(req);
   if (!auth) {
     return NextResponse.json(

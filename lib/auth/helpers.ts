@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { validateTelegramInitData, type TelegramUser } from './telegram';
@@ -20,6 +20,7 @@ export interface AuthResult {
 export async function authenticateRequest(
   req: NextRequest,
 ): Promise<AuthResult | null> {
+  const db = getDb();
   const initData = req.headers.get('x-telegram-init-data');
 
   if (initData) {

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
 export async function POST(req: NextRequest) {
+  const db = getDb();
   const auth = await authenticateRequest(req);
   if (!auth) {
     return NextResponse.json(

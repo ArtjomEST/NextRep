@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 import { exercises } from '@/lib/db/schema';
 import { ilike, and, sql } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
+  const db = getDb();
   const { searchParams } = req.nextUrl;
   const query = searchParams.get('q') ?? '';
   const category = searchParams.get('category');
