@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { theme } from '@/lib/theme';
 
 interface ModalProps {
@@ -10,6 +10,15 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, children }: ModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -33,6 +42,7 @@ export default function Modal({ open, onClose, children }: ModalProps) {
         }}
       />
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
           backgroundColor: theme.colors.card,

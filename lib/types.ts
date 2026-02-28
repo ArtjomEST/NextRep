@@ -17,6 +17,7 @@ export interface Exercise {
   equipment: string;
   description?: string;
   howTo?: string;
+  imageUrl?: string;
 }
 
 export type MuscleGroup = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core';

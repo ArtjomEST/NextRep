@@ -11,8 +11,8 @@ import {
   computeTotalExercises,
   getNextPendingExerciseId,
 } from '@/lib/workout/metrics';
-import { mockLastPerformance, mockExercises } from '@/lib/mockData';
-import type { Exercise } from '@/lib/types';
+import { fetchExerciseDetailApi } from '@/lib/api/client';
+import type { ExerciseDetail } from '@/lib/api/types';
 import SetRow from '@/components/SetRow';
 import RestTimer from '@/components/RestTimer';
 import Modal from '@/components/Modal';
@@ -26,7 +26,9 @@ export default function ActiveWorkoutPage() {
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showAllDoneModal, setShowAllDoneModal] = useState(false);
   const [showRest, setShowRest] = useState(false);
-  const [infoExercise, setInfoExercise] = useState<Exercise | null>(null);
+  const [infoDetail, setInfoDetail] = useState<ExerciseDetail | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const exerciseRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -42,25 +44,37 @@ export default function ActiveWorkoutPage() {
       const tick = () => setElapsed(Math.floor((Date.now() - start) / 1000));
       tick();
       timerRef.current = setInterval(tick, 1000);
-      return () => { if (timerRef.current) clearInterval(timerRef.current); };
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
     }
   }, [draft.startedAt]);
 
   const scrollToExercise = useCallback((id: string) => {
     setTimeout(() => {
-      exerciseRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      exerciseRefs.current[id]?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      });
     }, 80);
   }, []);
 
-  const handleToggleComplete = useCallback((exerciseEntryId: string, setId: string) => {
-    dispatch({ type: 'TOGGLE_SET_COMPLETE', exerciseEntryId, setId });
-    setShowRest(true);
-  }, [dispatch]);
+  const handleToggleComplete = useCallback(
+    (exerciseEntryId: string, setId: string) => {
+      dispatch({ type: 'TOGGLE_SET_COMPLETE', exerciseEntryId, setId });
+      setShowRest(true);
+    },
+    [dispatch],
+  );
 
   function handleFinishExercise(exerciseId: string) {
     dispatch({ type: 'FINISH_EXERCISE', exerciseId });
     const nextId = getNextPendingExerciseId(
-      draft.exercises.map((e) => e.id === exerciseId ? { ...e, status: 'completed' as const } : e),
+      draft.exercises.map((e) =>
+        e.id === exerciseId
+          ? { ...e, status: 'completed' as const }
+          : e,
+      ),
       exerciseId,
     );
     if (nextId) {
@@ -93,9 +107,44 @@ export default function ActiveWorkoutPage() {
     router.push('/workout/summary');
   }
 
-  function handleOpenInfo(exerciseId: string) {
-    const ex = mockExercises.find((e) => e.id === exerciseId) ?? null;
-    setInfoExercise(ex);
+  async function handleOpenInfo(exerciseId: string) {
+    setInfoOpen(true);
+    setInfoLoading(true);
+    setInfoDetail(null);
+
+    try {
+      const detail = await fetchExerciseDetailApi(exerciseId);
+      setInfoDetail(detail);
+    } catch {
+      const entry = draft.exercises.find(
+        (e) => e.exerciseId === exerciseId,
+      );
+      if (entry) {
+        setInfoDetail({
+          id: entry.exerciseId,
+          name: entry.exerciseName,
+          description: null,
+          howTo: null,
+          instructions: [],
+          category: null,
+          primaryMuscles: [],
+          secondaryMuscles: [],
+          equipment: entry.equipment ? entry.equipment.split(', ') : [],
+          measurementType: 'weight_reps',
+          imageUrl: null,
+          images: [],
+          source: 'wger',
+          sourceId: null,
+        });
+      }
+    } finally {
+      setInfoLoading(false);
+    }
+  }
+
+  function handleCloseInfo() {
+    setInfoOpen(false);
+    setInfoDetail(null);
   }
 
   const totalVolume = computeTotalVolume(draft.exercises);
@@ -103,7 +152,14 @@ export default function ActiveWorkoutPage() {
   const totalExercises = computeTotalExercises(draft.exercises);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '12px', paddingBottom: '80px' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        paddingTop: '12px',
+        paddingBottom: '80px',
+      }}
+    >
       {/* ─── Top Bar ─── */}
       <div
         style={{
@@ -116,7 +172,14 @@ export default function ActiveWorkoutPage() {
         }}
       >
         <div>
-          <h1 style={{ color: theme.colors.textPrimary, fontSize: '18px', fontWeight: 700, margin: 0 }}>
+          <h1
+            style={{
+              color: theme.colors.textPrimary,
+              fontSize: '18px',
+              fontWeight: 700,
+              margin: 0,
+            }}
+          >
             {draft.name}
           </h1>
           <span
@@ -149,24 +212,37 @@ export default function ActiveWorkoutPage() {
       </div>
 
       {/* ─── Exercise Cards ─── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+        }}
+      >
         {draft.exercises.map((entry) => {
           const isActive = draft.activeExerciseId === entry.id;
           const isCompleted = entry.status === 'completed';
-          const last = mockLastPerformance[entry.exerciseId];
-          const completedSets = entry.sets.filter((s) => s.completed).length;
+          const completedSets = entry.sets.filter(
+            (s) => s.completed,
+          ).length;
 
           return (
             <section
               key={entry.id}
-              ref={(el) => { exerciseRefs.current[entry.id] = el; }}
+              ref={(el) => {
+                exerciseRefs.current[entry.id] = el;
+              }}
               style={{
-                backgroundColor: isActive ? theme.colors.card : theme.colors.surface,
+                backgroundColor: isActive
+                  ? theme.colors.card
+                  : theme.colors.surface,
                 border: `1.5px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
                 borderRadius: theme.radius.md,
                 padding: isActive ? '16px' : '14px 16px',
                 transition: 'all 0.2s ease',
-                boxShadow: isActive ? `0 0 20px rgba(31,138,91,0.08)` : 'none',
+                boxShadow: isActive
+                  ? `0 0 20px rgba(31,138,91,0.08)`
+                  : 'none',
               }}
             >
               {/* ─── Exercise Header ─── */}
@@ -180,7 +256,6 @@ export default function ActiveWorkoutPage() {
                   minHeight: '44px',
                 }}
               >
-                {/* Status indicator */}
                 <div
                   style={{
                     width: '8px',
@@ -195,16 +270,25 @@ export default function ActiveWorkoutPage() {
                   }}
                 />
 
-                {/* Name + tags */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
                     <h2
                       style={{
-                        color: isCompleted ? theme.colors.textMuted : theme.colors.textPrimary,
+                        color: isCompleted
+                          ? theme.colors.textMuted
+                          : theme.colors.textPrimary,
                         fontSize: '16px',
                         fontWeight: 600,
                         margin: 0,
-                        textDecoration: isCompleted ? 'line-through' : 'none',
+                        textDecoration: isCompleted
+                          ? 'line-through'
+                          : 'none',
                       }}
                     >
                       {entry.exerciseName}
@@ -225,24 +309,48 @@ export default function ActiveWorkoutPage() {
                     )}
                   </div>
                   {!isActive && !isCompleted && (
-                    <div style={{ display: 'flex', gap: '5px', marginTop: '4px', flexWrap: 'wrap' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '5px',
+                        marginTop: '4px',
+                        flexWrap: 'wrap',
+                      }}
+                    >
                       {entry.muscleGroups.map((mg) => (
-                        <span key={mg} style={tagStyle}>{mg}</span>
+                        <span key={mg} style={tagStyle}>
+                          {mg}
+                        </span>
                       ))}
                     </div>
                   )}
                   {!isActive && isCompleted && (
-                    <span style={{ color: theme.colors.textMuted, fontSize: '12px' }}>
-                      {completedSets} set{completedSets !== 1 ? 's' : ''} completed
+                    <span
+                      style={{
+                        color: theme.colors.textMuted,
+                        fontSize: '12px',
+                      }}
+                    >
+                      {completedSets} set
+                      {completedSets !== 1 ? 's' : ''} completed
                     </span>
                   )}
                 </div>
 
-                {/* Right actions */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    flexShrink: 0,
+                  }}
+                >
                   {isCompleted && !isActive && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleRestoreExercise(entry.id); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRestoreExercise(entry.id);
+                      }}
                       style={{
                         background: 'none',
                         border: 'none',
@@ -257,12 +365,30 @@ export default function ActiveWorkoutPage() {
                     </button>
                   )}
                   {!isActive && !isCompleted && (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={theme.colors.textMuted}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <polyline points="6 9 12 15 18 9" />
                     </svg>
                   )}
                   {isActive && (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={theme.colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={theme.colors.textMuted}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <polyline points="18 15 12 9 6 15" />
                     </svg>
                   )}
@@ -272,16 +398,36 @@ export default function ActiveWorkoutPage() {
               {/* ─── Expanded content (active only) ─── */}
               {isActive && (
                 <div style={{ marginTop: '12px' }}>
-                  {/* Sub-header: tags + info + last time */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: '8px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '5px',
+                        flexWrap: 'wrap',
+                        alignItems: 'center',
+                      }}
+                    >
                       {entry.muscleGroups.map((mg) => (
-                        <span key={mg} style={tagStyle}>{mg}</span>
+                        <span key={mg} style={tagStyle}>
+                          {mg}
+                        </span>
                       ))}
-                      <span style={equipTagStyle}>{entry.equipment}</span>
+                      <span style={equipTagStyle}>
+                        {entry.equipment}
+                      </span>
                     </div>
                     <button
-                      onClick={() => handleOpenInfo(entry.exerciseId)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenInfo(entry.exerciseId);
+                      }}
                       style={{
                         background: 'none',
                         border: `1px solid ${theme.colors.border}`,
@@ -297,19 +443,33 @@ export default function ActiveWorkoutPage() {
                         flexShrink: 0,
                       }}
                     >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="16" x2="12" y2="12" />
-                        <line x1="12" y1="8" x2="12.01" y2="8" />
+                        <line
+                          x1="12"
+                          y1="16"
+                          x2="12"
+                          y2="12"
+                        />
+                        <line
+                          x1="12"
+                          y1="8"
+                          x2="12.01"
+                          y2="8"
+                        />
                       </svg>
                       Info
                     </button>
                   </div>
-                  {last && (
-                    <p style={{ color: theme.colors.textMuted, fontSize: '12px', margin: '0 0 12px' }}>
-                      Last: {last.sets}×{last.reps} @ {last.weight}kg
-                    </p>
-                  )}
 
                   {/* Sets */}
                   <div>
@@ -318,18 +478,53 @@ export default function ActiveWorkoutPage() {
                         key={set.id}
                         index={si}
                         set={set}
-                        onUpdateWeight={(v) => dispatch({ type: 'UPDATE_SET', exerciseEntryId: entry.id, setId: set.id, field: 'weight', value: v })}
-                        onUpdateReps={(v) => dispatch({ type: 'UPDATE_SET', exerciseEntryId: entry.id, setId: set.id, field: 'reps', value: v })}
-                        onToggleComplete={() => handleToggleComplete(entry.id, set.id)}
-                        onRemove={() => dispatch({ type: 'REMOVE_SET', exerciseEntryId: entry.id, setId: set.id })}
+                        onUpdateWeight={(v) =>
+                          dispatch({
+                            type: 'UPDATE_SET',
+                            exerciseEntryId: entry.id,
+                            setId: set.id,
+                            field: 'weight',
+                            value: v,
+                          })
+                        }
+                        onUpdateReps={(v) =>
+                          dispatch({
+                            type: 'UPDATE_SET',
+                            exerciseEntryId: entry.id,
+                            setId: set.id,
+                            field: 'reps',
+                            value: v,
+                          })
+                        }
+                        onToggleComplete={() =>
+                          handleToggleComplete(entry.id, set.id)
+                        }
+                        onRemove={() =>
+                          dispatch({
+                            type: 'REMOVE_SET',
+                            exerciseEntryId: entry.id,
+                            setId: set.id,
+                          })
+                        }
                       />
                     ))}
                   </div>
 
                   {/* Add set + Finish exercise */}
-                  <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '8px',
+                      marginTop: '12px',
+                    }}
+                  >
                     <button
-                      onClick={() => dispatch({ type: 'ADD_SET', exerciseEntryId: entry.id })}
+                      onClick={() =>
+                        dispatch({
+                          type: 'ADD_SET',
+                          exerciseEntryId: entry.id,
+                        })
+                      }
                       style={{
                         flex: 1,
                         padding: '12px',
@@ -345,7 +540,9 @@ export default function ActiveWorkoutPage() {
                       + Add Set
                     </button>
                     <button
-                      onClick={() => handleFinishExercise(entry.id)}
+                      onClick={() =>
+                        handleFinishExercise(entry.id)
+                      }
                       style={{
                         flex: 1,
                         padding: '12px',
@@ -369,17 +566,24 @@ export default function ActiveWorkoutPage() {
       </div>
 
       {/* ─── Rest Timer ─── */}
-      <RestTimer visible={showRest} onDismiss={() => setShowRest(false)} />
+      <RestTimer
+        visible={showRest}
+        onDismiss={() => setShowRest(false)}
+      />
 
       {/* ─── Exercise Info Sheet ─── */}
       <ExerciseInfoSheet
-        exercise={infoExercise}
-        open={infoExercise !== null}
-        onClose={() => setInfoExercise(null)}
+        exercise={infoDetail}
+        open={infoOpen}
+        loading={infoLoading}
+        onClose={handleCloseInfo}
       />
 
       {/* ─── All Done Modal ─── */}
-      <Modal open={showAllDoneModal} onClose={() => setShowAllDoneModal(false)}>
+      <Modal
+        open={showAllDoneModal}
+        onClose={() => setShowAllDoneModal(false)}
+      >
         <div style={{ textAlign: 'center', marginBottom: '16px' }}>
           <div
             style={{
@@ -393,42 +597,103 @@ export default function ActiveWorkoutPage() {
               margin: '0 auto 12px',
             }}
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={theme.colors.success} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={theme.colors.success}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <h3 style={{ color: theme.colors.textPrimary, fontSize: '18px', fontWeight: 700, margin: '0 0 6px' }}>
+          <h3
+            style={{
+              color: theme.colors.textPrimary,
+              fontSize: '18px',
+              fontWeight: 700,
+              margin: '0 0 6px',
+            }}
+          >
             All exercises completed
           </h3>
-          <p style={{ color: theme.colors.textSecondary, fontSize: '14px', margin: 0 }}>
+          <p
+            style={{
+              color: theme.colors.textSecondary,
+              fontSize: '14px',
+              margin: 0,
+            }}
+          >
             Finish your workout?
           </p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
           <Button fullWidth onClick={handleFinishWorkout}>
             Finish Workout
           </Button>
-          <Button variant="ghost" fullWidth onClick={() => setShowAllDoneModal(false)}>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => setShowAllDoneModal(false)}
+          >
             Continue Editing
           </Button>
         </div>
       </Modal>
 
       {/* ─── Manual Finish Modal ─── */}
-      <Modal open={showFinishModal} onClose={() => setShowFinishModal(false)}>
-        <h3 style={{ color: theme.colors.textPrimary, fontSize: '18px', fontWeight: 700, margin: '0 0 16px' }}>
+      <Modal
+        open={showFinishModal}
+        onClose={() => setShowFinishModal(false)}
+      >
+        <h3
+          style={{
+            color: theme.colors.textPrimary,
+            fontSize: '18px',
+            fontWeight: 700,
+            margin: '0 0 16px',
+          }}
+        >
           Finish workout?
         </h3>
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '12px',
+            marginBottom: '20px',
+          }}
+        >
           <ModalStat label="Exercises" value={String(totalExercises)} />
           <ModalStat label="Sets" value={String(totalSets)} />
-          <ModalStat label="Volume" value={`${totalVolume.toLocaleString()} kg`} />
+          <ModalStat
+            label="Volume"
+            value={`${totalVolume.toLocaleString()} kg`}
+          />
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
           <Button fullWidth onClick={handleFinishWorkout}>
             Confirm &amp; Finish
           </Button>
-          <Button variant="ghost" fullWidth onClick={() => setShowFinishModal(false)}>
+          <Button
+            variant="ghost"
+            fullWidth
+            onClick={() => setShowFinishModal(false)}
+          >
             Keep Going
           </Button>
         </div>
@@ -440,8 +705,27 @@ export default function ActiveWorkoutPage() {
 function ModalStat({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ flex: 1, textAlign: 'center' }}>
-      <p style={{ color: theme.colors.textMuted, fontSize: '11px', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
-      <p style={{ color: theme.colors.textPrimary, fontSize: '18px', fontWeight: 700, margin: '4px 0 0' }}>{value}</p>
+      <p
+        style={{
+          color: theme.colors.textMuted,
+          fontSize: '11px',
+          margin: 0,
+          textTransform: 'uppercase',
+          letterSpacing: '0.04em',
+        }}
+      >
+        {label}
+      </p>
+      <p
+        style={{
+          color: theme.colors.textPrimary,
+          fontSize: '18px',
+          fontWeight: 700,
+          margin: '4px 0 0',
+        }}
+      >
+        {value}
+      </p>
     </div>
   );
 }

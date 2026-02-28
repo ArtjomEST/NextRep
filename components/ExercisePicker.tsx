@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { theme } from '@/lib/theme';
-import { mockExercises } from '@/lib/mockData';
+import { searchExercisesApi } from '@/lib/api/client';
 import type { Exercise, MuscleGroup } from '@/lib/types';
 
 interface ExercisePickerProps {
@@ -14,38 +14,68 @@ interface ExercisePickerProps {
 
 const muscleGroups: MuscleGroup[] = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
 
+const MUSCLE_TO_CATEGORY: Record<MuscleGroup, string> = {
+  Chest: 'Chest',
+  Back: 'Back',
+  Legs: 'Legs',
+  Shoulders: 'Shoulders',
+  Arms: 'Arms',
+  Core: 'Core',
+};
+
 export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }: ExercisePickerProps) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<MuscleGroup | null>(null);
   const [pendingIds, setPendingIds] = useState<string[]>([]);
+  const [results, setResults] = useState<Exercise[]>([]);
+  const [loading, setLoading] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const selectedMapRef = useRef<Map<string, Exercise>>(new Map());
 
-  // Reset selection each time picker opens
   useEffect(() => {
     if (open) {
       setPendingIds([]);
       setSearch('');
       setFilter(null);
+      selectedMapRef.current = new Map();
     }
   }, [open]);
 
-  const filtered = useMemo(() => {
-    return mockExercises.filter((ex) => {
-      const matchSearch = ex.name.toLowerCase().includes(search.toLowerCase());
-      const matchFilter = !filter || ex.muscleGroups.includes(filter);
-      return matchSearch && matchFilter;
-    });
-  }, [search, filter]);
+  const loadExercises = useCallback(async (q: string, mg: MuscleGroup | null) => {
+    setLoading(true);
+    try {
+      const category = mg ? MUSCLE_TO_CATEGORY[mg] : undefined;
+      const data = await searchExercisesApi(q, category, 50);
+      setResults(data);
+    } catch {
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => loadExercises(search, filter), 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [search, filter, open, loadExercises]);
 
   function toggleExercise(ex: Exercise) {
     if (alreadyAddedIds.includes(ex.id)) return;
-    setPendingIds((prev) =>
-      prev.includes(ex.id) ? prev.filter((id) => id !== ex.id) : [...prev, ex.id],
-    );
+    setPendingIds((prev) => {
+      if (prev.includes(ex.id)) {
+        selectedMapRef.current.delete(ex.id);
+        return prev.filter((id) => id !== ex.id);
+      }
+      selectedMapRef.current.set(ex.id, ex);
+      return [...prev, ex.id];
+    });
   }
 
   function handleAddSelected() {
     const selectedExercises = pendingIds
-      .map((id) => mockExercises.find((ex) => ex.id === id))
+      .map((id) => selectedMapRef.current.get(id) ?? results.find((ex) => ex.id === id))
       .filter((ex): ex is Exercise => ex !== undefined);
     onAdd(selectedExercises);
     onClose();
@@ -107,7 +137,6 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
         >
           Add Exercises
         </h2>
-        {/* Spacer to balance the back button */}
         <div style={{ width: '64px', flexShrink: 0 }} />
       </div>
 
@@ -189,7 +218,19 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
           gap: '8px',
         }}
       >
-        {filtered.map((ex) => {
+        {loading && results.length === 0 && (
+          <p style={{ color: theme.colors.textMuted, fontSize: '14px', textAlign: 'center', padding: '32px 0' }}>
+            Loading exercises...
+          </p>
+        )}
+
+        {!loading && results.length === 0 && (
+          <p style={{ color: theme.colors.textMuted, fontSize: '14px', textAlign: 'center', padding: '32px 0' }}>
+            No exercises found
+          </p>
+        )}
+
+        {results.map((ex) => {
           const isAlreadyAdded = alreadyAddedIds.includes(ex.id);
           const isPending = pendingIds.includes(ex.id);
 
@@ -208,11 +249,7 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
                   ? 'rgba(31, 138, 91, 0.10)'
                   : theme.colors.card,
                 border: `1px solid ${
-                  isPending
-                    ? theme.colors.primary
-                    : isAlreadyAdded
-                    ? theme.colors.border
-                    : theme.colors.border
+                  isPending ? theme.colors.primary : theme.colors.border
                 }`,
                 borderRadius: theme.radius.md,
                 padding: '14px 16px',
@@ -263,7 +300,6 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
                 </div>
               </div>
 
-              {/* Right-side indicator */}
               <div style={{ flexShrink: 0, marginLeft: '12px', display: 'flex', alignItems: 'center' }}>
                 {isAlreadyAdded ? (
                   <span style={{ color: theme.colors.textMuted, fontSize: '12px', fontWeight: 500 }}>
@@ -299,15 +335,9 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
             </button>
           );
         })}
-
-        {filtered.length === 0 && (
-          <p style={{ color: theme.colors.textMuted, fontSize: '14px', textAlign: 'center', padding: '32px 0' }}>
-            No exercises found
-          </p>
-        )}
       </div>
 
-      {/* Sticky bottom — Add Selected button */}
+      {/* Sticky bottom */}
       <div
         style={{
           padding: '12px 16px',

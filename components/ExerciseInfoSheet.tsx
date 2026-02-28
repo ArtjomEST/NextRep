@@ -1,17 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { theme } from '@/lib/theme';
-import type { Exercise } from '@/lib/types';
+import type { ExerciseDetail } from '@/lib/api/types';
 
 interface ExerciseInfoSheetProps {
-  exercise: Exercise | null;
+  exercise: ExerciseDetail | null;
   open: boolean;
+  loading?: boolean;
   onClose: () => void;
 }
 
-export default function ExerciseInfoSheet({ exercise, open, onClose }: ExerciseInfoSheetProps) {
-  if (!open || !exercise) return null;
+export default function ExerciseInfoSheet({
+  exercise,
+  open,
+  loading,
+  onClose,
+}: ExerciseInfoSheetProps) {
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [open, onClose]);
+
+  if (!open) return null;
 
   return (
     <div
@@ -36,6 +51,7 @@ export default function ExerciseInfoSheet({ exercise, open, onClose }: ExerciseI
 
       {/* Sheet */}
       <div
+        onClick={(e) => e.stopPropagation()}
         style={{
           position: 'relative',
           backgroundColor: theme.colors.card,
@@ -47,7 +63,13 @@ export default function ExerciseInfoSheet({ exercise, open, onClose }: ExerciseI
         }}
       >
         {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            padding: '10px 0 4px',
+          }}
+        >
           <div
             style={{
               width: '36px',
@@ -59,59 +81,197 @@ export default function ExerciseInfoSheet({ exercise, open, onClose }: ExerciseI
         </div>
 
         <div style={{ padding: '8px 20px 24px' }}>
-          {/* Title */}
-          <h2 style={{ color: theme.colors.textPrimary, fontSize: '20px', fontWeight: 700, margin: '0 0 16px' }}>
-            {exercise.name}
-          </h2>
-
-          {/* Illustration placeholder */}
-          <div
-            style={{
-              width: '100%',
-              height: '160px',
-              backgroundColor: theme.colors.surface,
-              borderRadius: theme.radius.md,
-              border: `1px solid ${theme.colors.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '20px',
-            }}
-          >
-            <span style={{ color: theme.colors.textMuted, fontSize: '13px' }}>
-              Illustration coming soon
-            </span>
-          </div>
-
-          {/* Muscles worked */}
-          <Section title="Muscles Worked">
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-              {exercise.muscleGroups.map((mg) => (
-                <Chip key={mg} label={mg} />
-              ))}
+          {loading && !exercise && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                padding: '16px 0',
+              }}
+            >
+              <div
+                style={{
+                  height: '24px',
+                  width: '60%',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: theme.radius.sm,
+                }}
+              />
+              <div
+                style={{
+                  height: '140px',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: theme.radius.md,
+                }}
+              />
+              <div
+                style={{
+                  height: '16px',
+                  width: '40%',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: theme.radius.sm,
+                }}
+              />
             </div>
-          </Section>
+          )}
 
-          {/* Equipment */}
-          <Section title="Equipment">
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <Chip label={exercise.equipment} accent />
-            </div>
-          </Section>
+          {exercise && (
+            <>
+              {/* Title */}
+              <h2
+                style={{
+                  color: theme.colors.textPrimary,
+                  fontSize: '20px',
+                  fontWeight: 700,
+                  margin: '0 0 16px',
+                }}
+              >
+                {exercise.name}
+              </h2>
 
-          {/* Description */}
-          <Section title="Description">
-            <p style={{ color: theme.colors.textSecondary, fontSize: '14px', lineHeight: 1.6, margin: 0 }}>
-              {exercise.description ?? 'Detailed exercise description will be available when connected to the exercise database.'}
-            </p>
-          </Section>
+              {/* Image */}
+              <div
+                style={{
+                  width: '100%',
+                  height: '160px',
+                  backgroundColor: theme.colors.surface,
+                  borderRadius: theme.radius.md,
+                  border: `1px solid ${theme.colors.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '20px',
+                  overflow: 'hidden',
+                }}
+              >
+                {exercise.imageUrl ? (
+                  <img
+                    src={exercise.imageUrl}
+                    alt={exercise.name}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: '13px',
+                    }}
+                  >
+                    No image available
+                  </span>
+                )}
+              </div>
 
-          {/* How to */}
-          <Section title="How to Do" last>
-            <p style={{ color: theme.colors.textSecondary, fontSize: '14px', lineHeight: 1.6, margin: 0 }}>
-              {exercise.howTo ?? 'Step-by-step instructions coming soon.'}
-            </p>
-          </Section>
+              {/* Category + Muscles */}
+              <Section title="Muscles Worked">
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  {exercise.category && (
+                    <Chip label={exercise.category} />
+                  )}
+                  {exercise.primaryMuscles.map((m) => (
+                    <Chip key={m} label={m} accent />
+                  ))}
+                  {exercise.secondaryMuscles.map((m) => (
+                    <Chip key={m} label={m} />
+                  ))}
+                  {exercise.primaryMuscles.length === 0 &&
+                    exercise.secondaryMuscles.length === 0 &&
+                    !exercise.category && (
+                      <span
+                        style={{
+                          color: theme.colors.textMuted,
+                          fontSize: '13px',
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        Not specified
+                      </span>
+                    )}
+                </div>
+              </Section>
+
+              {/* Equipment */}
+              <Section title="Equipment">
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {exercise.equipment.length > 0 ? (
+                    exercise.equipment.map((eq) => (
+                      <Chip key={eq} label={eq} accent />
+                    ))
+                  ) : (
+                    <Chip label="Bodyweight" accent />
+                  )}
+                </div>
+              </Section>
+
+              {/* Instructions */}
+              <Section title="How to Perform">
+                {exercise.instructions.length > 0 ? (
+                  <ol
+                    style={{
+                      margin: 0,
+                      paddingLeft: '18px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                    }}
+                  >
+                    {exercise.instructions.map((step, i) => (
+                      <li
+                        key={i}
+                        style={{
+                          color: theme.colors.textSecondary,
+                          fontSize: '14px',
+                          lineHeight: 1.5,
+                        }}
+                      >
+                        {step}
+                      </li>
+                    ))}
+                  </ol>
+                ) : exercise.description ? (
+                  <p
+                    style={{
+                      color: theme.colors.textSecondary,
+                      fontSize: '14px',
+                      lineHeight: 1.6,
+                      margin: 0,
+                    }}
+                  >
+                    {exercise.description}
+                  </p>
+                ) : (
+                  <p
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: '14px',
+                      margin: 0,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    No instructions available yet.
+                  </p>
+                )}
+              </Section>
+
+              {/* Type */}
+              <Section title="Type" last>
+                <Chip
+                  label={exercise.measurementType.replace(/_/g, ' ')}
+                />
+              </Section>
+            </>
+          )}
 
           {/* Close */}
           <button
@@ -137,7 +297,15 @@ export default function ExerciseInfoSheet({ exercise, open, onClose }: ExerciseI
   );
 }
 
-function Section({ title, children, last }: { title: string; children: React.ReactNode; last?: boolean }) {
+function Section({
+  title,
+  children,
+  last,
+}: {
+  title: string;
+  children: React.ReactNode;
+  last?: boolean;
+}) {
   return (
     <div style={{ marginBottom: last ? '0' : '18px' }}>
       <h3
@@ -161,13 +329,16 @@ function Chip({ label, accent }: { label: string; accent?: boolean }) {
   return (
     <span
       style={{
-        backgroundColor: accent ? 'rgba(31,138,91,0.12)' : theme.colors.surface,
+        backgroundColor: accent
+          ? 'rgba(31,138,91,0.12)'
+          : theme.colors.surface,
         color: accent ? theme.colors.primary : theme.colors.textSecondary,
         fontSize: '12px',
         fontWeight: 500,
         padding: '5px 12px',
         borderRadius: '6px',
         border: accent ? 'none' : `1px solid ${theme.colors.border}`,
+        textTransform: 'capitalize',
       }}
     >
       {label}

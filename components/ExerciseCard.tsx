@@ -1,16 +1,36 @@
+'use client';
+
 import React from 'react';
+import { useRouter } from 'next/navigation';
 import Card from './Card';
 import { theme } from '@/lib/theme';
 import type { Exercise } from '@/lib/types';
 
 interface ExerciseCardProps {
   exercise: Exercise;
+  onClick?: () => void;
 }
 
-export default function ExerciseCard({ exercise }: ExerciseCardProps) {
+export default function ExerciseCard({ exercise, onClick }: ExerciseCardProps) {
+  const router = useRouter();
+
+  function handleClick() {
+    if (onClick) {
+      onClick();
+    } else {
+      router.push(`/exercises/${exercise.id}`);
+    }
+  }
+
   return (
-    <Card style={{ cursor: 'pointer' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Card onClick={handleClick} style={{ cursor: 'pointer' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3
             style={{
@@ -22,7 +42,14 @@ export default function ExerciseCard({ exercise }: ExerciseCardProps) {
           >
             {exercise.name}
           </h3>
-          <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '6px',
+              marginTop: '8px',
+              flexWrap: 'wrap',
+            }}
+          >
             {exercise.muscleGroups.map((mg) => (
               <span
                 key={mg}

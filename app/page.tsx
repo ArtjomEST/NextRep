@@ -2,12 +2,12 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+import UserGreeting from '@/components/UserGreeting';
 import Button from '@/components/Button';
 import WorkoutCard from '@/components/WorkoutCard';
 import ProgressCard from '@/components/ProgressCard';
 import Card from '@/components/Card';
-import { mockUser, mockWorkouts } from '@/lib/mockData';
+import { mockWorkouts } from '@/lib/mockData';
 import { theme } from '@/lib/theme';
 import { useWorkout } from '@/lib/workout/state';
 
@@ -20,7 +20,7 @@ export default function HomePage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <Header greeting={`Hey, ${mockUser.name}`} streak={mockUser.streak} />
+      <UserGreeting />
 
       {/* Resume banner */}
       {hasDraft && (
@@ -30,18 +30,47 @@ export default function HomePage() {
             background: `linear-gradient(135deg, ${theme.colors.card} 0%, rgba(31,138,91,0.08) 100%)`,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <div>
-              <p style={{ color: theme.colors.textPrimary, fontSize: '15px', fontWeight: 600, margin: 0 }}>
+              <p
+                style={{
+                  color: theme.colors.textPrimary,
+                  fontSize: '15px',
+                  fontWeight: 600,
+                  margin: 0,
+                }}
+              >
                 {draft.name}
               </p>
-              <p style={{ color: theme.colors.textSecondary, fontSize: '13px', margin: '2px 0 0' }}>
-                {draft.exercises.length} exercise{draft.exercises.length !== 1 ? 's' : ''} · {draft.status === 'active' ? 'In progress' : 'Planned'}
+              <p
+                style={{
+                  color: theme.colors.textSecondary,
+                  fontSize: '13px',
+                  margin: '2px 0 0',
+                }}
+              >
+                {draft.exercises.length} exercise
+                {draft.exercises.length !== 1 ? 's' : ''} &middot;{' '}
+                {draft.status === 'active'
+                  ? 'In progress'
+                  : 'Planned'}
               </p>
             </div>
             <Button
               size="sm"
-              onClick={() => router.push(draft.status === 'active' ? '/workout/active' : '/workout/new')}
+              onClick={() =>
+                router.push(
+                  draft.status === 'active'
+                    ? '/workout/active'
+                    : '/workout/new',
+                )
+              }
             >
               Resume
             </Button>
@@ -49,7 +78,11 @@ export default function HomePage() {
         </Card>
       )}
 
-      <Button fullWidth size="lg" onClick={() => router.push('/workout/new')}>
+      <Button
+        fullWidth
+        size="lg"
+        onClick={() => router.push('/workout/new')}
+      >
         Start Workout
       </Button>
 
@@ -80,7 +113,7 @@ export default function HomePage() {
               cursor: 'pointer',
             }}
           >
-            View all →
+            View all &rarr;
           </span>
         </div>
         <WorkoutCard workout={lastWorkout} />
