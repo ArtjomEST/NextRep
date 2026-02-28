@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { workouts, workoutExercises, workoutSets } from '@/lib/db/schema';
-import { eq, desc, sql, count as drizzleCount } from 'drizzle-orm';
+import { eq, desc, inArray, count as drizzleCount } from 'drizzle-orm';
 import { validateSaveWorkout } from '@/lib/api/validate';
 import { authenticateRequest } from '@/lib/auth/helpers';
 import type { SaveWorkoutResponse, WorkoutListItem } from '@/lib/api/types';
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
           count: drizzleCount(),
         })
         .from(workoutExercises)
-        .where(sql`${workoutExercises.workoutId} = ANY(${workoutIds})`)
+        .where(inArray(workoutExercises.workoutId, workoutIds))
         .groupBy(workoutExercises.workoutId);
 
       for (const c of counts) {

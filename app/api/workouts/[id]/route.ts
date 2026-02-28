@@ -6,7 +6,7 @@ import {
   workoutSets,
   exercises,
 } from '@/lib/db/schema';
-import { eq, asc, sql } from 'drizzle-orm';
+import { eq, asc, inArray } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 import type {
   WorkoutDetail,
@@ -74,7 +74,7 @@ export async function GET(
       const allSets = await db
         .select()
         .from(workoutSets)
-        .where(sql`${workoutSets.workoutExerciseId} = ANY(${weIds})`)
+        .where(inArray(workoutSets.workoutExerciseId, weIds))
         .orderBy(asc(workoutSets.setIndex));
 
       for (const s of allSets) {
