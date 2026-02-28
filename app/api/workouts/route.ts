@@ -10,9 +10,6 @@ import { randomUUID } from 'crypto';
 // ─── GET /api/workouts ───────────────────────────────────────
 
 export async function GET(req: NextRequest) {
-  // #region agent log
-  fetch('http://127.0.0.1:7492/ingest/705d0b4d-7333-4e4f-a376-a6c97e2a6b2e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'974076'},body:JSON.stringify({sessionId:'974076',location:'api/workouts/route.ts:GET',message:'GET /api/workouts entered',data:{nodeEnv:process.env.NODE_ENV,hasDbUrl:!!process.env.DATABASE_URL},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-  // #endregion
   try {
     const db = getDb();
     const auth = await authenticateRequest(req);
@@ -93,9 +90,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error('GET /api/workouts error:', err);
-    // #region agent log
-    fetch('http://127.0.0.1:7492/ingest/705d0b4d-7333-4e4f-a376-a6c97e2a6b2e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'974076'},body:JSON.stringify({sessionId:'974076',location:'api/workouts/route.ts:GET:catch',message:'GET /api/workouts caught error',data:{error:String(err),stack:err instanceof Error?err.stack:undefined},timestamp:Date.now(),hypothesisId:'H1'})}).catch(()=>{});
-    // #endregion
     return NextResponse.json(
       { error: 'Failed to fetch workouts', message: String(err) },
       { status: 500 },
