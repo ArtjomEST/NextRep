@@ -35,8 +35,26 @@ export default function LegendsWorkoutCard({
   onUsePreset,
   applying,
 }: LegendsWorkoutCardProps) {
+  const handleActivate = () => {
+    if (!applying) {
+      onUsePreset(legend);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleActivate();
+    }
+  };
+
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label={applying ? 'Applying…' : `Use ${legend.name} preset`}
+      onClick={handleActivate}
+      onKeyDown={handleKeyDown}
       style={{
         position: 'relative',
         borderRadius: 24,
@@ -45,6 +63,7 @@ export default function LegendsWorkoutCard({
         aspectRatio: '2 / 1',
         minHeight: 200,
         maxHeight: 240,
+        cursor: applying ? 'wait' : 'pointer',
       }}
     >
       {/* Layer 1: image – object-cover, Arnold larger and right (82% center) */}
@@ -92,34 +111,6 @@ export default function LegendsWorkoutCard({
         }}
       >
         <div>
-          {/* Tag pills: single line, no wrap */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              flexWrap: 'nowrap',
-              gap: 8,
-              marginBottom: 16,
-            }}
-          >
-            {legend.tags.map((tag, i) => (
-              <span
-                key={i}
-                style={{
-                  padding: '4px 9px',
-                  borderRadius: 999,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#f3f4f6',
-                  background: i === 0 ? '#165834' : 'rgba(26,32,38,0.95)',
-                  border: i === 0 ? '1px solid rgba(34,197,94,0.25)' : '1px solid rgba(255,255,255,0.06)',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
           <p
             style={{
               color: '#ffffff',
@@ -182,32 +173,20 @@ export default function LegendsWorkoutCard({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => onUsePreset(legend)}
-          disabled={applying}
+        <div
           style={{
             alignSelf: 'flex-start',
-            padding: '12px 20px',
-            borderRadius: 12,
-            border: 'none',
-            background: '#ffffff',
-            color: '#0E1114',
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: applying ? 'wait' : 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
+            gap: 4,
+            color: '#ffffff',
+            fontSize: 14,
+            fontWeight: 600,
           }}
         >
-          {applying ? 'Applying…' : 'Use this preset'}
-          {!applying && (
-            <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          )}
-        </button>
+          <span>Use this preset</span>
+          <span>→</span>
+        </div>
       </div>
     </div>
   );

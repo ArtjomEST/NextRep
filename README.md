@@ -6,13 +6,16 @@ First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
+
+**If the dev server hangs on "Compiling..." or shows endless loading (Turbopack issue), use the stable dev script instead:**
+
+```bash
+npm run dev:stable
+```
+
+- `dev` – runs with Turbopack (default in Next.js 16).
+- `dev:stable` – runs with webpack (`NEXT_DISABLE_TURBOPACK=1`). Use this if Turbopack hangs or you see lockfile/workspace root warnings.
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
@@ -28,6 +31,23 @@ To learn more about Next.js, take a look at the following resources:
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Troubleshooting (Windows)
+
+**Stuck dev server or "Unable to acquire lock .next/dev/lock":**
+
+1. Stop the dev server (Ctrl+C in the terminal).
+2. Kill any leftover Node process:
+   ```powershell
+   Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force
+   ```
+3. Remove the Next.js cache and lock:
+   ```powershell
+   Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+   ```
+4. Start again: `npm run dev` or `npm run dev:stable`.
+
+**Repo uses npm only.** Keep only `package-lock.json`; do not commit `pnpm-lock.yaml`, `yarn.lock`, or `bun.lockb` (they are in `.gitignore` to avoid Turbopack picking the wrong workspace root).
 
 ## Deploy on Vercel
 

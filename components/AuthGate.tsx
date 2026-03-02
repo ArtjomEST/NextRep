@@ -310,7 +310,8 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   const isDev = process.env.NODE_ENV !== 'production';
-  if (isDev && !isTelegram && status === 'authenticated') {
+  // On localhost (not in Telegram): always show the app so you can develop and test
+  if (isDev && !isTelegram) {
     return <>{children}</>;
   }
 

@@ -4,6 +4,7 @@ import './globals.css';
 import TabBar from '@/components/TabBar';
 import { Providers } from './providers';
 import { LayoutShell } from './layout-shell';
+import { AppErrorBoundary } from './AppErrorBoundary';
 
 export const metadata: Metadata = {
   title: 'NextRep — Workout Tracker',
@@ -28,14 +29,16 @@ export default function RootLayout({
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
       </head>
       <body>
-        <Providers>
-          <LayoutShell>{children}</LayoutShell>
-          <TabBar />
-        </Providers>
+        <AppErrorBoundary>
+          <Providers>
+            <LayoutShell>{children}</LayoutShell>
+            <TabBar />
+          </Providers>
+        </AppErrorBoundary>
       </body>
     </html>
   );

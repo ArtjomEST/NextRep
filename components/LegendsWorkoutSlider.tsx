@@ -18,7 +18,7 @@ export default function LegendsWorkoutSlider() {
     setApplyingId(legend.id);
     try {
       const exercises = await resolveLegendExercises(legend.exerciseNames);
-      const workoutName = `${legend.name} – ${legend.subtitle}`;
+      const workoutName = `${legend.name} — ${legend.subtitle}`;
       dispatch({ type: 'RESET_DRAFT' });
       dispatch({ type: 'SET_NAME', name: workoutName });
       for (const ex of exercises) {
@@ -26,7 +26,7 @@ export default function LegendsWorkoutSlider() {
       }
       router.push('/workout/new');
     } catch {
-      setApplyingId(null);
+      // silent
     } finally {
       setApplyingId(null);
     }
@@ -34,36 +34,36 @@ export default function LegendsWorkoutSlider() {
 
   return (
     <section>
-      <h2
-        style={{
-          color: ui.textLabel,
-          fontSize: 15,
-          fontWeight: 700,
-          margin: '0 0 14px',
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-        }}
-      >
+      <h2 style={{
+        color: ui.textLabel,
+        fontSize: 15,
+        fontWeight: 700,
+        margin: '0 0 14px',
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+      }}>
         Legends Workouts
       </h2>
-      <div
-        style={{
-          display: 'flex',
-          gap: 16,
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
-          scrollPaddingLeft: 0,
-          paddingBottom: 8,
-          marginBottom: -8,
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
+
+      <div style={{
+        display: 'flex',
+        gap: 12,
+        overflowX: 'auto',
+        overflowY: 'visible',
+        scrollSnapType: 'x mandatory',
+        WebkitOverflowScrolling: 'touch',
+        paddingRight: 16,
+        paddingBottom: 8,
+        /* убираем скроллбар визуально */
+        msOverflowStyle: 'none',
+        scrollbarWidth: 'none',
+      }}>
         {LEGEND_WORKOUTS.map((legend) => (
           <div
             key={legend.id}
             style={{
-              flex: '0 0 100%',
-              minWidth: '100%',
+              flex: '0 0 90%',   /* 90% = видна часть следующей карточки */
+              minWidth: '90%',
               scrollSnapAlign: 'start',
               scrollSnapStop: 'always',
             }}

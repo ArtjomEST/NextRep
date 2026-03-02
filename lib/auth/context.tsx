@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isTelegram, setIsTelegram] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const initialized = useRef(false);
+  const initDone = useRef(false);
 
   const fetchUser = useCallback(async () => {
     try {
@@ -94,6 +95,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (initialized.current) return;
     initialized.current = true;
 
+    const AUTH_INIT_TIMEOUT_MS = 12_000;
+
+    const timeoutId = setTimeout(() => {
+      if (initDone.current) return;
+      initDone.current = true;
+      setUser(null);
+      setStatus('unauthenticated');
+      setErrorMessage('Connection timed out. Check your network and try again.');
+    }, AUTH_INIT_TIMEOUT_MS);
+
     (async () => {
       const sdkAvailable = await waitForTelegramSdk();
 
@@ -104,8 +115,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const hasInitData = !!getTelegramInitData();
       setIsTelegram(hasInitData);
 
-      await fetchUser();
+      try {
+        await fetchUser();
+        initDone.current = true;
+        clearTimeout(timeoutId);
+      } catch {
+        initDone.current = true;
+        clearTimeout(timeoutId);
+      }
     })();
+
+    return () => clearTimeout(timeoutId);
   }, [fetchUser]);
 
   return (

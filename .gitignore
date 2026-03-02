@@ -1,5 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
+# This repo uses npm only; ignore other lockfiles to avoid Turbopack picking the wrong workspace root
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb
+
 # dependencies
 /node_modules
 /.pnp

@@ -16,6 +16,7 @@ import type { WorkoutListItem, WorkoutDetail } from '@/lib/api/types';
 import { getTimeGreeting, getHomeStats } from '@/lib/home/utils';
 import { ui } from '@/lib/ui-styles';
 import LegendsWorkoutSlider from '@/components/LegendsWorkoutSlider';
+import { SectionErrorBoundary } from './AppErrorBoundary';
 
 function formatVolume(kg: number): string {
   if (kg >= 1000) return `${(kg / 1000).toFixed(1)}k`;
@@ -47,7 +48,7 @@ export default function HomePage() {
         fetchWorkoutsApi(30, 0),
         fetchWorkoutStatsApi().catch(() => null),
       ]);
-      const list = listRes.data;
+      const list = Array.isArray(listRes?.data) ? listRes.data : [];
       setWorkouts(list);
       if (statsRes?.totalVolume != null) {
         setTotalVolumeFromApi(Number(statsRes.totalVolume));
@@ -600,7 +601,9 @@ export default function HomePage() {
           </section>
 
           {/* ─── Legends Workouts: hero cards, horizontal slider ───────────── */}
-          <LegendsWorkoutSlider />
+          <SectionErrorBoundary>
+            <LegendsWorkoutSlider />
+          </SectionErrorBoundary>
 
           {/* ─── 6) Last Workout: darker card, muted labels ───────────────── */}
           <section>

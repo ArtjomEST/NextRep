@@ -42,4 +42,26 @@ export const LEGEND_WORKOUTS: LegendWorkout[] = [
     ],
     description: 'Classic mass-building split inspired by Arnold’s golden era.',
   },
+  {
+    id: 'ronnie-monster-legs',
+    name: 'Ronnie Coleman',
+    subtitle: 'Monster Leg Workout',
+    tags: ['Legend preset', 'Legs', 'Advanced'],
+    difficulty: 'Advanced',
+    image:
+      '/legends/ronnie-monster-legs.png',
+    traits: [
+      { label: 'High Volume', icon: 'target' },
+      { label: 'Strength', icon: 'lightning' },
+    ],
+    exerciseNames: [
+      'Back Squat',
+      'Leg Press',
+      'Hack Squat',
+      'Leg Extension',
+      'Lying Leg Curl',
+      'Walking Lunge',
+    ],
+    description: 'High-volume strength-focused leg day inspired by Ronnie Coleman.',
+  },
 ];
