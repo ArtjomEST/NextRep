@@ -2,29 +2,24 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Card from '@/components/Card';
 import Button from '@/components/Button';
 import Skeleton from '@/components/Skeleton';
-import { theme } from '@/lib/theme';
 import { useAuth } from '@/lib/auth/context';
 import { useWorkout } from '@/lib/workout/state';
 import { getTelegramUser } from '@/lib/auth/client';
 import {
   fetchWorkoutsApi,
   fetchWorkoutDetailApi,
+  fetchWorkoutStatsApi,
 } from '@/lib/api/client';
 import type { WorkoutListItem, WorkoutDetail } from '@/lib/api/types';
-import {
-  getSubtitleMessage,
-  getTodayFocus,
-  computeStreak,
-  getThisWeekCount,
-  getWeekDotDates,
-  getMonthSnapshot,
-  findRecentPR,
-  isLatestWorkoutWithinDays,
-  WEEK_SESSION_TARGET,
-} from '@/lib/home/utils';
+import { getTimeGreeting, getHomeStats } from '@/lib/home/utils';
+import { ui } from '@/lib/ui-styles';
+
+function formatVolume(kg: number): string {
+  if (kg >= 1000) return `${(kg / 1000).toFixed(1)}k`;
+  return kg.toLocaleString('en-US');
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -34,7 +29,7 @@ export default function HomePage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
   const [latestDetail, setLatestDetail] = useState<WorkoutDetail | null>(null);
-  const [previousDetail, setPreviousDetail] = useState<WorkoutDetail | null>(null);
+  const [totalVolumeFromApi, setTotalVolumeFromApi] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,25 +42,28 @@ export default function HomePage() {
     setLoading(true);
     setError(null);
     try {
-      const { data: list } = await fetchWorkoutsApi(30, 0);
+      const [listRes, statsRes] = await Promise.all([
+        fetchWorkoutsApi(30, 0),
+        fetchWorkoutStatsApi().catch(() => null),
+      ]);
+      const list = listRes.data;
       setWorkouts(list);
-
+      if (statsRes?.totalVolume != null) {
+        setTotalVolumeFromApi(Number(statsRes.totalVolume));
+      } else {
+        setTotalVolumeFromApi(null);
+      }
       if (list.length >= 1) {
-        const [detail1, detail2] = await Promise.all([
-          fetchWorkoutDetailApi(list[0].id),
-          list.length >= 2 ? fetchWorkoutDetailApi(list[1].id) : Promise.resolve(null),
-        ]);
-        setLatestDetail(detail1);
-        setPreviousDetail(detail2);
+        const detail = await fetchWorkoutDetailApi(list[0].id);
+        setLatestDetail(detail);
       } else {
         setLatestDetail(null);
-        setPreviousDetail(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
       setWorkouts([]);
       setLatestDetail(null);
-      setPreviousDetail(null);
+      setTotalVolumeFromApi(null);
     } finally {
       setLoading(false);
     }
@@ -75,27 +73,8 @@ export default function HomePage() {
     loadData();
   }, [loadData]);
 
-  const workoutCount = workouts.length;
+  const stats = getHomeStats(workouts, latestDetail, totalVolumeFromApi);
   const latestItem = workouts[0] ?? null;
-  const lastWorkoutDate = latestItem
-    ? (latestItem.startedAt ?? latestItem.createdAt)?.slice(0, 10) ?? null
-    : null;
-  const daysSinceLast =
-    lastWorkoutDate && latestItem
-      ? Math.floor(
-          (Date.now() - new Date(latestItem.startedAt ?? latestItem.createdAt ?? 0).getTime()) /
-            (24 * 60 * 60 * 1000),
-        )
-      : 999;
-
-  const subtitle = getSubtitleMessage(workoutCount, lastWorkoutDate);
-  const focus = getTodayFocus(workoutCount, latestDetail, daysSinceLast);
-  const streak = computeStreak(workouts);
-  const thisWeekSessions = getThisWeekCount(workouts);
-  const weekDots = getWeekDotDates(workouts);
-  const month = getMonthSnapshot(workouts);
-  const prAlert =
-    isLatestWorkoutWithinDays(latestItem, 7) && findRecentPR(latestDetail, previousDetail);
 
   const handleDiscardDraft = () => {
     dispatch({ type: 'RESET_DRAFT' });
@@ -103,126 +82,247 @@ export default function HomePage() {
 
   const displayName =
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Athlete';
-  const initials = displayName.charAt(0).toUpperCase();
+  const initials = displayName
+    .split(/\s+/)
+    .map((s) => s.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || '?';
+  const greeting = getTimeGreeting();
+
+  const { cardBg: statCardBg, cardBorder: statCardBorder, textMuted: textMutedSoft, textLabel: textLabelSoft } = ui;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingBottom: 8 }}>
-      {/* ─── 1) Greeting Header ───────────────────────────────────── */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: ui.gap, paddingBottom: 8 }}>
+      {/* ─── 1) Header: greeting + name left, avatar right ───────────────── */}
       <header
         style={{
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 14,
-          padding: `${theme.spacing.md} 0`,
+          padding: '14px 0 6px',
         }}
       >
-        {photoUrl ? (
-          <img
-            src={photoUrl}
-            alt=""
-            width={48}
-            height={48}
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <p
             style={{
-              borderRadius: '50%',
-              objectFit: 'cover',
-              flexShrink: 0,
-              border: `2px solid ${theme.colors.border}`,
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: '50%',
-              backgroundColor: theme.colors.primary,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 20,
-              fontWeight: 700,
-              color: theme.colors.textPrimary,
-              flexShrink: 0,
+              color: textLabelSoft,
+              fontSize: 13,
+              margin: 0,
+              textTransform: 'none',
+              letterSpacing: '0.01em',
             }}
           >
-            {authStatus === 'loading' ? '' : initials}
-          </div>
-        )}
-        <div style={{ minWidth: 0, flex: 1 }}>
+            {greeting}
+          </p>
           <h1
             style={{
-              color: theme.colors.textPrimary,
-              fontSize: 22,
-              fontWeight: 700,
-              margin: 0,
-              lineHeight: 1.3,
+              color: '#f3f4f6',
+              fontSize: 24,
+              fontWeight: 800,
+              margin: '4px 0 0',
+              lineHeight: 1.2,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
             }}
           >
             {authStatus === 'loading' ? (
-              <Skeleton width={140} height={26} />
+              <Skeleton width={140} height={28} />
             ) : (
-              `Hey, ${displayName}`
+              displayName
             )}
           </h1>
-          {user?.username && (
-            <p
+        </div>
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          {photoUrl ? (
+            <img
+              src={photoUrl}
+              alt=""
+              width={52}
+              height={52}
               style={{
-                color: theme.colors.textMuted,
-                fontSize: 13,
-                margin: '2px 0 0',
+                borderRadius: 12,
+                objectFit: 'cover',
+                border: `2px solid rgba(255,255,255,0.08)`,
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 12,
+                background: 'linear-gradient(145deg, #1a5c3a 0%, #165834 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 17,
+                fontWeight: 800,
+                color: '#f3f4f6',
+                letterSpacing: '0.02em',
               }}
             >
-              @{user.username}
-            </p>
+              {authStatus === 'loading' ? '' : initials}
+            </div>
           )}
-          <p
+          <span
             style={{
-              color: theme.colors.textSecondary,
-              fontSize: 14,
-              margin: '4px 0 0',
+              position: 'absolute',
+              bottom: 2,
+              right: 2,
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              backgroundColor: '#22c55e',
+              border: '2px solid #0E1114',
+              boxShadow: '0 0 0 1px rgba(34,197,94,0.5)',
             }}
-          >
-            {subtitle}
-          </p>
+          />
         </div>
       </header>
 
-      {/* ─── 2) Start Workout CTA ─────────────────────────────────── */}
-      <Button
-        fullWidth
-        size="lg"
+      {/* ─── 2) Hero CTA: layered divs only (no background/backgroundImage mix) ─ */}
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => router.push('/workout/new')}
-        style={{ fontSize: 17, padding: '18px 24px' }}
+        onKeyDown={(e) => e.key === 'Enter' && router.push('/workout/new')}
+        style={{
+          borderRadius: 18,
+          padding: '24px 20px',
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: 'pointer',
+          border: '1px solid rgba(255,255,255,0.06)',
+          boxShadow:
+            '0 4px 6px -1px rgba(0,0,0,0.3), 0 10px 28px -4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04)',
+        }}
       >
-        Start Workout
-      </Button>
-
-      {/* ─── 3) Resume Workout (only if draft) ─────────────────────── */}
-      {hasDraft && (
-        <Card
+        {/* Layer 1: base gradient */}
+        <div
           style={{
-            borderColor: theme.colors.primary,
-            background: `linear-gradient(135deg, ${theme.colors.card} 0%, rgba(31,138,91,0.08) 100%)`,
+            position: 'absolute',
+            inset: 0,
+            background: ui.heroGradient,
+            pointerEvents: 'none',
+          }}
+        />
+        {/* Layer 2: radial glow top-right */}
+        <div
+          style={{
+            position: 'absolute',
+            top: -60,
+            right: -40,
+            width: 180,
+            height: 180,
+            borderRadius: '50%',
+            background: ui.heroGlowOuter,
+            pointerEvents: 'none',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            top: -30,
+            right: -20,
+            width: 140,
+            height: 140,
+            borderRadius: '50%',
+            background: ui.heroGlowInner,
+            pointerEvents: 'none',
+          }}
+        />
+        <p
+          style={{
+            color: 'rgba(180,220,190,0.9)',
+            fontSize: 11,
+            fontWeight: 700,
+            margin: 0,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            position: 'relative',
+          }}
+        >
+          Ready to train?
+        </p>
+        <p
+          style={{
+            color: '#ffffff',
+            fontSize: 'clamp(26px, 7vw, 34px)',
+            fontWeight: 800,
+            margin: '10px 0 0',
+            letterSpacing: '0.02em',
+            textTransform: 'uppercase',
+            lineHeight: 1.15,
+            position: 'relative',
+            textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+          }}
+        >
+          Start Workout
+        </p>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-end',
+            marginTop: 24,
+            position: 'relative',
+          }}
+        >
+          <div>
+            <p
+              style={{
+                color: textLabelSoft,
+                fontSize: 10,
+                fontWeight: 700,
+                margin: 0,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Streak
+            </p>
+            <p style={{ color: '#ffffff', fontSize: 17, fontWeight: 700, margin: '4px 0 0' }}>
+              {stats.streak} day{stats.streak !== 1 ? 's' : ''} 🔥
+            </p>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <p
+              style={{
+                color: textLabelSoft,
+                fontSize: 10,
+                fontWeight: 700,
+                margin: 0,
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+              }}
+            >
+              This week
+            </p>
+            <p style={{ color: '#ffffff', fontSize: 17, fontWeight: 700, margin: '4px 0 0' }}>
+              {stats.thisWeekDone}/{stats.thisWeekTarget}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ─── 3) Resume Workout (only if draft) ─────────────────────────── */}
+      {hasDraft && (
+        <div
+          style={{
+            background: 'linear-gradient(145deg, #1a2420 0%, #151b21 100%)',
+            border: '1px solid rgba(34,197,94,0.25)',
+            borderRadius: 14,
+            padding: 18,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
           }}
         >
           <div style={{ marginBottom: 12 }}>
-            <p
-              style={{
-                color: theme.colors.textPrimary,
-                fontSize: 16,
-                fontWeight: 600,
-                margin: 0,
-              }}
-            >
+            <p style={{ color: '#f3f4f6', fontSize: 16, fontWeight: 700, margin: 0 }}>
               {draft.name}
             </p>
-            <p
-              style={{
-                color: theme.colors.textSecondary,
-                fontSize: 13,
-                margin: '4px 0 0',
-              }}
-            >
+            <p style={{ color: textLabelSoft, fontSize: 13, margin: '4px 0 0' }}>
               {draft.exercises.length} exercise{draft.exercises.length !== 1 ? 's' : ''} ·{' '}
               {draft.exercises.reduce((n, e) => n + e.sets.length, 0)} sets
               {draft.startedAt && (
@@ -234,250 +334,288 @@ export default function HomePage() {
             <Button
               size="sm"
               onClick={() =>
-                router.push(
-                  draft.status === 'active' ? '/workout/active' : '/workout/new',
-                )
+                router.push(draft.status === 'active' ? '/workout/active' : '/workout/new')
               }
             >
               Continue
             </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={handleDiscardDraft}
-              style={{ color: theme.colors.error }}
-            >
+            <Button size="sm" variant="ghost" onClick={handleDiscardDraft} style={{ color: ui.error }}>
               Discard
             </Button>
           </div>
-        </Card>
+        </div>
       )}
 
       {error && (
-        <p style={{ color: theme.colors.error, fontSize: 14, margin: 0 }}>
-          {error}
-        </p>
+        <p style={{ color: ui.error, fontSize: 14, margin: 0 }}>{error}</p>
       )}
 
       {loading ? (
         <>
-          <Card><Skeleton height={80} /></Card>
-          <Card><Skeleton height={60} /></Card>
-          <Card><Skeleton height={100} /></Card>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 12 }}>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
+          </div>
+          <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={60} /></div>
         </>
       ) : (
         <>
-          {/* ─── 4) Daily Focus ────────────────────────────────────── */}
-          <Card>
-            <h3
+          {/* ─── 4) Three stat cards: darker elevated surface, soft border, screenshot proportions ─ */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 140px), 1fr))',
+              gap: 14,
+            }}
+          >
+            <div
               style={{
-                color: theme.colors.textPrimary,
-                fontSize: 15,
-                fontWeight: 600,
-                margin: '0 0 4px',
+                background: statCardBg,
+                border: statCardBorder,
+                borderRadius: 14,
+                padding: '16px 14px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
               }}
             >
-              Today&apos;s Focus
-            </h3>
-            <p
-              style={{
-                color: theme.colors.primary,
-                fontSize: 18,
-                fontWeight: 700,
-                margin: 0,
-              }}
-            >
-              {focus.name}
-            </p>
-            <p
-              style={{
-                color: theme.colors.textSecondary,
-                fontSize: 13,
-                margin: '4px 0 0',
-              }}
-            >
-              {focus.subline}
-            </p>
-            <p
-              style={{
-                color: theme.colors.textMuted,
-                fontSize: 12,
-                margin: '8px 0 12px',
-              }}
-            >
-              Based on your recent sessions
-            </p>
-            <Button
-              size="sm"
-              onClick={() => router.push('/workout/new')}
-            >
-              Start {focus.name} Workout
-            </Button>
-          </Card>
-
-          {/* ─── 5) PR Alert (only when PR) ─────────────────────────── */}
-          {prAlert && (
-            <Card
-              style={{
-                borderColor: theme.colors.success,
-                background: `linear-gradient(135deg, ${theme.colors.card} 0%, rgba(34,197,94,0.08) 100%)`,
-              }}
-            >
-              <p style={{ color: theme.colors.textMuted, fontSize: 12, margin: '0 0 4px' }}>
-                🏆 New Personal Record
+              <p
+                style={{
+                  color: textMutedSoft,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  margin: 0,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Total Volume
               </p>
-              <p style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: 600, margin: 0 }}>
-                {prAlert.exerciseName}
+              <p
+                style={{
+                  color: '#f3f4f6',
+                  fontSize: 'clamp(20px, 5.5vw, 24px)',
+                  fontWeight: 800,
+                  margin: '6px 0 0',
+                  fontVariantNumeric: 'tabular-nums',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {formatVolume(stats.totalVolumeAllTime)} kg
               </p>
-              <p style={{ color: theme.colors.success, fontSize: 14, margin: '4px 0 0' }}>
-                {prAlert.label}
+              <p style={{ color: textMutedSoft, fontSize: 11, margin: '6px 0 0' }}>
+                All time
               </p>
-            </Card>
-          )}
-
-          {/* ─── 6) Consistency ─────────────────────────────────────── */}
-          <Card>
-            <h3
+            </div>
+            <div
               style={{
-                color: theme.colors.textPrimary,
-                fontSize: 15,
-                fontWeight: 600,
-                margin: '0 0 12px',
+                background: statCardBg,
+                border: statCardBorder,
+                borderRadius: 14,
+                padding: '16px 14px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
               }}
             >
-              Consistency
-            </h3>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 16, marginBottom: 12 }}>
-              <div>
-                <p style={{ color: theme.colors.textMuted, fontSize: 12, margin: 0 }}>
-                  Current streak
-                </p>
-                <p style={{ color: theme.colors.textPrimary, fontSize: 24, fontWeight: 700, margin: '2px 0 0' }}>
-                  {streak} {streak === 1 ? 'day' : 'days'}
-                </p>
-              </div>
-              <div>
-                <p style={{ color: theme.colors.textMuted, fontSize: 12, margin: 0 }}>
-                  This week
-                </p>
-                <p style={{ color: theme.colors.textPrimary, fontSize: 24, fontWeight: 700, margin: '2px 0 0' }}>
-                  {thisWeekSessions} / {WEEK_SESSION_TARGET} sessions
-                </p>
-              </div>
+              <p
+                style={{
+                  color: textMutedSoft,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  margin: 0,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Workouts
+              </p>
+              <p
+                style={{
+                  color: '#f3f4f6',
+                  fontSize: 'clamp(20px, 5.5vw, 24px)',
+                  fontWeight: 800,
+                  margin: '6px 0 0',
+                  fontVariantNumeric: 'tabular-nums',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {stats.workoutsThisMonth} total
+              </p>
+              <p style={{ color: textMutedSoft, fontSize: 11, margin: '6px 0 0' }}>
+                This month
+              </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, i) => (
-                <div
-                  key={day}
-                  style={{
-                    flex: 1,
-                    textAlign: 'center',
-                    fontSize: 10,
-                    color: theme.colors.textMuted,
-                  }}
-                >
-                  {day.slice(0, 1)}
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-              {[0, 1, 2, 3, 4, 5, 6].map((d) => (
-                <div
-                  key={d}
-                  style={{
-                    flex: 1,
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: weekDots.includes(d)
-                      ? theme.colors.primary
-                      : theme.colors.surface,
-                  }}
-                />
-              ))}
-            </div>
-          </Card>
-
-          {/* ─── 7) This Month ─────────────────────────────────────── */}
-          <Card>
-            <h3
+            <div
               style={{
-                color: theme.colors.textPrimary,
-                fontSize: 15,
-                fontWeight: 600,
-                margin: '0 0 12px',
+                background: statCardBg,
+                border: statCardBorder,
+                borderRadius: 14,
+                padding: '16px 14px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
               }}
             >
-              This Month
-            </h3>
-            <div style={{ display: 'flex', gap: 20 }}>
-              <div>
-                <p style={{ color: theme.colors.textMuted, fontSize: 12, margin: 0 }}>
-                  Workouts
-                </p>
-                <p style={{ color: theme.colors.textPrimary, fontSize: 20, fontWeight: 700, margin: '2px 0 0' }}>
-                  {month.thisMonthWorkouts}
-                </p>
-                {month.workoutsDelta != null && (
-                  <p
-                    style={{
-                      fontSize: 12,
-                      margin: '2px 0 0',
-                      color:
-                        month.workoutsDelta >= 0
-                          ? theme.colors.success
-                          : theme.colors.error,
-                    }}
-                  >
-                    {month.workoutsDelta >= 0 ? '+' : ''}
-                    {month.workoutsDelta} vs last month
-                  </p>
-                )}
-              </div>
-              <div>
-                <p style={{ color: theme.colors.textMuted, fontSize: 12, margin: 0 }}>
-                  Volume
-                </p>
-                <p style={{ color: theme.colors.textPrimary, fontSize: 20, fontWeight: 700, margin: '2px 0 0' }}>
-                  {month.thisMonthVolume >= 1000
-                    ? `${(month.thisMonthVolume / 1000).toFixed(1)}k`
-                    : month.thisMonthVolume.toLocaleString('en-US')}{' '}
-                  kg
-                </p>
-                {month.volumeDelta != null && (
-                  <p
-                    style={{
-                      fontSize: 12,
-                      margin: '2px 0 0',
-                      color:
-                        month.volumeDelta >= 0
-                          ? theme.colors.success
-                          : theme.colors.error,
-                    }}
-                  >
-                    {month.volumeDelta >= 0 ? '+' : ''}
-                    {month.volumeDelta.toLocaleString('en-US')} kg vs last month
-                  </p>
-                )}
-              </div>
+              <p
+                style={{
+                  color: textMutedSoft,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  margin: 0,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Best Lift
+              </p>
+              <p
+                style={{
+                  color: '#f3f4f6',
+                  fontSize: 'clamp(20px, 5.5vw, 24px)',
+                  fontWeight: 800,
+                  margin: '6px 0 0',
+                  fontVariantNumeric: 'tabular-nums',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {stats.bestLift ? `${stats.bestLift.value} kg` : '—'}
+              </p>
+              <p
+                style={{
+                  color: stats.bestLift ? 'rgba(34,197,94,0.95)' : textMutedSoft,
+                  fontSize: 11,
+                  margin: '6px 0 0',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {stats.bestLift?.label ?? '—'}
+              </p>
             </div>
-          </Card>
+          </div>
 
-          {/* ─── 8) Last Workout ────────────────────────────────────── */}
+          {/* ─── 5) Weekly strip: muted header, darker day cells, screenshot-like ─ */}
           <section>
             <div
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                marginBottom: 12,
+                marginBottom: 14,
               }}
             >
               <h2
                 style={{
-                  color: theme.colors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: 600,
+                  color: textLabelSoft,
+                  fontSize: 15,
+                  fontWeight: 700,
                   margin: 0,
+                  letterSpacing: '0.06em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                This Week
+              </h2>
+              <span
+                style={{
+                  color: 'rgba(34,197,94,0.95)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {stats.thisWeekDone}/{stats.thisWeekTarget} done
+              </span>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+              }}
+            >
+              {stats.weekStrip.map((cell, i) => (
+                <div
+                  key={i}
+                  style={{
+                    flex: 1,
+                    aspectRatio: '1',
+                    maxWidth: 50,
+                    borderRadius: 12,
+                    background:
+                      cell.status === 'completed'
+                        ? 'linear-gradient(145deg, #1a5c3a 0%, #165834 100%)'
+                        : 'linear-gradient(180deg, #1a2026 0%, #151b21 100%)',
+                    border: cell.status === 'completed' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(255,255,255,0.06)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
+                  }}
+                >
+                  <span
+                    style={{
+                      color:
+                        cell.status === 'completed' || cell.status === 'current'
+                          ? '#f3f4f6'
+                          : textMutedSoft,
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {cell.dayLetter}
+                  </span>
+                  {cell.status === 'completed' && (
+                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                  {cell.status === 'current' && (
+                    <span
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        backgroundColor: '#f3f4f6',
+                      }}
+                    />
+                  )}
+                  {cell.status === 'empty' && (
+                    <span
+                      style={{
+                        width: 12,
+                        height: 2,
+                        backgroundColor: textMutedSoft,
+                        borderRadius: 1,
+                      }}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* ─── 6) Last Workout: darker card, muted labels ───────────────── */}
+          <section>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 14,
+              }}
+            >
+              <h2
+                style={{
+                  color: textLabelSoft,
+                  fontSize: 15,
+                  fontWeight: 700,
+                  margin: 0,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
                 }}
               >
                 Last Workout
@@ -485,28 +623,34 @@ export default function HomePage() {
               <span
                 onClick={() => router.push('/history')}
                 style={{
-                  color: theme.colors.primary,
+                  color: 'rgba(34,197,94,0.95)',
                   fontSize: 13,
                   cursor: 'pointer',
-                  fontWeight: 500,
+                  fontWeight: 600,
                 }}
               >
-                View all →
+                See all →
               </span>
             </div>
-
             {latestItem ? (
-              <Card
+              <div
                 onClick={() => router.push(`/history/${latestItem.id}`)}
-                style={{ cursor: 'pointer' }}
+                style={{
+                  cursor: 'pointer',
+                  background: statCardBg,
+                  border: statCardBorder,
+                  borderRadius: 14,
+                  padding: 18,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <h3
                       style={{
-                        color: theme.colors.textPrimary,
+                        color: '#f3f4f6',
                         fontSize: 16,
-                        fontWeight: 600,
+                        fontWeight: 700,
                         margin: 0,
                       }}
                     >
@@ -514,7 +658,7 @@ export default function HomePage() {
                     </h3>
                     <p
                       style={{
-                        color: theme.colors.textMuted,
+                        color: textMutedSoft,
                         fontSize: 13,
                         margin: '4px 0 0',
                       }}
@@ -533,35 +677,38 @@ export default function HomePage() {
                   <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
                     <p
                       style={{
-                        color: theme.colors.textPrimary,
+                        color: '#f3f4f6',
                         fontSize: 15,
-                        fontWeight: 600,
+                        fontWeight: 700,
                         margin: 0,
+                        fontVariantNumeric: 'tabular-nums',
                       }}
                     >
                       {latestItem.totalVolume.toLocaleString('en-US')} kg
                     </p>
-                    <p style={{ color: theme.colors.textSecondary, fontSize: 13, margin: '4px 0 0' }}>
+                    <p style={{ color: textLabelSoft, fontSize: 13, margin: '4px 0 0' }}>
                       {latestItem.totalSets} sets
                     </p>
                   </div>
                 </div>
-              </Card>
+              </div>
             ) : (
-              <Card
+              <div
                 style={{
                   textAlign: 'center',
-                  padding: theme.spacing.lg,
-                  borderStyle: 'dashed',
+                  padding: 24,
+                  border: '1px dashed rgba(255,255,255,0.12)',
+                  borderRadius: 14,
+                  background: 'rgba(255,255,255,0.02)',
                 }}
               >
-                <p style={{ color: theme.colors.textMuted, fontSize: 14, margin: '0 0 12px' }}>
+                <p style={{ color: textMutedSoft, fontSize: 14, margin: '0 0 12px' }}>
                   No workouts yet
                 </p>
                 <Button size="sm" onClick={() => router.push('/workout/new')}>
                   Start your first workout
                 </Button>
-              </Card>
+              </div>
             )}
           </section>
         </>

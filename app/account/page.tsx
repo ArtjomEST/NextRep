@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Card from '@/components/Card';
-import { theme } from '@/lib/theme';
 import { useAuth } from '@/lib/auth/context';
 import { getTelegramUser } from '@/lib/auth/client';
 import { fetchSettings, updateSettings, type UserSettings } from '@/lib/api/client';
+import { ui } from '@/lib/ui-styles';
 
 const KG_TO_LB = 2.20462;
 
@@ -26,12 +25,12 @@ const EXP_LABELS: Record<string, string> = {
 function StatDisplay({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <p style={{ color: theme.colors.textMuted, fontSize: 12, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <p style={{ color: ui.textMuted, fontSize: 12, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </p>
-      <p style={{ color: theme.colors.textPrimary, fontSize: 18, fontWeight: 700, margin: '4px 0 0 0' }}>
+      <p style={{ color: ui.textPrimary, fontSize: 18, fontWeight: 800, margin: '4px 0 0 0' }}>
         {value}
-        <span style={{ fontSize: 12, fontWeight: 400, color: theme.colors.textSecondary }}> {unit}</span>
+        <span style={{ fontSize: 12, fontWeight: 400, color: ui.textLabel }}> {unit}</span>
       </p>
     </div>
   );
@@ -40,7 +39,7 @@ function StatDisplay({ label, value, unit }: { label: string; value: string; uni
 function StatInput({ label, value, unit, onChange }: { label: string; value: string; unit: string; onChange: (v: string) => void }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <p style={{ color: theme.colors.textMuted, fontSize: 12, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+      <p style={{ color: ui.textMuted, fontSize: 12, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
         {label}
       </p>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 2, marginTop: 4 }}>
@@ -52,10 +51,10 @@ function StatInput({ label, value, unit, onChange }: { label: string; value: str
           placeholder="—"
           style={{
             width: 56,
-            backgroundColor: theme.colors.surface,
-            border: `1px solid ${theme.colors.primary}`,
-            borderRadius: 6,
-            color: theme.colors.textPrimary,
+            background: ui.cardBg,
+            border: `1px solid ${ui.accent}`,
+            borderRadius: 8,
+            color: ui.textPrimary,
             fontSize: 16,
             fontWeight: 700,
             textAlign: 'center',
@@ -63,7 +62,7 @@ function StatInput({ label, value, unit, onChange }: { label: string; value: str
             outline: 'none',
           }}
         />
-        <span style={{ fontSize: 12, color: theme.colors.textSecondary }}>{unit}</span>
+        <span style={{ fontSize: 12, color: ui.textLabel }}>{unit}</span>
       </div>
     </div>
   );
@@ -223,38 +222,45 @@ export default function AccountPage() {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 16 }}>
-        <h1 style={{ color: theme.colors.textPrimary, fontSize: 24, fontWeight: 700, margin: 0 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: ui.gap, paddingTop: 16 }}>
+        <h1 style={{ color: ui.textPrimary, fontSize: 24, fontWeight: 800, margin: 0 }}>
           Account
         </h1>
-        <Card>
+        <div
+          style={{
+            background: ui.cardBg,
+            border: ui.cardBorder,
+            borderRadius: ui.cardRadius,
+            padding: 24,
+            boxShadow: ui.cardShadow,
+          }}
+        >
           <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div
               style={{
                 width: 28, height: 28,
-                border: `3px solid ${theme.colors.border}`,
-                borderTopColor: theme.colors.primary,
+                border: `3px solid rgba(255,255,255,0.1)`,
+                borderTopColor: ui.accent,
                 borderRadius: '50%',
                 animation: 'acct-spin 0.8s linear infinite',
               }}
             />
             <style>{`@keyframes acct-spin { to { transform: rotate(360deg); } }`}</style>
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, paddingTop: 16, paddingBottom: 100 }}>
-      {/* Toast */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: ui.gap, paddingTop: 16, paddingBottom: 100 }}>
       {toast && (
         <div
           style={{
             position: 'fixed', top: 16, left: '50%', transform: 'translateX(-50%)',
-            padding: '10px 20px', borderRadius: theme.radius.sm,
-            backgroundColor: theme.colors.card, border: `1px solid ${theme.colors.border}`,
-            color: theme.colors.textPrimary, fontSize: 14, fontWeight: 500,
+            padding: '10px 20px', borderRadius: ui.cardRadius,
+            background: ui.cardBg, border: ui.cardBorder,
+            color: ui.textPrimary, fontSize: 14, fontWeight: 500,
             zIndex: 10000, boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
           }}
         >
@@ -262,52 +268,46 @@ export default function AccountPage() {
         </div>
       )}
 
-      <h1 style={{ color: theme.colors.textPrimary, fontSize: 24, fontWeight: 700, margin: 0 }}>
+      <h1 style={{ color: ui.textPrimary, fontSize: 24, fontWeight: 800, margin: 0 }}>
         Account
       </h1>
 
-      {/* ── Profile Card ─────────────────────────────────────── */}
-      <Card>
+      <div
+        style={{
+          background: ui.cardBg,
+          border: ui.cardBorder,
+          borderRadius: ui.cardRadius,
+          padding: 18,
+          boxShadow: ui.cardShadow,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
           {photoUrl ? (
-            <img
-              src={photoUrl}
-              alt={displayName}
-              width={48}
-              height={48}
-              style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-            />
+            <img src={photoUrl} alt={displayName} width={48} height={48} style={{ borderRadius: 12, objectFit: 'cover', flexShrink: 0 }} />
           ) : (
             <div
               style={{
-                width: 48, height: 48, borderRadius: '50%',
-                backgroundColor: theme.colors.primary,
+                width: 48, height: 48, borderRadius: 12,
+                background: ui.heroGradient,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 20, fontWeight: 700, color: theme.colors.textPrimary, flexShrink: 0,
+                fontSize: 20, fontWeight: 800, color: ui.textPrimary, flexShrink: 0,
               }}
             >
               {initials}
             </div>
           )}
-
           <div style={{ minWidth: 0 }}>
-            <h2 style={{ color: theme.colors.textPrimary, fontSize: 18, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <h2 style={{ color: ui.textPrimary, fontSize: 18, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {displayName}
             </h2>
             {user?.username && (
-              <p style={{ color: theme.colors.textMuted, fontSize: 13, margin: '2px 0 0' }}>
-                @{user.username}
-              </p>
+              <p style={{ color: ui.textMuted, fontSize: 13, margin: '2px 0 0' }}>@{user.username}</p>
             )}
             {subtitleParts.length > 0 && (
-              <p style={{ color: theme.colors.textSecondary, fontSize: 13, margin: '2px 0 0' }}>
-                {subtitleParts.join(' · ')}
-              </p>
+              <p style={{ color: ui.textLabel, fontSize: 13, margin: '2px 0 0' }}>{subtitleParts.join(' · ')}</p>
             )}
           </div>
         </div>
-
-        {/* Body stats */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
           {editing ? (
             <>
@@ -323,22 +323,20 @@ export default function AccountPage() {
             </>
           )}
         </div>
-
-        {/* Edit / Save / Cancel */}
         <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
           {editing ? (
             <>
               <button
                 onClick={() => setEditing(false)}
                 disabled={saving}
-                style={{ ...btnBase, backgroundColor: 'transparent', color: theme.colors.textSecondary, border: `1px solid ${theme.colors.border}` }}
+                style={{ ...btnBase, background: 'transparent', color: ui.textLabel, border: ui.cardBorder }}
               >
                 Cancel
               </button>
               <button
                 onClick={saveEdits}
                 disabled={saving}
-                style={{ ...btnBase, backgroundColor: theme.colors.primary, color: '#fff', opacity: saving ? 0.6 : 1 }}
+                style={{ ...btnBase, background: ui.accent, color: '#fff', opacity: saving ? 0.6 : 1 }}
               >
                 {saving ? 'Saving...' : 'Save'}
               </button>
@@ -346,50 +344,59 @@ export default function AccountPage() {
           ) : (
             <button
               onClick={startEditing}
-              style={{ ...btnBase, backgroundColor: 'transparent', color: theme.colors.textSecondary, border: `1px solid ${theme.colors.border}` }}
+              style={{ ...btnBase, background: 'transparent', color: ui.textLabel, border: ui.cardBorder }}
             >
               Edit
             </button>
           )}
         </div>
-      </Card>
+      </div>
 
-      {/* ── Units Card ───────────────────────────────────────── */}
-      <Card>
-        <h3 style={{ color: theme.colors.textPrimary, fontSize: 15, fontWeight: 600, margin: '0 0 4px' }}>
+      <div
+        style={{
+          background: ui.cardBg,
+          border: ui.cardBorder,
+          borderRadius: ui.cardRadius,
+          padding: 18,
+          boxShadow: ui.cardShadow,
+        }}
+      >
+        <h3 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: '0 0 8px' }}>
           Units
         </h3>
-        <div
-          style={{
-            display: 'flex', backgroundColor: theme.colors.surface,
-            borderRadius: theme.radius.sm, padding: 3, marginTop: 8,
-          }}
-        >
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: 3, marginTop: 8 }}>
           {(['kg', 'lb'] as const).map((u) => (
             <button
               key={u}
               onClick={() => handleUnitsToggle(u)}
               style={{
                 flex: 1, padding: 10,
-                backgroundColor: units === u ? theme.colors.primary : 'transparent',
-                color: units === u ? theme.colors.textPrimary : theme.colors.textSecondary,
+                background: units === u ? ui.accent : 'transparent',
+                color: units === u ? ui.textPrimary : ui.textLabel,
                 border: 'none', borderRadius: 6, fontSize: 14, fontWeight: 600,
-                cursor: 'pointer', transition: 'all 0.15s ease',
+                cursor: 'pointer',
               }}
             >
               {u === 'kg' ? 'KG' : 'LBS'}
             </button>
           ))}
         </div>
-      </Card>
+      </div>
 
-      {/* ── Settings Card ────────────────────────────────────── */}
-      <Card style={{ padding: '4px 16px' }}>
+      <div
+        style={{
+          background: ui.cardBg,
+          border: ui.cardBorder,
+          borderRadius: ui.cardRadius,
+          padding: '4px 18px',
+          boxShadow: ui.cardShadow,
+        }}
+      >
         <SettingRow label="About NextRep" value="v1.0" />
         <div onClick={handleLogout} style={{ padding: '14px 0', cursor: 'pointer' }}>
-          <span style={{ color: theme.colors.error, fontSize: 15 }}>Log Out</span>
+          <span style={{ color: '#EF4444', fontSize: 15 }}>Log Out</span>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
@@ -399,13 +406,11 @@ function SettingRow({ label, value }: { label: string; value?: string }) {
     <div
       style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '14px 0', borderBottom: `1px solid ${theme.colors.border}`,
+        padding: '14px 0', borderBottom: ui.cardBorder,
       }}
     >
-      <span style={{ color: theme.colors.textPrimary, fontSize: 15 }}>{label}</span>
-      {value && (
-        <span style={{ color: theme.colors.textSecondary, fontSize: 14 }}>{value}</span>
-      )}
+      <span style={{ color: ui.textPrimary, fontSize: 15 }}>{label}</span>
+      {value && <span style={{ color: ui.textLabel, fontSize: 14 }}>{value}</span>}
     </div>
   );
 }

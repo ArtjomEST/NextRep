@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { theme } from '@/lib/theme';
 import { searchExercisesRaw } from '@/lib/api/client';
 import type { Exercise, MuscleGroup } from '@/lib/types';
+import { ui } from '@/lib/ui-styles';
 
 const muscleGroups: MuscleGroup[] = [
   'Chest',
@@ -33,7 +33,6 @@ export default function ExercisesPage() {
       if (offset === 0) setLoading(true);
       else setLoadingMore(true);
       setError(null);
-
       try {
         const result = await searchExercisesRaw(
           q,
@@ -80,16 +79,18 @@ export default function ExercisesPage() {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
-        paddingTop: '16px',
+        gap: ui.gap,
+        paddingTop: 16,
+        paddingBottom: 100,
       }}
     >
       <h1
         style={{
-          color: theme.colors.textPrimary,
-          fontSize: '24px',
-          fontWeight: 700,
+          color: ui.textPrimary,
+          fontSize: 24,
+          fontWeight: 800,
           margin: 0,
+          letterSpacing: '0.02em',
         }}
       >
         Exercises
@@ -102,13 +103,13 @@ export default function ExercisesPage() {
           height="18"
           viewBox="0 0 24 24"
           fill="none"
-          stroke={theme.colors.textMuted}
+          stroke={ui.textMuted}
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
           style={{
             position: 'absolute',
-            left: '14px',
+            left: 14,
             top: '50%',
             transform: 'translateY(-50%)',
             pointerEvents: 'none',
@@ -124,12 +125,12 @@ export default function ExercisesPage() {
           onChange={(e) => setSearch(e.target.value)}
           style={{
             width: '100%',
-            backgroundColor: theme.colors.surface,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.radius.md,
+            background: ui.cardBg,
+            border: ui.cardBorder,
+            borderRadius: ui.cardRadius,
             padding: '12px 14px 12px 42px',
-            color: theme.colors.textPrimary,
-            fontSize: '15px',
+            color: ui.textPrimary,
+            fontSize: 15,
             outline: 'none',
             boxSizing: 'border-box',
           }}
@@ -140,11 +141,11 @@ export default function ExercisesPage() {
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          gap: 8,
           overflowX: 'auto',
           WebkitOverflowScrolling: 'touch',
           scrollbarWidth: 'none',
-          paddingBottom: '4px',
+          paddingBottom: 4,
         }}
       >
         {muscleGroups.map((mg) => (
@@ -154,26 +155,16 @@ export default function ExercisesPage() {
               setActiveFilter(activeFilter === mg ? null : mg)
             }
             style={{
-              backgroundColor:
-                activeFilter === mg
-                  ? theme.colors.primary
-                  : theme.colors.surface,
-              color:
-                activeFilter === mg
-                  ? theme.colors.textPrimary
-                  : theme.colors.textSecondary,
-              border:
-                activeFilter === mg
-                  ? 'none'
-                  : `1px solid ${theme.colors.border}`,
-              borderRadius: '20px',
-              padding: '7px 14px',
-              fontSize: '13px',
-              fontWeight: 500,
+              background: activeFilter === mg ? ui.accent : ui.cardBg,
+              color: activeFilter === mg ? ui.textPrimary : ui.textLabel,
+              border: activeFilter === mg ? 'none' : ui.cardBorder,
+              borderRadius: 20,
+              padding: '8px 14px',
+              fontSize: 13,
+              fontWeight: 600,
               cursor: 'pointer',
               whiteSpace: 'nowrap',
               flexShrink: 0,
-              transition: 'all 0.15s ease',
             }}
           >
             {mg}
@@ -181,82 +172,118 @@ export default function ExercisesPage() {
         ))}
       </div>
 
-      {/* Results count */}
       {!loading && !error && (
-        <p
-          style={{
-            color: theme.colors.textMuted,
-            fontSize: '13px',
-            margin: 0,
-          }}
-        >
+        <p style={{ color: ui.textMuted, fontSize: 13, margin: 0 }}>
           {total} exercise{total !== 1 ? 's' : ''} found
         </p>
       )}
 
-      {/* Loading skeleton */}
       {loading && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-          }}
-        >
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[1, 2, 3, 4, 5, 6].map((i) => (
             <div
               key={i}
               style={{
-                backgroundColor: theme.colors.card,
-                borderRadius: theme.radius.md,
-                border: `1px solid ${theme.colors.border}`,
-                padding: '16px',
-                height: '72px',
-                animation: 'pulse 1.5s ease-in-out infinite',
+                background: ui.cardBg,
+                border: ui.cardBorder,
+                borderRadius: ui.cardRadius,
+                padding: 18,
+                height: 72,
               }}
             />
           ))}
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div
           style={{
-            backgroundColor: 'rgba(239,68,68,0.1)',
-            border: `1px solid ${theme.colors.error}`,
-            borderRadius: theme.radius.md,
+            background: 'rgba(239,68,68,0.1)',
+            border: '1px solid #EF4444',
+            borderRadius: ui.cardRadius,
             padding: '12px 16px',
-            color: theme.colors.error,
-            fontSize: '14px',
+            color: '#EF4444',
+            fontSize: 14,
           }}
         >
           {error}
         </div>
       )}
 
-      {/* Exercise list */}
       {!loading && !error && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '10px',
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {exercises.map((exercise) => (
-            <ExerciseListCard
+            <div
               key={exercise.id}
-              exercise={exercise}
               onClick={() => router.push(`/exercises/${exercise.id}`)}
-            />
+              style={{
+                background: ui.cardBg,
+                border: ui.cardBorder,
+                borderRadius: ui.cardRadius,
+                padding: '16px 18px',
+                cursor: 'pointer',
+                boxShadow: ui.cardShadow,
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: 0 }}>
+                  {exercise.name}
+                </h3>
+                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  {exercise.muscleGroups.map((mg) => (
+                    <span
+                      key={mg}
+                      style={{
+                        background: 'rgba(255,255,255,0.06)',
+                        color: ui.textLabel,
+                        fontSize: 11,
+                        fontWeight: 500,
+                        padding: '3px 8px',
+                        borderRadius: 8,
+                        border: ui.cardBorder,
+                      }}
+                    >
+                      {mg}
+                    </span>
+                  ))}
+                  <span
+                    style={{
+                      background: ui.accentSoft,
+                      color: ui.accent,
+                      fontSize: 11,
+                      fontWeight: 500,
+                      padding: '3px 8px',
+                      borderRadius: 8,
+                    }}
+                  >
+                    {exercise.equipment}
+                  </span>
+                </div>
+              </div>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={ui.textMuted}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ flexShrink: 0, marginLeft: 12 }}
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
           ))}
 
           {exercises.length === 0 && (
             <p
               style={{
-                color: theme.colors.textMuted,
-                fontSize: '14px',
+                color: ui.textMuted,
+                fontSize: 14,
                 textAlign: 'center',
                 padding: '32px 0',
               }}
@@ -265,21 +292,20 @@ export default function ExercisesPage() {
             </p>
           )}
 
-          {/* Load more */}
           {hasMore && (
             <button
               onClick={handleLoadMore}
               disabled={loadingMore}
               style={{
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textSecondary,
-                border: `1px solid ${theme.colors.border}`,
-                borderRadius: theme.radius.md,
-                padding: '14px',
-                fontSize: '14px',
-                fontWeight: 500,
+                background: ui.cardBg,
+                color: ui.textLabel,
+                border: ui.cardBorder,
+                borderRadius: ui.cardRadius,
+                padding: 14,
+                fontSize: 14,
+                fontWeight: 600,
                 cursor: loadingMore ? 'not-allowed' : 'pointer',
-                marginTop: '4px',
+                marginTop: 4,
               }}
             >
               {loadingMore
@@ -289,94 +315,6 @@ export default function ExercisesPage() {
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function ExerciseListCard({
-  exercise,
-  onClick,
-}: {
-  exercise: Exercise;
-  onClick: () => void;
-}) {
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        backgroundColor: theme.colors.card,
-        borderRadius: theme.radius.md,
-        border: `1px solid ${theme.colors.border}`,
-        padding: '14px 16px',
-        cursor: 'pointer',
-        transition: 'border-color 0.15s ease',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-      }}
-    >
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <h3
-          style={{
-            color: theme.colors.textPrimary,
-            fontSize: '15px',
-            fontWeight: 600,
-            margin: 0,
-          }}
-        >
-          {exercise.name}
-        </h3>
-        <div
-          style={{
-            display: 'flex',
-            gap: '6px',
-            marginTop: '8px',
-            flexWrap: 'wrap',
-          }}
-        >
-          {exercise.muscleGroups.map((mg) => (
-            <span
-              key={mg}
-              style={{
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textSecondary,
-                fontSize: '11px',
-                fontWeight: 500,
-                padding: '3px 8px',
-                borderRadius: '6px',
-                border: `1px solid ${theme.colors.border}`,
-              }}
-            >
-              {mg}
-            </span>
-          ))}
-          <span
-            style={{
-              backgroundColor: 'rgba(31, 138, 91, 0.12)',
-              color: theme.colors.primary,
-              fontSize: '11px',
-              fontWeight: 500,
-              padding: '3px 8px',
-              borderRadius: '6px',
-            }}
-          >
-            {exercise.equipment}
-          </span>
-        </div>
-      </div>
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={theme.colors.textMuted}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ flexShrink: 0, marginLeft: '12px' }}
-      >
-        <polyline points="9 18 15 12 9 6" />
-      </svg>
     </div>
   );
 }

@@ -1,6 +1,14 @@
 import type { WorkoutListItem, WorkoutDetail, WorkoutDetailExercise, WorkoutDetailSet } from '@/lib/api/types';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/** Time-based greeting: "Good morning," | "Good afternoon," | "Good evening," */
+export function getTimeGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning,';
+  if (h < 17) return 'Good afternoon,';
+  return 'Good evening,';
+}
 const DAYS_SINCE_LAST_RECENT = 3;
 const PR_LOOKBACK_DAYS = 7;
 const WEEK_SESSION_TARGET = 4;
@@ -332,6 +340,99 @@ export function isLatestWorkoutWithinDays(
   const d = new Date(iso);
   const now = new Date();
   return (now.getTime() - d.getTime()) <= days * MS_PER_DAY;
+}
+
+/** Best lift (max weight) in a workout detail; label e.g. "Bench PR". */
+export function findBestLiftInDetail(
+  detail: WorkoutDetail | null,
+): { value: number; label: string } | null {
+  if (!detail?.exercises?.length) return null;
+  let bestWeight = 0;
+  let bestName = '';
+  for (const ex of detail.exercises) {
+    const b = exerciseBestInWorkout(ex, ex.sets);
+    if (b?.weight != null && b.weight > bestWeight) {
+      bestWeight = b.weight;
+      bestName = b.exerciseName ?? '';
+    }
+  }
+  if (bestWeight <= 0) return null;
+  const short = bestName.split(/\s+/)[0] || 'Lift';
+  return { value: bestWeight, label: `${short} PR` };
+}
+
+/** Week strip: Mon–Sun (0–6), status per day for this week. */
+export interface WeekDayCell {
+  dayLetter: string;
+  status: 'completed' | 'current' | 'empty';
+}
+
+const DAY_LETTERS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+
+export function getWeekStrip(items: WorkoutListItem[]): WeekDayCell[] {
+  const now = new Date();
+  const day = now.getDay();
+  const mondayOffset = day === 0 ? -6 : 1 - day;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+  const workoutDatesThisWeek = new Set<string>();
+  for (const w of items) {
+    const iso = w.startedAt ?? w.createdAt;
+    if (!iso) continue;
+    const d = new Date(iso);
+    if (d >= monday) {
+      const nextMon = new Date(monday);
+      nextMon.setDate(monday.getDate() + 7);
+      if (d < nextMon) workoutDatesThisWeek.add(d.toISOString().slice(0, 10));
+    }
+  }
+  const todayKey = now.toISOString().slice(0, 10);
+  const currentWeekday = day === 0 ? 6 : day - 1;
+  return DAY_LETTERS.map((letter, i) => {
+    const cellDate = new Date(monday);
+    cellDate.setDate(monday.getDate() + i);
+    const key = cellDate.toISOString().slice(0, 10);
+    const isCurrent = key === todayKey;
+    const completed = workoutDatesThisWeek.has(key);
+    return {
+      dayLetter: letter,
+      status: isCurrent ? 'current' : completed ? 'completed' : 'empty',
+    };
+  });
+}
+
+/** Home screen stats: safe fallbacks when API/detail missing. */
+export interface HomeStats {
+  totalVolumeAllTime: number;
+  workoutsThisMonth: number;
+  bestLift: { value: number; label: string } | null;
+  streak: number;
+  thisWeekDone: number;
+  thisWeekTarget: number;
+  weekStrip: WeekDayCell[];
+}
+
+export function getHomeStats(
+  workouts: WorkoutListItem[],
+  latestDetail: WorkoutDetail | null,
+  totalVolumeFromApi: number | null,
+): HomeStats {
+  const month = getMonthSnapshot(workouts);
+  const bestLift = findBestLiftInDetail(latestDetail);
+  const totalVolumeAllTime =
+    totalVolumeFromApi != null && totalVolumeFromApi >= 0
+      ? totalVolumeFromApi
+      : workouts.reduce((sum, w) => sum + (w.totalVolume ?? 0), 0);
+  return {
+    totalVolumeAllTime,
+    workoutsThisMonth: month.thisMonthWorkouts,
+    bestLift,
+    streak: computeStreak(workouts),
+    thisWeekDone: getThisWeekCount(workouts),
+    thisWeekTarget: WEEK_SESSION_TARGET,
+    weekStrip: getWeekStrip(workouts),
+  };
 }
 
 export { WEEK_SESSION_TARGET };
