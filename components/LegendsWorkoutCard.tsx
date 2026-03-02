@@ -60,7 +60,7 @@ export default function LegendsWorkoutCard({
         borderRadius: 24,
         overflow: 'hidden',
         width: '100%',
-        height: 240,
+        height: 222,
         cursor: applying ? 'wait' : 'pointer',
       }}
     >
