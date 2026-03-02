@@ -107,7 +107,7 @@ export default function LegendsWorkoutCard({
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 24,
-          maxWidth: '58%',
+          maxWidth: '66%',
         }}
       >
         <div>
@@ -118,6 +118,9 @@ export default function LegendsWorkoutCard({
               fontWeight: 600,
               margin: '0 0 8px',
               letterSpacing: '0.01em',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {legend.name}
@@ -144,6 +147,9 @@ export default function LegendsWorkoutCard({
               color: 'rgba(255,255,255,0.9)',
               fontSize: 12,
               fontWeight: 500,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
             }}
           >
             {legend.traits.map((t, i) => (
