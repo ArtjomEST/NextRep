@@ -101,3 +101,13 @@ export interface ExerciseDetail {
   source: string;
   sourceId: number | null;
 }
+
+// ─── Workout Presets ─────────────────────────────────────────
+
+export interface Preset {
+  id: string;
+  userId: string;
+  name: string;
+  exerciseIds: string[];
+  createdAt: string;
+}

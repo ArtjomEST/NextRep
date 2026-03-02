@@ -8,6 +8,13 @@
       "when": 1772284391086,
       "tag": "0000_overjoyed_nebula",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772454426232,
+      "tag": "0001_careless_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

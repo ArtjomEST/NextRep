@@ -57,7 +57,9 @@ export default function TabBar() {
   const router = useRouter();
 
   const isWorkoutRoute = pathname.startsWith('/workout');
-  if (isWorkoutRoute) return null;
+  const isStartRoute = pathname.startsWith('/start');
+  const isPresetsRoute = pathname.startsWith('/account/presets');
+  if (isWorkoutRoute || isStartRoute || isPresetsRoute) return null;
 
   const getActiveTab = (): TabId => {
     if (pathname === '/') return 'home';

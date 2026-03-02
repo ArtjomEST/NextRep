@@ -5,6 +5,7 @@ import type {
   WorkoutListItem,
   WorkoutDetail,
   ExerciseDetail,
+  Preset,
 } from './types';
 import { getAuthHeaders } from '@/lib/auth/client';
 
@@ -109,6 +110,36 @@ export async function fetchExerciseDetailApi(
   }
   const json = await res.json();
   return json.data as ExerciseDetail;
+}
+
+/** Map API ExerciseDetail to app Exercise for workout store. */
+export function exerciseDetailToExercise(d: ExerciseDetail): Exercise {
+  const cat = (d.category ?? '').toLowerCase();
+  const muscleGroup = CATEGORY_TO_MUSCLE[cat];
+  const muscleGroups: MuscleGroup[] = muscleGroup ? [muscleGroup] : [];
+  return {
+    id: d.id,
+    name: d.name,
+    muscleGroups,
+    equipment: d.equipment?.join(', ') ?? 'Bodyweight',
+    description: d.description ?? undefined,
+    howTo: d.howTo ?? undefined,
+    imageUrl: d.imageUrl ?? undefined,
+  };
+}
+
+/** Fetch multiple exercises by ID (for preset → draft copy). Returns in requested order; skips missing. */
+export async function fetchExercisesByIds(ids: string[]): Promise<Exercise[]> {
+  const out: Exercise[] = [];
+  for (const id of ids) {
+    try {
+      const detail = await fetchExerciseDetailApi(id);
+      out.push(exerciseDetailToExercise(detail));
+    } catch {
+      // skip missing/invalid
+    }
+  }
+  return out;
 }
 
 // ─── Workouts ───────────────────────────────────────────────
@@ -325,4 +356,105 @@ export async function fetchProgressExerciseDetailApi(
   }
   const json = await res.json();
   return json.data as ProgressExerciseDetail;
+}
+
+// ─── Workout Presets (API with localStorage fallback) ────────
+
+const PRESETS_STORAGE_KEY = 'nextrep_presets';
+
+function getPresetsFromStorage(): Preset[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(PRESETS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePresetsToStorage(presets: Preset[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(presets));
+  } catch {
+    // ignore
+  }
+}
+
+export async function fetchPresetsApi(): Promise<Preset[]> {
+  try {
+    const res = await fetch('/api/presets', { headers: getAuthHeaders() });
+    if (res.ok) {
+      const json = await res.json();
+      return (json.data ?? []) as Preset[];
+    }
+    if (res.status === 401) return getPresetsFromStorage();
+    throw new Error('Failed to fetch presets');
+  } catch {
+    return getPresetsFromStorage();
+  }
+}
+
+export async function createPresetApi(payload: {
+  name: string;
+  exerciseIds: string[];
+}): Promise<Preset> {
+  try {
+    const res = await fetch('/api/presets', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const json = await res.json();
+      return json.data as Preset;
+    }
+    if (res.status === 401) {
+      const preset: Preset = {
+        id: crypto.randomUUID(),
+        userId: '',
+        name: payload.name.trim(),
+        exerciseIds: payload.exerciseIds,
+        createdAt: new Date().toISOString(),
+      };
+      const list = getPresetsFromStorage();
+      list.unshift(preset);
+      savePresetsToStorage(list);
+      return preset;
+    }
+    throw new Error('Failed to create preset');
+  } catch (err) {
+    const preset: Preset = {
+      id: crypto.randomUUID(),
+      userId: '',
+      name: payload.name.trim(),
+      exerciseIds: payload.exerciseIds,
+      createdAt: new Date().toISOString(),
+    };
+    const list = getPresetsFromStorage();
+    list.unshift(preset);
+    savePresetsToStorage(list);
+    return preset;
+  }
+}
+
+export async function deletePresetApi(id: string): Promise<void> {
+  try {
+    const res = await fetch(`/api/presets/${id}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+    if (res.ok) return;
+    if (res.status === 401 || res.status === 404) {
+      const list = getPresetsFromStorage().filter((p) => p.id !== id);
+      savePresetsToStorage(list);
+      return;
+    }
+    throw new Error('Failed to delete preset');
+  } catch {
+    const list = getPresetsFromStorage().filter((p) => p.id !== id);
+    savePresetsToStorage(list);
+  }
 }

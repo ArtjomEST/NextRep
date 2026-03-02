@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { getTelegramUser } from '@/lib/auth/client';
-import { fetchSettings, updateSettings, type UserSettings } from '@/lib/api/client';
+import { fetchSettings, updateSettings, fetchPresetsApi, deletePresetApi, type UserSettings } from '@/lib/api/client';
+import type { Preset } from '@/lib/api/types';
 import { ui } from '@/lib/ui-styles';
 
 const KG_TO_LB = 2.20462;
@@ -79,8 +81,11 @@ const btnBase: React.CSSProperties = {
 };
 
 export default function AccountPage() {
+  const router = useRouter();
   const { user, isTelegram } = useAuth();
   const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [presets, setPresets] = useState<Preset[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -101,10 +106,13 @@ export default function AccountPage() {
   const isImperial = units === 'lb';
 
   useEffect(() => {
-    fetchSettings()
-      .then(setSettings)
-      .catch((err) => console.error('Failed to load settings:', err))
-      .finally(() => setLoading(false));
+    Promise.all([
+      fetchSettings().catch((err) => { console.error('Failed to load settings:', err); return null; }),
+      fetchPresetsApi().catch(() => []),
+    ]).then(([s, p]) => {
+      if (s) setSettings(s as UserSettings);
+      if (Array.isArray(p)) setPresets(p);
+    }).finally(() => setLoading(false));
   }, []);
 
   const flash = useCallback((msg: string) => {
@@ -381,6 +389,98 @@ export default function AccountPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div
+        style={{
+          background: ui.cardBg,
+          border: ui.cardBorder,
+          borderRadius: ui.cardRadius,
+          padding: 18,
+          boxShadow: ui.cardShadow,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <h3 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: 0 }}>
+            Workout Presets
+          </h3>
+          <button
+            onClick={() => router.push('/account/presets/new')}
+            style={{
+              background: ui.accent,
+              color: ui.textPrimary,
+              border: 'none',
+              borderRadius: 8,
+              padding: '8px 14px',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Create Preset
+          </button>
+        </div>
+        {presets.length === 0 ? (
+          <p style={{ color: ui.textMuted, fontSize: 13, margin: 0 }}>
+            No presets. Create a template to quickly start workouts with pre-filled exercises.
+          </p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {presets.map((preset) => (
+              <div
+                key={preset.id}
+                style={{
+                  background: 'rgba(255,255,255,0.04)',
+                  border: ui.cardBorder,
+                  borderRadius: 8,
+                  padding: '12px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <span style={{ flex: 1, minWidth: 0, color: ui.textPrimary, fontSize: 14, fontWeight: 600 }}>{preset.name}</span>
+                <span style={{ color: ui.textMuted, fontSize: 12 }}>
+                  {preset.exerciseIds.length} exercise{preset.exerciseIds.length !== 1 ? 's' : ''}
+                </span>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (deletingId) return;
+                    setDeletingId(preset.id);
+                    try {
+                      await deletePresetApi(preset.id);
+                      setPresets((prev) => prev.filter((p) => p.id !== preset.id));
+                    } catch {
+                      flash('Failed to delete preset');
+                    } finally {
+                      setDeletingId(null);
+                    }
+                  }}
+                  disabled={deletingId !== null}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: ui.error,
+                    padding: 8,
+                    margin: -8,
+                    cursor: deletingId !== null ? 'wait' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  title="Delete preset"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div

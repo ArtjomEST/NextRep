@@ -15,6 +15,7 @@ import {
 import type { WorkoutListItem, WorkoutDetail } from '@/lib/api/types';
 import { getTimeGreeting, getHomeStats } from '@/lib/home/utils';
 import { ui } from '@/lib/ui-styles';
+import LegendsWorkoutSlider from '@/components/LegendsWorkoutSlider';
 
 function formatVolume(kg: number): string {
   if (kg >= 1000) return `${(kg / 1000).toFixed(1)}k`;
@@ -186,8 +187,8 @@ export default function HomePage() {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => router.push('/workout/new')}
-        onKeyDown={(e) => e.key === 'Enter' && router.push('/workout/new')}
+        onClick={() => router.push('/start')}
+        onKeyDown={(e) => e.key === 'Enter' && router.push('/start')}
         style={{
           borderRadius: 18,
           padding: '24px 20px',
@@ -597,6 +598,9 @@ export default function HomePage() {
               ))}
             </div>
           </section>
+
+          {/* ─── Legends Workouts: hero cards, horizontal slider ───────────── */}
+          <LegendsWorkoutSlider />
 
           {/* ─── 6) Last Workout: darker card, muted labels ───────────────── */}
           <section>
