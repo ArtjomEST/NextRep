@@ -60,9 +60,7 @@ export default function LegendsWorkoutCard({
         borderRadius: 24,
         overflow: 'hidden',
         width: '100%',
-        aspectRatio: '2 / 1',
-        minHeight: 200,
-        maxHeight: 240,
+        height: 240,
         cursor: applying ? 'wait' : 'pointer',
       }}
     >
@@ -97,17 +95,20 @@ export default function LegendsWorkoutCard({
         }}
       />
 
-      {/* Layer 3: content – 8px grid, equal padding all sides (24px) */}
+      {/* Layer 3: content – absolute left column, 8px grid, symmetric padding */}
       <div
         style={{
-          position: 'relative',
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          left: 0,
           zIndex: 1,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
           padding: 24,
-          maxWidth: '66%',
+          width: '68%',
         }}
       >
         <div>
@@ -142,7 +143,7 @@ export default function LegendsWorkoutCard({
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
+              gap: 8,
               marginTop: 16,
               color: 'rgba(255,255,255,0.9)',
               fontSize: 12,
@@ -158,7 +159,7 @@ export default function LegendsWorkoutCard({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 5,
+                  gap: 4,
                 }}
               >
                 {i > 0 && (
