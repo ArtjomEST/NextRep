@@ -10,6 +10,7 @@ export async function GET() {
     env: {
       DATABASE_URL: !!process.env.DATABASE_URL,
       TELEGRAM_BOT_TOKEN: !!process.env.TELEGRAM_BOT_TOKEN,
+      NEXTREP_WEBAPP_URL: !!process.env.NEXTREP_WEBAPP_URL,
       NEXT_PUBLIC_DEV_USER_ID: process.env.NEXT_PUBLIC_DEV_USER_ID ?? null,
       NODE_ENV: process.env.NODE_ENV,
     },
