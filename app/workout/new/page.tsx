@@ -18,7 +18,6 @@ import {
 import { theme } from '@/lib/theme';
 import { useWorkout } from '@/lib/workout/state';
 import type { Exercise } from '@/lib/types';
-import Button from '@/components/Button';
 import ExercisePicker from '@/components/ExercisePicker';
 import SortableExerciseCard from '@/components/SortableExerciseCard';
 
@@ -30,12 +29,8 @@ export default function NewWorkoutPage() {
   const canStart = draft.exercises.length > 0;
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 8 },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
 
   function handleDragEnd(event: DragEndEvent) {
@@ -63,43 +58,71 @@ export default function NewWorkoutPage() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '16px', paddingBottom: '24px' }}>
-      {/* Header */}
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        paddingTop: '16px',
+        paddingBottom: '32px',
+      }}
+    >
+      {/* ─── Header ─── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
           onClick={() => router.push('/')}
           style={{
             background: 'none',
             border: 'none',
-            color: theme.colors.textSecondary,
+            color: theme.colors.textMuted,
             cursor: 'pointer',
             padding: '8px',
             margin: '-8px',
-            fontSize: '15px',
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
           }}
         >
           ←
         </button>
-        <h1 style={{ color: theme.colors.textPrimary, fontSize: '22px', fontWeight: 700, margin: 0 }}>
+        <h1
+          style={{
+            color: theme.colors.textPrimary,
+            fontSize: '22px',
+            fontWeight: 800,
+            margin: 0,
+            letterSpacing: '-0.02em',
+          }}
+        >
           New Workout
         </h1>
       </div>
 
-      {/* Workout name */}
+      {/* ─── Workout name input ─── */}
       <div>
-        <label style={{ color: theme.colors.textSecondary, fontSize: '13px', fontWeight: 500, marginBottom: '6px', display: 'block' }}>
+        <label
+          style={{
+            display: 'block',
+            color: theme.colors.textMuted,
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: '8px',
+          }}
+        >
           Workout Name
         </label>
         <input
           type="text"
           value={draft.name}
           onChange={(e) => dispatch({ type: 'SET_NAME', name: e.target.value })}
-          placeholder="Workout name (e.g. Push Day)"
+          placeholder="e.g. Push Day, Arm Day"
           style={{
             width: '100%',
-            backgroundColor: theme.colors.surface,
-            border: `1px solid ${theme.colors.border}`,
-            borderRadius: theme.radius.md,
+            backgroundColor: theme.colors.card,
+            border: `1.5px solid ${theme.colors.border}`,
+            borderRadius: '12px',
             padding: '14px 16px',
             color: theme.colors.textPrimary,
             fontSize: '16px',
@@ -110,12 +133,37 @@ export default function NewWorkoutPage() {
         />
       </div>
 
-      {/* Exercise list with DnD */}
+      {/* ─── Exercise list with DnD ─── */}
       {draft.exercises.length > 0 && (
         <section>
-          <h2 style={{ color: theme.colors.textPrimary, fontSize: '15px', fontWeight: 600, margin: '0 0 10px 0' }}>
-            Exercises ({draft.exercises.length})
-          </h2>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: '12px',
+            }}
+          >
+            <h2
+              style={{
+                color: theme.colors.textPrimary,
+                fontSize: '15px',
+                fontWeight: 700,
+                margin: 0,
+              }}
+            >
+              Exercises
+            </h2>
+            <span
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: '13px',
+                fontWeight: 600,
+              }}
+            >
+              {draft.exercises.length}
+            </span>
+          </div>
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -139,36 +187,65 @@ export default function NewWorkoutPage() {
         </section>
       )}
 
-      {/* Add exercise */}
-      <Button
-        variant="secondary"
-        fullWidth
+      {/* ─── Add exercise ─── */}
+      <button
         onClick={() => setPickerOpen(true)}
+        style={{
+          width: '100%',
+          backgroundColor: 'transparent',
+          border: `1px dashed ${theme.colors.border}`,
+          borderRadius: '10px',
+          padding: '14px',
+          color: theme.colors.textMuted,
+          fontSize: '15px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          transition: 'border-color 0.15s ease',
+        }}
       >
         + Add Exercise
-      </Button>
+      </button>
 
-      {/* CTAs */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
-        <Button
-          fullWidth
-          size="lg"
-          disabled={!canStart}
+      {/* ─── CTAs ─── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <button
           onClick={handleStart}
-          style={{ opacity: canStart ? 1 : 0.4 }}
+          disabled={!canStart}
+          style={{
+            width: '100%',
+            backgroundColor: theme.colors.primary,
+            color: theme.colors.textPrimary,
+            border: 'none',
+            borderRadius: '12px',
+            padding: '15px',
+            fontSize: '16px',
+            fontWeight: 700,
+            cursor: canStart ? 'pointer' : 'not-allowed',
+            opacity: canStart ? 1 : 0.4,
+            letterSpacing: '0.01em',
+            transition: 'opacity 0.15s ease',
+          }}
         >
           Start Session
-        </Button>
-        <Button
-          variant="ghost"
-          fullWidth
+        </button>
+        <button
           onClick={handleCancel}
+          style={{
+            width: '100%',
+            backgroundColor: 'transparent',
+            border: 'none',
+            color: theme.colors.textMuted,
+            fontSize: '15px',
+            fontWeight: 600,
+            padding: '12px',
+            cursor: 'pointer',
+          }}
         >
           Cancel
-        </Button>
+        </button>
       </div>
 
-      {/* Picker overlay */}
+      {/* ─── Exercise picker overlay ─── */}
       <ExercisePicker
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}

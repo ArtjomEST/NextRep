@@ -18,9 +18,9 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const sizeStyles: Record<string, React.CSSProperties> = {
-    sm: { padding: '8px 16px', fontSize: '14px' },
-    md: { padding: '14px 24px', fontSize: '16px' },
-    lg: { padding: '18px 32px', fontSize: '18px' },
+    sm: { padding: '8px 14px', fontSize: '13px' },
+    md: { padding: '13px 20px', fontSize: '15px' },
+    lg: { padding: '15px 20px', fontSize: '16px' },
   };
 
   const variantStyles: Record<string, React.CSSProperties> = {
@@ -31,12 +31,12 @@ export default function Button({
     },
     secondary: {
       backgroundColor: 'transparent',
-      color: theme.colors.primary,
-      border: `1px solid ${theme.colors.primary}`,
+      color: theme.colors.textMuted,
+      border: `1px dashed ${theme.colors.border}`,
     },
     ghost: {
       backgroundColor: 'transparent',
-      color: theme.colors.textSecondary,
+      color: theme.colors.textMuted,
       border: 'none',
     },
   };
@@ -46,11 +46,11 @@ export default function Button({
       style={{
         ...sizeStyles[size],
         ...variantStyles[variant],
-        borderRadius: theme.radius.md,
-        fontWeight: 600,
-        cursor: 'pointer',
+        borderRadius: '10px',
+        fontWeight: 700,
+        cursor: props.disabled ? 'not-allowed' : 'pointer',
         width: fullWidth ? '100%' : 'auto',
-        transition: 'background-color 0.15s ease, opacity 0.15s ease',
+        transition: 'opacity 0.15s ease',
         letterSpacing: '0.01em',
         ...style,
       }}

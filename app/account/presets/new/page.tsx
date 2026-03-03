@@ -25,7 +25,7 @@ import type { Exercise, WorkoutExercise } from '@/lib/types';
 import { createEmptySet } from '@/lib/workout/metrics';
 import ExercisePicker from '@/components/ExercisePicker';
 import SortableExerciseCard from '@/components/SortableExerciseCard';
-import { ui } from '@/lib/ui-styles';
+import { theme } from '@/lib/theme';
 
 function exercisesToEntries(exercises: Exercise[]): WorkoutExercise[] {
   return exercises.map((ex, i) => ({
@@ -143,57 +143,87 @@ export default function PresetFormPage() {
       >
         <div
           style={{
-            width: 28,
-            height: 28,
-            border: `3px solid rgba(255,255,255,0.1)`,
-            borderTopColor: ui.accent,
+            width: 26,
+            height: 26,
+            border: `3px solid ${theme.colors.border}`,
+            borderTopColor: theme.colors.primary,
             borderRadius: '50%',
             animation: 'preset-spin 0.8s linear infinite',
           }}
         />
         <style>{`@keyframes preset-spin { to { transform: rotate(360deg); } }`}</style>
-        <p style={{ color: ui.textMuted, fontSize: 14, margin: 0 }}>Loading preset…</p>
+        <p style={{ color: theme.colors.textMuted, fontSize: 14, margin: 0 }}>
+          Loading preset…
+        </p>
       </div>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingBottom: 24 }}>
-      <div style={{ padding: 16, paddingBottom: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <button
-            onClick={() => router.push('/account')}
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '20px',
+        paddingTop: '16px',
+        paddingBottom: '32px',
+      }}
+    >
+      {/* ─── Header ─── */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <button
+          onClick={() => router.push('/account')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: theme.colors.textMuted,
+            cursor: 'pointer',
+            padding: '8px',
+            margin: '-8px',
+            fontSize: '18px',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          ←
+        </button>
+        <div>
+          <h1
             style={{
-              background: 'none',
-              border: 'none',
-              color: ui.textLabel,
-              cursor: 'pointer',
-              padding: 8,
-              margin: -8,
-              fontSize: 18,
+              color: theme.colors.textPrimary,
+              fontSize: '22px',
+              fontWeight: 800,
+              margin: 0,
+              letterSpacing: '-0.02em',
             }}
           >
-            ←
-          </button>
-          <div>
-            <h1 style={{ color: ui.textPrimary, fontSize: 22, fontWeight: 800, margin: 0 }}>
-              {isEditMode ? 'Edit Preset' : 'Create Preset'}
-            </h1>
-            {isEditMode && (
-              <p style={{ color: ui.textMuted, fontSize: 12, margin: '2px 0 0' }}>
-                Editing existing preset
-              </p>
-            )}
-          </div>
+            {isEditMode ? 'Edit Preset' : 'Create Preset'}
+          </h1>
+          {isEditMode && (
+            <p
+              style={{
+                color: theme.colors.textMuted,
+                fontSize: '12px',
+                margin: '2px 0 0',
+              }}
+            >
+              Editing existing preset
+            </p>
+          )}
         </div>
+      </div>
 
+      {/* ─── Preset name input ─── */}
+      <div>
         <label
           style={{
             display: 'block',
-            color: ui.textLabel,
-            fontSize: 13,
-            fontWeight: 600,
-            marginBottom: 8,
+            color: theme.colors.textMuted,
+            fontSize: '11px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            textTransform: 'uppercase',
+            marginBottom: '8px',
           }}
         >
           Preset name
@@ -205,102 +235,136 @@ export default function PresetFormPage() {
           placeholder="e.g. Arm Day, Push Day"
           style={{
             width: '100%',
-            background: ui.cardBg,
-            border: isEditMode ? `1px solid ${ui.accent}` : ui.cardBorder,
-            borderRadius: ui.cardRadius,
+            backgroundColor: theme.colors.card,
+            border: `1.5px solid ${isEditMode ? theme.colors.primary : theme.colors.border}`,
+            borderRadius: '12px',
             padding: '14px 16px',
-            color: ui.textPrimary,
-            fontSize: 16,
+            color: theme.colors.textPrimary,
+            fontSize: '16px',
+            fontWeight: 500,
             outline: 'none',
             boxSizing: 'border-box',
           }}
         />
+      </div>
 
-        <div style={{ marginTop: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h2 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: 0 }}>
-              Exercises ({exercises.length})
-            </h2>
+      {/* ─── Exercises section ─── */}
+      <section>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px',
+          }}
+        >
+          <h2
+            style={{
+              color: theme.colors.textPrimary,
+              fontSize: '15px',
+              fontWeight: 700,
+              margin: 0,
+            }}
+          >
+            Exercises
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {exercises.length > 0 && (
+              <span style={{ color: theme.colors.textMuted, fontSize: '13px', fontWeight: 600 }}>
+                {exercises.length}
+              </span>
+            )}
             <button
               onClick={() => setPickerOpen(true)}
               style={{
-                background: ui.accent,
-                color: ui.textPrimary,
+                backgroundColor: theme.colors.primary,
+                color: theme.colors.textPrimary,
                 border: 'none',
-                borderRadius: 8,
+                borderRadius: '8px',
                 padding: '8px 14px',
-                fontSize: 13,
-                fontWeight: 600,
+                fontSize: '13px',
+                fontWeight: 700,
                 cursor: 'pointer',
               }}
             >
-              + Add Exercise
+              + Add
             </button>
           </div>
-
-          {exercises.length === 0 ? (
-            <div
-              style={{
-                background: ui.cardBg,
-                border: ui.cardBorder,
-                borderRadius: ui.cardRadius,
-                padding: 24,
-                textAlign: 'center',
-                color: ui.textMuted,
-                fontSize: 14,
-              }}
-            >
-              No exercises. Tap &quot;Add Exercise&quot; to build your template.
-            </div>
-          ) : (
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={entries.map((e) => e.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {entries.map((entry) => (
-                    <SortableExerciseCard
-                      key={entry.id}
-                      entry={entry}
-                      onRemove={() => handleRemove(entry.exerciseId)}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
         </div>
-      </div>
 
+        {exercises.length === 0 ? (
+          <div
+            style={{
+              backgroundColor: theme.colors.card,
+              border: `1.5px solid ${theme.colors.border}`,
+              borderRadius: '14px',
+              padding: '28px 20px',
+              textAlign: 'center',
+              color: theme.colors.textMuted,
+              fontSize: '14px',
+            }}
+          >
+            No exercises yet. Tap &quot;+ Add&quot; to build your template.
+          </div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={entries.map((e) => e.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {entries.map((entry) => (
+                  <SortableExerciseCard
+                    key={entry.id}
+                    entry={entry}
+                    onRemove={() => handleRemove(entry.exerciseId)}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </section>
+
+      {/* ─── Error message ─── */}
       {error && (
-        <p style={{ color: ui.error, fontSize: 14, margin: '12px 16px 0' }}>{error}</p>
-      )}
-
-      <div style={{ marginTop: 'auto', padding: 16, paddingBottom: 40 }}>
-        <button
-          onClick={handleSave}
-          disabled={saving}
+        <p
           style={{
-            width: '100%',
-            background: isEditMode ? ui.accent : ui.accent,
-            color: ui.textPrimary,
-            border: 'none',
-            borderRadius: ui.cardRadius,
-            padding: 16,
-            fontSize: 16,
-            fontWeight: 700,
-            cursor: saving ? 'wait' : 'pointer',
-            opacity: saving ? 0.8 : 1,
+            color: theme.colors.error,
+            fontSize: '14px',
+            margin: 0,
+            fontWeight: 500,
           }}
         >
-          {saving ? 'Saving…' : isEditMode ? 'Save Changes' : 'Save Preset'}
-        </button>
-      </div>
+          {error}
+        </p>
+      )}
+
+      {/* ─── Save button ─── */}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        style={{
+          width: '100%',
+          backgroundColor: theme.colors.primary,
+          color: theme.colors.textPrimary,
+          border: 'none',
+          borderRadius: '12px',
+          padding: '15px',
+          fontSize: '16px',
+          fontWeight: 700,
+          cursor: saving ? 'wait' : 'pointer',
+          opacity: saving ? 0.75 : 1,
+          letterSpacing: '0.01em',
+          transition: 'opacity 0.15s ease',
+        }}
+      >
+        {saving ? 'Saving…' : isEditMode ? 'Save Changes' : 'Save Preset'}
+      </button>
 
       <ExercisePicker
         open={pickerOpen}

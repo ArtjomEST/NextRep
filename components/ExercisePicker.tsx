@@ -83,6 +83,8 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
 
   if (!open) return null;
 
+  const hasSelection = pendingIds.length > 0;
+
   return (
     <div
       style={{
@@ -94,14 +96,16 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
         backgroundColor: theme.colors.bgPrimary,
       }}
     >
-      {/* Header */}
+      {/* ─── Header ─── */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
-          padding: '16px',
+          justifyContent: 'space-between',
+          padding: '16px 16px 14px',
           borderBottom: `1px solid ${theme.colors.border}`,
           flexShrink: 0,
+          gap: 12,
         }}
       >
         <button
@@ -109,51 +113,87 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
           style={{
             background: 'none',
             border: 'none',
-            color: theme.colors.textSecondary,
+            color: theme.colors.textMuted,
             fontSize: '15px',
             cursor: 'pointer',
-            padding: '8px',
-            margin: '-8px',
+            padding: '6px',
+            margin: '-6px',
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
+            gap: '5px',
             flexShrink: 0,
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <polyline points="15 18 9 12 15 6" />
           </svg>
-          <span style={{ fontSize: '15px' }}>Back</span>
+          Back
         </button>
-        <h2
-          style={{
-            color: theme.colors.textPrimary,
-            fontSize: '17px',
-            fontWeight: 600,
-            margin: 0,
-            flex: 1,
-            textAlign: 'center',
-          }}
-        >
-          Add Exercises
-        </h2>
-        <div style={{ width: '64px', flexShrink: 0 }} />
+
+        <div style={{ textAlign: 'center', flex: 1 }}>
+          <h2
+            style={{
+              color: theme.colors.textPrimary,
+              fontSize: '17px',
+              fontWeight: 700,
+              margin: 0,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Add Exercises
+          </h2>
+          {hasSelection && (
+            <p
+              style={{
+                color: theme.colors.primary,
+                fontSize: '12px',
+                fontWeight: 600,
+                margin: '2px 0 0',
+              }}
+            >
+              {pendingIds.length} selected
+            </p>
+          )}
+        </div>
+
+        <div style={{ width: '52px', flexShrink: 0 }} />
       </div>
 
-      {/* Search */}
-      <div style={{ padding: '12px 16px 0', flexShrink: 0 }}>
+      {/* ─── Search ─── */}
+      <div style={{ padding: '14px 16px 0', flexShrink: 0 }}>
         <div style={{ position: 'relative' }}>
           <svg
-            width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke={theme.colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={theme.colors.textMuted}
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              position: 'absolute',
+              left: '14px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              pointerEvents: 'none',
+            }}
           >
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
           <input
             type="text"
-            placeholder="Search exercises..."
+            placeholder="Search exercises…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             autoFocus
@@ -161,8 +201,8 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
               width: '100%',
               backgroundColor: theme.colors.surface,
               border: `1px solid ${theme.colors.border}`,
-              borderRadius: theme.radius.md,
-              padding: '12px 14px 12px 42px',
+              borderRadius: '10px',
+              padding: '12px 14px 12px 40px',
               color: theme.colors.textPrimary,
               fontSize: '15px',
               outline: 'none',
@@ -172,11 +212,11 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
         </div>
       </div>
 
-      {/* Filter chips */}
+      {/* ─── Muscle group filter chips ─── */}
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          gap: '7px',
           padding: '12px 16px',
           overflowX: 'auto',
           scrollbarWidth: 'none',
@@ -184,48 +224,67 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
           flexShrink: 0,
         }}
       >
-        {muscleGroups.map((mg) => (
-          <button
-            key={mg}
-            onClick={() => setFilter(filter === mg ? null : mg)}
-            style={{
-              backgroundColor: filter === mg ? theme.colors.primary : theme.colors.surface,
-              color: filter === mg ? '#fff' : theme.colors.textSecondary,
-              border: filter === mg ? 'none' : `1px solid ${theme.colors.border}`,
-              borderRadius: '20px',
-              padding: '7px 14px',
-              fontSize: '13px',
-              fontWeight: 500,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            {mg}
-          </button>
-        ))}
+        {muscleGroups.map((mg) => {
+          const active = filter === mg;
+          return (
+            <button
+              key={mg}
+              onClick={() => setFilter(active ? null : mg)}
+              style={{
+                backgroundColor: active ? theme.colors.primary : theme.colors.card,
+                color: active ? theme.colors.textPrimary : theme.colors.textMuted,
+                border: `1.5px solid ${active ? theme.colors.primary : theme.colors.border}`,
+                borderRadius: '20px',
+                padding: '7px 14px',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+              }}
+            >
+              {mg}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Exercise list */}
+      {/* ─── Exercise list ─── */}
       <div
         style={{
           flex: 1,
           overflowY: 'auto',
-          padding: '0 16px 16px',
+          padding: '0 16px 12px',
           display: 'flex',
           flexDirection: 'column',
           gap: '8px',
         }}
       >
         {loading && results.length === 0 && (
-          <p style={{ color: theme.colors.textMuted, fontSize: '14px', textAlign: 'center', padding: '32px 0' }}>
-            Loading exercises...
+          <p
+            style={{
+              color: theme.colors.textMuted,
+              fontSize: '14px',
+              textAlign: 'center',
+              padding: '40px 0',
+              margin: 0,
+            }}
+          >
+            Loading exercises…
           </p>
         )}
 
         {!loading && results.length === 0 && (
-          <p style={{ color: theme.colors.textMuted, fontSize: '14px', textAlign: 'center', padding: '32px 0' }}>
+          <p
+            style={{
+              color: theme.colors.textMuted,
+              fontSize: '14px',
+              textAlign: 'center',
+              padding: '40px 0',
+              margin: 0,
+            }}
+          >
             No exercises found
           </p>
         )}
@@ -246,88 +305,89 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
                 width: '100%',
                 textAlign: 'left',
                 backgroundColor: isPending
-                  ? 'rgba(31, 138, 91, 0.10)'
+                  ? 'rgba(31,138,91,0.08)'
                   : theme.colors.card,
-                border: `1px solid ${
+                border: `1.5px solid ${
                   isPending ? theme.colors.primary : theme.colors.border
                 }`,
-                borderRadius: theme.radius.md,
-                padding: '14px 16px',
+                borderRadius: '14px',
+                padding: '13px 14px',
                 cursor: isAlreadyAdded ? 'default' : 'pointer',
-                opacity: isAlreadyAdded ? 0.5 : 1,
+                opacity: isAlreadyAdded ? 0.45 : 1,
                 transition: 'background-color 0.15s ease, border-color 0.15s ease',
               }}
             >
+              {/* Exercise info */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <span
                   style={{
                     color: theme.colors.textPrimary,
                     fontSize: '15px',
                     fontWeight: 600,
+                    display: 'block',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   {ex.name}
                 </span>
-                <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap' }}>
                   {ex.muscleGroups.map((mg) => (
-                    <span
-                      key={mg}
-                      style={{
-                        backgroundColor: theme.colors.surface,
-                        color: theme.colors.textSecondary,
-                        fontSize: '11px',
-                        fontWeight: 500,
-                        padding: '2px 7px',
-                        borderRadius: '6px',
-                        border: `1px solid ${theme.colors.border}`,
-                      }}
-                    >
-                      {mg}
-                    </span>
+                    <span key={mg} style={muscleTagStyle}>{mg}</span>
                   ))}
-                  <span
-                    style={{
-                      backgroundColor: 'rgba(31, 138, 91, 0.12)',
-                      color: theme.colors.primary,
-                      fontSize: '11px',
-                      fontWeight: 500,
-                      padding: '2px 7px',
-                      borderRadius: '6px',
-                    }}
-                  >
-                    {ex.equipment}
-                  </span>
+                  {ex.equipment && (
+                    <span style={equipTagStyle}>{ex.equipment}</span>
+                  )}
                 </div>
               </div>
 
+              {/* Selection indicator */}
               <div style={{ flexShrink: 0, marginLeft: '12px', display: 'flex', alignItems: 'center' }}>
                 {isAlreadyAdded ? (
-                  <span style={{ color: theme.colors.textMuted, fontSize: '12px', fontWeight: 500 }}>
-                    Already added
+                  <span
+                    style={{
+                      color: theme.colors.textMuted,
+                      fontSize: '11px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Added
                   </span>
                 ) : isPending ? (
                   <div
                     style={{
-                      width: '22px',
-                      height: '22px',
+                      width: '24px',
+                      height: '24px',
                       borderRadius: '50%',
                       backgroundColor: theme.colors.primary,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      flexShrink: 0,
                     }}
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#fff"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
                   </div>
                 ) : (
                   <div
                     style={{
-                      width: '22px',
-                      height: '22px',
+                      width: '24px',
+                      height: '24px',
                       borderRadius: '50%',
                       border: `1.5px solid ${theme.colors.border}`,
+                      flexShrink: 0,
                     }}
                   />
                 )}
@@ -337,11 +397,11 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
         })}
       </div>
 
-      {/* Sticky bottom */}
+      {/* ─── Sticky add button ─── */}
       <div
         style={{
           padding: '12px 16px',
-          paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+          paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
           borderTop: `1px solid ${theme.colors.border}`,
           backgroundColor: theme.colors.bgPrimary,
           flexShrink: 0,
@@ -349,23 +409,43 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
       >
         <button
           onClick={handleAddSelected}
-          disabled={pendingIds.length === 0}
+          disabled={!hasSelection}
           style={{
             width: '100%',
-            backgroundColor: pendingIds.length === 0 ? theme.colors.surface : theme.colors.primary,
-            color: pendingIds.length === 0 ? theme.colors.textMuted : '#fff',
-            border: 'none',
-            borderRadius: theme.radius.md,
-            padding: '16px',
-            fontSize: '16px',
-            fontWeight: 600,
-            cursor: pendingIds.length === 0 ? 'not-allowed' : 'pointer',
+            backgroundColor: hasSelection ? theme.colors.primary : theme.colors.card,
+            color: hasSelection ? theme.colors.textPrimary : theme.colors.textMuted,
+            border: `1px solid ${hasSelection ? 'transparent' : theme.colors.border}`,
+            borderRadius: '12px',
+            padding: '15px',
+            fontSize: '15px',
+            fontWeight: 700,
+            cursor: hasSelection ? 'pointer' : 'not-allowed',
             transition: 'background-color 0.15s ease, color 0.15s ease',
+            letterSpacing: '0.01em',
           }}
         >
-          {pendingIds.length === 0 ? 'Select exercises' : `Add Selected (${pendingIds.length})`}
+          {!hasSelection ? 'Select exercises' : `Add ${pendingIds.length} Exercise${pendingIds.length !== 1 ? 's' : ''}`}
         </button>
       </div>
     </div>
   );
 }
+
+const muscleTagStyle: React.CSSProperties = {
+  backgroundColor: theme.colors.surface,
+  color: theme.colors.textMuted,
+  fontSize: '10px',
+  fontWeight: 600,
+  padding: '3px 8px',
+  borderRadius: '5px',
+  border: `1px solid ${theme.colors.border}`,
+};
+
+const equipTagStyle: React.CSSProperties = {
+  backgroundColor: 'rgba(31,138,91,0.14)',
+  color: theme.colors.primary,
+  fontSize: '10px',
+  fontWeight: 600,
+  padding: '3px 8px',
+  borderRadius: '5px',
+};

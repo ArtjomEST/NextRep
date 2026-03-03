@@ -21,13 +21,13 @@ export default function WorkoutExerciseCard({
     <div
       style={{
         backgroundColor: theme.colors.card,
-        borderRadius: theme.radius.md,
-        border: `1px solid ${isDragging ? theme.colors.primary : theme.colors.border}`,
-        padding: '14px 16px',
+        borderRadius: '14px',
+        border: `1.5px solid ${isDragging ? theme.colors.primary : theme.colors.border}`,
+        padding: '13px 14px',
         display: 'flex',
         alignItems: 'center',
         gap: '12px',
-        boxShadow: isDragging ? '0 8px 24px rgba(0,0,0,0.4)' : 'none',
+        boxShadow: isDragging ? '0 8px 28px rgba(0,0,0,0.45)' : 'none',
         transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
       }}
     >
@@ -43,9 +43,10 @@ export default function WorkoutExerciseCard({
           padding: '4px 2px',
           touchAction: 'none',
           flexShrink: 0,
+          opacity: 0.5,
         }}
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
           <rect x="4" y="5" width="4" height="4" rx="1.5" />
           <rect x="10" y="5" width="4" height="4" rx="1.5" />
           <rect x="16" y="5" width="4" height="4" rx="1.5" />
@@ -60,38 +61,26 @@ export default function WorkoutExerciseCard({
 
       {/* Info */}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ color: theme.colors.textPrimary, fontSize: '15px', fontWeight: 600 }}>
+        <span
+          style={{
+            color: theme.colors.textPrimary,
+            fontSize: '15px',
+            fontWeight: 600,
+            display: 'block',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
           {entry.exerciseName}
         </span>
         <div style={{ display: 'flex', gap: '5px', marginTop: '6px', flexWrap: 'wrap' }}>
           {entry.muscleGroups.map((mg) => (
-            <span
-              key={mg}
-              style={{
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.textSecondary,
-                fontSize: '10px',
-                fontWeight: 500,
-                padding: '2px 7px',
-                borderRadius: '5px',
-                border: `1px solid ${theme.colors.border}`,
-              }}
-            >
-              {mg}
-            </span>
+            <span key={mg} style={muscleTagStyle}>{mg}</span>
           ))}
-          <span
-            style={{
-              backgroundColor: 'rgba(31,138,91,0.12)',
-              color: theme.colors.primary,
-              fontSize: '10px',
-              fontWeight: 500,
-              padding: '2px 7px',
-              borderRadius: '5px',
-            }}
-          >
-            {entry.equipment}
-          </span>
+          {entry.equipment && (
+            <span style={equipTagStyle}>{entry.equipment}</span>
+          )}
         </div>
       </div>
 
@@ -103,19 +92,40 @@ export default function WorkoutExerciseCard({
           border: 'none',
           color: theme.colors.textMuted,
           cursor: 'pointer',
-          padding: '8px',
-          margin: '-8px',
+          padding: '6px 4px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
+          fontSize: '16px',
+          opacity: 0.4,
+          transition: 'opacity 0.15s ease',
+          lineHeight: 1,
         }}
+        onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.4'; }}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18" />
-          <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
+        ✕
       </button>
     </div>
   );
 }
+
+const muscleTagStyle: React.CSSProperties = {
+  backgroundColor: theme.colors.surface,
+  color: theme.colors.textMuted,
+  fontSize: '10px',
+  fontWeight: 600,
+  padding: '3px 8px',
+  borderRadius: '5px',
+  border: `1px solid ${theme.colors.border}`,
+};
+
+const equipTagStyle: React.CSSProperties = {
+  backgroundColor: 'rgba(31,138,91,0.14)',
+  color: theme.colors.primary,
+  fontSize: '10px',
+  fontWeight: 600,
+  padding: '3px 8px',
+  borderRadius: '5px',
+};
