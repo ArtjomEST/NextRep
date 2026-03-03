@@ -85,6 +85,7 @@ export default function AccountPage() {
   const { user, isTelegram } = useAuth();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetsError, setPresetsError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
@@ -108,7 +109,11 @@ export default function AccountPage() {
   useEffect(() => {
     Promise.all([
       fetchSettings().catch((err) => { console.error('Failed to load settings:', err); return null; }),
-      fetchPresetsApi().catch(() => []),
+      fetchPresetsApi().catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : 'Failed to load presets';
+        setPresetsError(msg);
+        return [] as Preset[];
+      }),
     ]).then(([s, p]) => {
       if (s) setSettings(s as UserSettings);
       if (Array.isArray(p)) setPresets(p);
@@ -420,7 +425,14 @@ export default function AccountPage() {
             Create Preset
           </button>
         </div>
-        {presets.length === 0 ? (
+        {presetsError && (
+          <p style={{ color: ui.error, fontSize: 13, margin: '0 0 8px' }}>
+            {presetsError.includes('401') || presetsError.includes('Authentication')
+              ? 'Sign in via Telegram to manage your presets.'
+              : presetsError}
+          </p>
+        )}
+        {!presetsError && presets.length === 0 ? (
           <p style={{ color: ui.textMuted, fontSize: 13, margin: 0 }}>
             No presets. Create a template to quickly start workouts with pre-filled exercises.
           </p>
@@ -440,10 +452,32 @@ export default function AccountPage() {
                   gap: 10,
                 }}
               >
-                <span style={{ flex: 1, minWidth: 0, color: ui.textPrimary, fontSize: 14, fontWeight: 600 }}>{preset.name}</span>
-                <span style={{ color: ui.textMuted, fontSize: 12 }}>
-                  {preset.exerciseIds.length} exercise{preset.exerciseIds.length !== 1 ? 's' : ''}
-                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ color: ui.textPrimary, fontSize: 14, fontWeight: 600, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {preset.name}
+                  </span>
+                  <span style={{ color: ui.textMuted, fontSize: 12 }}>
+                    {preset.exerciseIds.length} exercise{preset.exerciseIds.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push(`/account/presets/new?id=${preset.id}`)}
+                  disabled={deletingId !== null}
+                  style={{
+                    background: 'transparent',
+                    border: ui.cardBorder,
+                    borderRadius: 6,
+                    color: ui.textLabel,
+                    padding: '5px 10px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: deletingId !== null ? 'wait' : 'pointer',
+                  }}
+                  title="Edit preset"
+                >
+                  Edit
+                </button>
                 <button
                   type="button"
                   onClick={async () => {
@@ -464,7 +498,7 @@ export default function AccountPage() {
                     border: 'none',
                     color: ui.error,
                     padding: 8,
-                    margin: -8,
+                    margin: '-8px -8px -8px 0',
                     cursor: deletingId !== null ? 'wait' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',

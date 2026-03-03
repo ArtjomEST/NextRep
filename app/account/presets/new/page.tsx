@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   DndContext,
   closestCenter,
@@ -15,14 +15,18 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { createPresetApi } from '@/lib/api/client';
+import {
+  createPresetApi,
+  updatePresetApi,
+  fetchExercisesByIds,
+  fetchPresetApi,
+} from '@/lib/api/client';
 import type { Exercise, WorkoutExercise } from '@/lib/types';
 import { createEmptySet } from '@/lib/workout/metrics';
 import ExercisePicker from '@/components/ExercisePicker';
 import SortableExerciseCard from '@/components/SortableExerciseCard';
 import { ui } from '@/lib/ui-styles';
 
-/** Convert preset Exercise[] to WorkoutExercise[] for reuse of SortableExerciseCard (same DnD as workout editor). */
 function exercisesToEntries(exercises: Exercise[]): WorkoutExercise[] {
   return exercises.map((ex, i) => ({
     id: ex.id,
@@ -36,24 +40,46 @@ function exercisesToEntries(exercises: Exercise[]): WorkoutExercise[] {
   }));
 }
 
-export default function NewPresetPage() {
+export default function PresetFormPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get('id');
+  const isEditMode = !!editId;
+
   const [name, setName] = useState('');
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [loadingPreset, setLoadingPreset] = useState(isEditMode);
   const [error, setError] = useState<string | null>(null);
 
   const entries = useMemo(() => exercisesToEntries(exercises), [exercises]);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 6 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 8 },
-    }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
   );
+
+  const loadPreset = useCallback(async (id: string) => {
+    setLoadingPreset(true);
+    setError(null);
+    try {
+      const preset = await fetchPresetApi(id);
+      setName(preset.name);
+      if (preset.exerciseIds.length > 0) {
+        const loaded = await fetchExercisesByIds(preset.exerciseIds);
+        setExercises(loaded);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load preset');
+    } finally {
+      setLoadingPreset(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (editId) loadPreset(editId);
+  }, [editId, loadPreset]);
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -89,27 +115,50 @@ export default function NewPresetPage() {
     setError(null);
     setSaving(true);
     try {
-      await createPresetApi({
-        name: trimmed,
-        exerciseIds: exercises.map((e) => e.id),
-      });
+      const payload = { name: trimmed, exerciseIds: exercises.map((e) => e.id) };
+      if (isEditMode && editId) {
+        await updatePresetApi(editId, payload);
+      } else {
+        await createPresetApi(payload);
+      }
       router.push('/account');
-    } catch {
-      setError('Failed to save preset');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save preset');
     } finally {
       setSaving(false);
     }
   }
 
+  if (loadingPreset) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+          gap: 16,
+        }}
+      >
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            border: `3px solid rgba(255,255,255,0.1)`,
+            borderTopColor: ui.accent,
+            borderRadius: '50%',
+            animation: 'preset-spin 0.8s linear infinite',
+          }}
+        />
+        <style>{`@keyframes preset-spin { to { transform: rotate(360deg); } }`}</style>
+        <p style={{ color: ui.textMuted, fontSize: 14, margin: 0 }}>Loading preset…</p>
+      </div>
+    );
+  }
+
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        minHeight: '100vh',
-        paddingBottom: 24,
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', paddingBottom: 24 }}>
       <div style={{ padding: 16, paddingBottom: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <button
@@ -126,9 +175,16 @@ export default function NewPresetPage() {
           >
             ←
           </button>
-          <h1 style={{ color: ui.textPrimary, fontSize: 22, fontWeight: 800, margin: 0 }}>
-            Create Preset
-          </h1>
+          <div>
+            <h1 style={{ color: ui.textPrimary, fontSize: 22, fontWeight: 800, margin: 0 }}>
+              {isEditMode ? 'Edit Preset' : 'Create Preset'}
+            </h1>
+            {isEditMode && (
+              <p style={{ color: ui.textMuted, fontSize: 12, margin: '2px 0 0' }}>
+                Editing existing preset
+              </p>
+            )}
+          </div>
         </div>
 
         <label
@@ -150,7 +206,7 @@ export default function NewPresetPage() {
           style={{
             width: '100%',
             background: ui.cardBg,
-            border: ui.cardBorder,
+            border: isEditMode ? `1px solid ${ui.accent}` : ui.cardBorder,
             borderRadius: ui.cardRadius,
             padding: '14px 16px',
             color: ui.textPrimary,
@@ -222,22 +278,16 @@ export default function NewPresetPage() {
       </div>
 
       {error && (
-        <p style={{ color: ui.error, fontSize: 14, margin: '0 16px 12px' }}>{error}</p>
+        <p style={{ color: ui.error, fontSize: 14, margin: '12px 16px 0' }}>{error}</p>
       )}
 
-      <div
-        style={{
-          marginTop: 'auto',
-          padding: 16,
-          paddingBottom: 40,
-        }}
-      >
+      <div style={{ marginTop: 'auto', padding: 16, paddingBottom: 40 }}>
         <button
           onClick={handleSave}
           disabled={saving}
           style={{
             width: '100%',
-            background: ui.accent,
+            background: isEditMode ? ui.accent : ui.accent,
             color: ui.textPrimary,
             border: 'none',
             borderRadius: ui.cardRadius,
@@ -248,7 +298,7 @@ export default function NewPresetPage() {
             opacity: saving ? 0.8 : 1,
           }}
         >
-          {saving ? 'Saving…' : 'Save Preset'}
+          {saving ? 'Saving…' : isEditMode ? 'Save Changes' : 'Save Preset'}
         </button>
       </div>
 

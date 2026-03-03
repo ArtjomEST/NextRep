@@ -10,6 +10,7 @@ export interface PresetPayload {
   name: string;
   exerciseIds: string[];
   createdAt: string;
+  updatedAt: string;
 }
 
 // ─── GET /api/presets ───────────────────────────────────────
@@ -37,6 +38,7 @@ export async function GET(req: NextRequest) {
       name: r.name,
       exerciseIds: Array.isArray(r.exerciseIds) ? (r.exerciseIds as string[]) : [],
       createdAt: r.createdAt instanceof Date ? r.createdAt.toISOString() : String(r.createdAt),
+      updatedAt: r.updatedAt instanceof Date ? r.updatedAt.toISOString() : String(r.updatedAt),
     }));
 
     return NextResponse.json({ data });
@@ -96,10 +98,8 @@ export async function POST(req: NextRequest) {
       userId: inserted.userId,
       name: inserted.name,
       exerciseIds: Array.isArray(inserted.exerciseIds) ? (inserted.exerciseIds as string[]) : [],
-      createdAt:
-        inserted.createdAt instanceof Date
-          ? inserted.createdAt.toISOString()
-          : String(inserted.createdAt),
+      createdAt: inserted.createdAt instanceof Date ? inserted.createdAt.toISOString() : String(inserted.createdAt),
+      updatedAt: inserted.updatedAt instanceof Date ? inserted.updatedAt.toISOString() : String(inserted.updatedAt),
     };
 
     return NextResponse.json({ data: payload });

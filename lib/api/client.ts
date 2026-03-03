@@ -358,103 +358,69 @@ export async function fetchProgressExerciseDetailApi(
   return json.data as ProgressExerciseDetail;
 }
 
-// ─── Workout Presets (API with localStorage fallback) ────────
-
-const PRESETS_STORAGE_KEY = 'nextrep_presets';
-
-function getPresetsFromStorage(): Preset[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = localStorage.getItem(PRESETS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function savePresetsToStorage(presets: Preset[]): void {
-  if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(PRESETS_STORAGE_KEY, JSON.stringify(presets));
-  } catch {
-    // ignore
-  }
-}
+// ─── Workout Presets ─────────────────────────────────────────
 
 export async function fetchPresetsApi(): Promise<Preset[]> {
-  try {
-    const res = await fetch('/api/presets', { headers: getAuthHeaders() });
-    if (res.ok) {
-      const json = await res.json();
-      return (json.data ?? []) as Preset[];
-    }
-    if (res.status === 401) return getPresetsFromStorage();
-    throw new Error('Failed to fetch presets');
-  } catch {
-    return getPresetsFromStorage();
+  const res = await fetch('/api/presets', { headers: getAuthHeaders() });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch presets (${res.status})`);
   }
+  const json = await res.json();
+  return (json.data ?? []) as Preset[];
+}
+
+export async function fetchPresetApi(id: string): Promise<Preset> {
+  const res = await fetch(`/api/presets/${id}`, { headers: getAuthHeaders() });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch preset (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as Preset;
 }
 
 export async function createPresetApi(payload: {
   name: string;
   exerciseIds: string[];
 }): Promise<Preset> {
-  try {
-    const res = await fetch('/api/presets', {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(payload),
-    });
-    if (res.ok) {
-      const json = await res.json();
-      return json.data as Preset;
-    }
-    if (res.status === 401) {
-      const preset: Preset = {
-        id: crypto.randomUUID(),
-        userId: '',
-        name: payload.name.trim(),
-        exerciseIds: payload.exerciseIds,
-        createdAt: new Date().toISOString(),
-      };
-      const list = getPresetsFromStorage();
-      list.unshift(preset);
-      savePresetsToStorage(list);
-      return preset;
-    }
-    throw new Error('Failed to create preset');
-  } catch (err) {
-    const preset: Preset = {
-      id: crypto.randomUUID(),
-      userId: '',
-      name: payload.name.trim(),
-      exerciseIds: payload.exerciseIds,
-      createdAt: new Date().toISOString(),
-    };
-    const list = getPresetsFromStorage();
-    list.unshift(preset);
-    savePresetsToStorage(list);
-    return preset;
+  const res = await fetch('/api/presets', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to create preset (${res.status})`);
   }
+  const json = await res.json();
+  return json.data as Preset;
+}
+
+export async function updatePresetApi(
+  id: string,
+  payload: { name: string; exerciseIds: string[] },
+): Promise<Preset> {
+  const res = await fetch(`/api/presets/${id}`, {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to update preset (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as Preset;
 }
 
 export async function deletePresetApi(id: string): Promise<void> {
-  try {
-    const res = await fetch(`/api/presets/${id}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders(),
-    });
-    if (res.ok) return;
-    if (res.status === 401 || res.status === 404) {
-      const list = getPresetsFromStorage().filter((p) => p.id !== id);
-      savePresetsToStorage(list);
-      return;
-    }
-    throw new Error('Failed to delete preset');
-  } catch {
-    const list = getPresetsFromStorage().filter((p) => p.id !== id);
-    savePresetsToStorage(list);
+  const res = await fetch(`/api/presets/${id}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to delete preset (${res.status})`);
   }
 }

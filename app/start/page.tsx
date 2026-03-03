@@ -11,15 +11,19 @@ export default function StartWorkoutPage() {
   const router = useRouter();
   const { dispatch } = useWorkout();
   const [presets, setPresets] = useState<Preset[]>([]);
+  const [presetsError, setPresetsError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [applyingId, setApplyingId] = useState<string | null>(null);
 
   const loadPresets = useCallback(async () => {
     setLoading(true);
+    setPresetsError(null);
     try {
       const list = await fetchPresetsApi();
       setPresets(list);
-    } catch {
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to load presets';
+      setPresetsError(msg);
       setPresets([]);
     } finally {
       setLoading(false);
@@ -126,6 +130,22 @@ export default function StartWorkoutPage() {
             }}
           >
             Loading presets…
+          </div>
+        ) : presetsError ? (
+          <div
+            style={{
+              background: ui.cardBg,
+              border: ui.cardBorder,
+              borderRadius: ui.cardRadius,
+              padding: 24,
+              textAlign: 'center',
+              color: ui.error,
+              fontSize: 14,
+            }}
+          >
+            {presetsError.includes('401') || presetsError.includes('Authentication')
+              ? 'Open NextRep via Telegram to access your presets.'
+              : presetsError}
           </div>
         ) : presets.length === 0 ? (
           <div

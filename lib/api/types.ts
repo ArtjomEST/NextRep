@@ -110,4 +110,5 @@ export interface Preset {
   name: string;
   exerciseIds: string[];
   createdAt: string;
+  updatedAt: string;
 }
