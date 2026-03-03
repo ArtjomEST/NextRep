@@ -12,7 +12,7 @@ type SplitKey = 'full_body' | 'upper_lower' | 'push_pull_legs' | 'bro_split' | '
 
 interface Draft {
   step: number;
-  goal: GoalKey | null;
+  goal: GoalKey[];
   experienceLevel: ExpKey | null;
   splitPreference: SplitKey | null;
   trainingDaysPerWeek: number;
@@ -27,7 +27,7 @@ interface Draft {
 
 const DEFAULT_DRAFT: Draft = {
   step: 0,
-  goal: null,
+  goal: [],
   experienceLevel: null,
   splitPreference: null,
   trainingDaysPerWeek: 4,
@@ -268,21 +268,25 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
   );
 }
 
-function GoalStep({ value, onChange }: { value: GoalKey | null; onChange: (v: GoalKey) => void }) {
+function GoalStep({ value, onChange }: { value: GoalKey[]; onChange: (v: GoalKey[]) => void }) {
+  const toggle = (key: GoalKey) => {
+    onChange(value.includes(key) ? value.filter((k) => k !== key) : [...value, key]);
+  };
+
   return (
     <>
       <div style={{ marginBottom: 28 }}>
         <div style={{ fontSize: 32, marginBottom: 12 }}>🎯</div>
         <h2 style={{ color: TEXT_PRIMARY, fontSize: 26, fontWeight: 800, margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-          What is your<br />main goal?
+          What are your<br />main goals?
         </h2>
         <p style={{ color: TEXT_MUTED, fontSize: 14, margin: 0 }}>
-          We&apos;ll personalize your experience around it.
+          Pick as many as you like — we&apos;ll tailor your experience.
         </p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {GOALS.map((g) => (
-          <OptionCard key={g.key} selected={value === g.key} onClick={() => onChange(g.key)}>
+          <OptionCard key={g.key} selected={value.includes(g.key)} onClick={() => toggle(g.key)}>
             <span style={{ fontSize: 24, flexShrink: 0 }}>{g.emoji}</span>
             <span style={{ color: TEXT_PRIMARY, fontSize: 16, fontWeight: 600 }}>{g.label}</span>
           </OptionCard>
@@ -569,9 +573,11 @@ function FinishStep({ draft }: { draft: Draft }) {
           </div>
         ))}
       </div>
-      {draft.goal && (
+      {draft.goal.length > 0 && (
         <div style={{ color: TEXT_MUTED, fontSize: 13, marginTop: 4 }}>
-          Goal: <span style={{ color: ACCENT, fontWeight: 600 }}>{GOAL_LABELS[draft.goal] ?? draft.goal}</span>
+          Goals: <span style={{ color: ACCENT, fontWeight: 600 }}>
+            {draft.goal.map((g) => GOAL_LABELS[g] ?? g).join(' · ')}
+          </span>
         </div>
       )}
     </div>
@@ -618,7 +624,7 @@ export default function OnboardingWizard() {
 
   const canContinue = (): boolean => {
     switch (draft.step) {
-      case 1: return draft.goal !== null;
+      case 1: return draft.goal.length > 0;
       case 2: return draft.experienceLevel !== null;
       case 3: return draft.splitPreference !== null;
       case 4: return draft.trainingDaysPerWeek >= 2 && draft.trainingDaysPerWeek <= 6;
@@ -647,7 +653,7 @@ export default function OnboardingWizard() {
       const hasBestLifts = benchPress || squat || deadlift;
 
       const data: OnboardingData = {
-        goal: draft.goal ?? 'general_fitness',
+        goal: draft.goal[0] ?? 'general_fitness',
         experienceLevel: draft.experienceLevel ?? 'beginner',
         splitPreference: draft.splitPreference ?? 'not_sure',
         trainingDaysPerWeek: draft.trainingDaysPerWeek,
