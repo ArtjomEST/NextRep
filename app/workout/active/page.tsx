@@ -26,6 +26,7 @@ export default function ActiveWorkoutPage() {
   const [showFinishModal, setShowFinishModal] = useState(false);
   const [showAllDoneModal, setShowAllDoneModal] = useState(false);
   const [showRest, setShowRest] = useState(false);
+  const [restMinimized, setRestMinimized] = useState(false);
   const [lastLoggedSetIndex, setLastLoggedSetIndex] = useState(0);
   const [lastLoggedExerciseName, setLastLoggedExerciseName] = useState('');
   const [infoDetail, setInfoDetail] = useState<ExerciseDetail | null>(null);
@@ -64,6 +65,7 @@ export default function ActiveWorkoutPage() {
       setLastLoggedSetIndex(setIndex);
       dispatch({ type: 'TOGGLE_SET_COMPLETE', exerciseEntryId, setId });
       setShowRest(true);
+      setRestMinimized(false);
     },
     [dispatch],
   );
@@ -167,7 +169,7 @@ export default function ActiveWorkoutPage() {
         display: 'flex',
         flexDirection: 'column',
         paddingTop: '16px',
-        paddingBottom: '100px',
+        paddingBottom: showRest && restMinimized ? '140px' : '100px',
       }}
     >
       {/* ─── Top Bar ─── */}
@@ -479,15 +481,18 @@ export default function ActiveWorkoutPage() {
         })}
       </div>
 
-      {/* ─── Rest Timer Overlay ─── */}
+      {/* ─── Rest Timer Overlay / Mini ─── */}
       <RestTimer
         visible={showRest}
+        isMinimized={restMinimized}
         workoutName={draft.name}
         exerciseName={lastLoggedExerciseName}
         setIndex={lastLoggedSetIndex}
+        onMinimize={() => setRestMinimized(true)}
+        onExpand={() => setRestMinimized(false)}
         onAddSet={handleRestAddSet}
         onFinishExercise={handleRestFinishExercise}
-        onDismiss={() => setShowRest(false)}
+        onDismiss={() => { setShowRest(false); setRestMinimized(false); }}
       />
 
       {/* ─── Exercise Info Sheet ─── */}

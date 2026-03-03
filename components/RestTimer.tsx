@@ -5,73 +5,270 @@ import { theme } from '@/lib/theme';
 
 interface RestTimerProps {
   visible: boolean;
+  isMinimized?: boolean;
   workoutName: string;
   exerciseName: string;
   setIndex: number;
+  onMinimize?: () => void;
+  onExpand?: () => void;
   onAddSet: () => void;
   onFinishExercise: () => void;
   onDismiss: () => void;
 }
 
-const DEFAULT_REST = 120;
+const DEFAULT_REST_SEC = 120;
+const DEFAULT_REST_MS = DEFAULT_REST_SEC * 1000;
+const TICK_MS = 500;
 const RADIUS = 88;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export default function RestTimer({
   visible,
+  isMinimized = false,
   workoutName,
   exerciseName,
   setIndex,
+  onMinimize,
+  onExpand,
   onAddSet,
   onFinishExercise,
   onDismiss,
 }: RestTimerProps) {
-  const [remaining, setRemaining] = useState(DEFAULT_REST);
-  const [running, setRunning] = useState(false);
+  const [restEndsAt, setRestEndsAt] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [remainingWhenPaused, setRemainingWhenPaused] = useState(0);
+  const [tick, setTick] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasAutoClosedRef = useRef(false);
 
-  const clear = useCallback(() => {
+  const clearIntervalRef = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
   }, []);
 
+  const forceRecalc = useCallback(() => setTick((t) => t + 1), []);
+
+  // Initialize when visible (and not just minimizing)
   useEffect(() => {
     if (visible) {
-      setRemaining(DEFAULT_REST);
-      setRunning(true);
+      setRestEndsAt(Date.now() + DEFAULT_REST_MS);
+      setIsPaused(false);
+      setRemainingWhenPaused(0);
+      hasAutoClosedRef.current = false;
     } else {
-      setRunning(false);
-      clear();
+      clearIntervalRef();
     }
-  }, [visible, clear]);
+  }, [visible, clearIntervalRef]);
 
+  // Tick interval for UI refresh (only when running, not paused)
   useEffect(() => {
-    clear();
-    if (running && remaining > 0) {
-      intervalRef.current = setInterval(() => {
-        setRemaining((prev) => {
-          if (prev <= 1) {
-            setRunning(false);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    clearIntervalRef();
+    if (visible && !isPaused) {
+      intervalRef.current = setInterval(forceRecalc, TICK_MS);
     }
-    return clear;
-  }, [running, remaining > 0, clear]);
+    return clearIntervalRef;
+  }, [visible, isPaused, forceRecalc, clearIntervalRef]);
+
+  // visibilitychange and focus: force immediate recalculation
+  useEffect(() => {
+    if (!visible) return;
+    const onVisibilityChange = () => forceRecalc();
+    const onFocus = () => forceRecalc();
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [visible, forceRecalc]);
+
+  // Auto-close when timer reaches 0 (full and minimized)
+  useEffect(() => {
+    if (!visible || hasAutoClosedRef.current) return;
+    const remainingSecs = isPaused
+      ? remainingWhenPaused
+      : Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
+    if (remainingSecs === 0) {
+      hasAutoClosedRef.current = true;
+      onDismiss();
+    }
+  }, [visible, isPaused, restEndsAt, remainingWhenPaused, tick, onDismiss]);
+
+  // Compute remaining seconds for display (timestamp-based)
+  const remaining = isPaused
+    ? remainingWhenPaused
+    : Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
+
+  const handleMinus30 = () => {
+    if (isPaused) {
+      setRemainingWhenPaused((r) => Math.max(0, r - 30));
+    } else {
+      setRestEndsAt((e) => Math.max(Date.now(), e - 30000));
+    }
+  };
+
+  const handlePlus30 = () => {
+    if (isPaused) {
+      setRemainingWhenPaused((r) => r + 30);
+    } else {
+      setRestEndsAt((e) => e + 30000);
+    }
+  };
+
+  const handlePauseResume = () => {
+    if (isPaused) {
+      setRestEndsAt(Date.now() + remainingWhenPaused * 1000);
+      setIsPaused(false);
+    } else {
+      const secs = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
+      setRemainingWhenPaused(secs);
+      setIsPaused(true);
+    }
+  };
 
   if (!visible) return null;
 
-  const progress = remaining / DEFAULT_REST;
+  const progress = remaining / DEFAULT_REST_SEC;
   const dashOffset = CIRCUMFERENCE * (1 - progress);
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
   const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   const isDone = remaining === 0;
 
+  // ─── Mini-timer bar (when minimized) ───
+  if (isMinimized) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 90,
+          padding: '10px 16px',
+          paddingBottom: 'max(10px, env(safe-area-inset-bottom, 10px))',
+          backgroundColor: theme.colors.card,
+          borderTop: `1px solid ${theme.colors.border}`,
+          boxShadow: '0 -4px 20px rgba(0,0,0,0.3)',
+          animation: 'rest-mini-slide-up 0.25s ease-out',
+        }}
+      >
+        <style>{`
+          @keyframes rest-mini-slide-up {
+            from { opacity: 0; transform: translateY(100%); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+        `}</style>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            maxWidth: 480,
+            margin: '0 auto',
+          }}
+        >
+          {/* Time */}
+          <span
+            style={{
+              color: isDone ? theme.colors.success : theme.colors.textPrimary,
+              fontSize: '20px',
+              fontWeight: 800,
+              fontVariantNumeric: 'tabular-nums',
+              minWidth: 52,
+            }}
+          >
+            {timeStr}
+          </span>
+
+          {/* Progress bar */}
+          <div
+            style={{
+              flex: 1,
+              height: 4,
+              backgroundColor: theme.colors.border,
+              borderRadius: 2,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${progress * 100}%`,
+                backgroundColor: isDone ? theme.colors.success : theme.colors.primary,
+                borderRadius: 2,
+                transition: 'width 0.3s ease-out',
+              }}
+            />
+          </div>
+
+          {/* −30 / Pause / +30 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              onClick={handleMinus30}
+              style={miniBtn}
+              aria-label="Subtract 30 seconds"
+            >
+              −30
+            </button>
+            <button
+              onClick={handlePauseResume}
+              style={{ ...miniBtn, width: 40, padding: '8px 0' }}
+              aria-label={isPaused ? 'Resume' : 'Pause'}
+            >
+              {isPaused ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={theme.colors.textPrimary}>
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={theme.colors.textPrimary}>
+                  <rect x="6" y="4" width="4" height="16" rx="1" />
+                  <rect x="14" y="4" width="4" height="16" rx="1" />
+                </svg>
+              )}
+            </button>
+            <button
+              onClick={handlePlus30}
+              style={miniBtn}
+              aria-label="Add 30 seconds"
+            >
+              +30
+            </button>
+          </div>
+
+          {/* Expand */}
+          <button
+            onClick={onExpand}
+            style={{
+              ...miniBtn,
+              backgroundColor: theme.colors.primary,
+              border: 'none',
+              padding: '8px 14px',
+              minWidth: 44,
+            }}
+            aria-label="Expand timer"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={theme.colors.textPrimary}
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="18 15 12 9 6 15" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Full overlay ───
   return (
     <div
       style={{
@@ -82,18 +279,27 @@ export default function RestTimer({
         display: 'flex',
         flexDirection: 'column',
         overflowY: 'auto',
+        animation: 'rest-full-fade-in 0.2s ease-out',
       }}
     >
-      {/* ─── Header ─── */}
+      <style>{`
+        @keyframes rest-full-fade-in {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
+
+      {/* ─── Header with Minimize ─── */}
       <div
         style={{
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
           padding: '16px 16px 0',
+          gap: 12,
         }}
       >
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <h1
             style={{
               color: theme.colors.textPrimary,
@@ -131,22 +337,37 @@ export default function RestTimer({
             Set #{setIndex + 1} logged
           </div>
         </div>
-        <button
-          onClick={onDismiss}
-          style={{
-            backgroundColor: theme.colors.primary,
-            color: theme.colors.textPrimary,
-            border: 'none',
-            borderRadius: '8px',
-            padding: '10px 22px',
-            fontSize: '14px',
-            fontWeight: 700,
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          Finish
-        </button>
+        {onMinimize && (
+          <button
+            onClick={onMinimize}
+            style={{
+              background: 'none',
+              border: `1px solid ${theme.colors.border}`,
+              borderRadius: '8px',
+              color: theme.colors.textMuted,
+              cursor: 'pointer',
+              padding: '8px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+            aria-label="Minimize timer"
+          >
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* ─── Current Exercise ─── */}
@@ -219,7 +440,6 @@ export default function RestTimer({
             viewBox="0 0 220 220"
             style={{ transform: 'rotate(-90deg)', display: 'block' }}
           >
-            {/* Track ring */}
             <circle
               cx={110}
               cy={110}
@@ -228,7 +448,6 @@ export default function RestTimer({
               stroke={theme.colors.border}
               strokeWidth={10}
             />
-            {/* Progress ring */}
             <circle
               cx={110}
               cy={110}
@@ -239,10 +458,9 @@ export default function RestTimer({
               strokeLinecap="round"
               strokeDasharray={CIRCUMFERENCE}
               strokeDashoffset={dashOffset}
-              style={{ transition: 'stroke-dashoffset 1s linear' }}
+              style={{ transition: 'stroke-dashoffset 0.3s ease-out' }}
             />
           </svg>
-          {/* Center text */}
           <div
             style={{
               position: 'absolute',
@@ -275,21 +493,17 @@ export default function RestTimer({
                 textTransform: 'uppercase',
               }}
             >
-              {isDone ? 'Done!' : 'Rest'}
+              {isDone ? 'Done!' : isPaused ? 'Paused' : 'Rest'}
             </span>
           </div>
         </div>
 
-        {/* −30 / Pause / +30 */}
         <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-          <button
-            onClick={() => setRemaining((r) => Math.max(0, r - 30))}
-            style={controlBtn}
-          >
+          <button onClick={handleMinus30} style={controlBtn}>
             −30
           </button>
           <button
-            onClick={() => setRunning((r) => !r)}
+            onClick={handlePauseResume}
             style={{
               ...controlBtn,
               width: '56px',
@@ -298,24 +512,52 @@ export default function RestTimer({
               justifyContent: 'center',
             }}
           >
-            {running ? (
+            {isPaused ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill={theme.colors.textPrimary}>
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+            ) : (
               <svg width="18" height="18" viewBox="0 0 24 24" fill={theme.colors.textPrimary}>
                 <rect x="6" y="4" width="4" height="16" rx="1" />
                 <rect x="14" y="4" width="4" height="16" rx="1" />
               </svg>
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 24 24" fill={theme.colors.textPrimary}>
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
             )}
           </button>
-          <button
-            onClick={() => setRemaining((r) => r + 30)}
-            style={controlBtn}
-          >
+          <button onClick={handlePlus30} style={controlBtn}>
             +30
           </button>
         </div>
+      </div>
+
+      {/* ─── Guidance ─── */}
+      <div
+        style={{
+          padding: '0 16px 20px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '12px',
+        }}
+      >
+        <p
+          style={{
+            color: theme.colors.textMuted,
+            fontSize: '12px',
+            fontWeight: 500,
+            margin: 0,
+            textAlign: 'center',
+            lineHeight: 1.4,
+          }}
+        >
+          Wait for the timer to end, or add a new set, or finish the exercise.
+        </p>
+        <div
+          style={{
+            width: '100%',
+            height: 1,
+            backgroundColor: theme.colors.border,
+          }}
+        />
       </div>
 
       {/* ─── Action Buttons ─── */}
@@ -374,4 +616,17 @@ const controlBtn: React.CSSProperties = {
   fontSize: '15px',
   fontWeight: 700,
   cursor: 'pointer',
+};
+
+const miniBtn: React.CSSProperties = {
+  backgroundColor: theme.colors.surface,
+  border: `1px solid ${theme.colors.border}`,
+  borderRadius: '8px',
+  color: theme.colors.textPrimary,
+  fontSize: '12px',
+  fontWeight: 700,
+  cursor: 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
 };
