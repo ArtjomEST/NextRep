@@ -82,7 +82,8 @@ export default function TabBar() {
         display: 'flex',
         justifyContent: 'space-around',
         alignItems: 'center',
-        padding: '8px 0 env(safe-area-inset-bottom, 8px)',
+        padding: '6px 0',
+        paddingBottom: 'max(6px, env(safe-area-inset-bottom, 6px))',
         zIndex: 100,
       }}
     >
@@ -96,20 +97,42 @@ export default function TabBar() {
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '4px',
+              gap: '3px',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: isActive ? theme.colors.primary : theme.colors.textSecondary,
-              padding: '8px 16px',
-              minWidth: '64px',
+              color: isActive ? theme.colors.primary : theme.colors.textMuted,
+              padding: '6px 20px',
+              minWidth: '60px',
               transition: 'color 0.15s ease',
+              position: 'relative',
             }}
           >
             {tab.icon}
-            <span style={{ fontSize: '11px', fontWeight: isActive ? 600 : 400 }}>
+            <span
+              style={{
+                fontSize: '10px',
+                fontWeight: isActive ? 700 : 400,
+                letterSpacing: isActive ? '0.02em' : '0',
+                textTransform: 'uppercase',
+              }}
+            >
               {tab.label}
             </span>
+            {isActive && (
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '20px',
+                  height: '2px',
+                  backgroundColor: theme.colors.primary,
+                  borderRadius: '0 0 2px 2px',
+                }}
+              />
+            )}
           </button>
         );
       })}

@@ -27,28 +27,29 @@ export default function SetRow({
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
-        padding: '10px 0',
+        padding: '9px 0',
         borderBottom: `1px solid ${theme.colors.border}`,
-        opacity: set.completed ? 0.55 : 1,
+        opacity: set.completed ? 0.5 : 1,
         transition: 'opacity 0.15s ease',
       }}
     >
       {/* Set number */}
       <span
         style={{
-          color: theme.colors.textMuted,
-          fontSize: '13px',
-          fontWeight: 600,
-          width: '28px',
+          color: set.completed ? theme.colors.success : theme.colors.textMuted,
+          fontSize: '12px',
+          fontWeight: 700,
+          width: '26px',
           textAlign: 'center',
           flexShrink: 0,
+          letterSpacing: '0.02em',
         }}
       >
         #{index + 1}
       </span>
 
       {/* Weight */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1 }}>
         <input
           type="number"
           inputMode="decimal"
@@ -61,10 +62,10 @@ export default function SetRow({
       </div>
 
       {/* Separator */}
-      <span style={{ color: theme.colors.textMuted, fontSize: '14px', flexShrink: 0 }}>×</span>
+      <span style={{ color: theme.colors.border, fontSize: '13px', flexShrink: 0 }}>×</span>
 
       {/* Reps */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1 }}>
         <input
           type="number"
           inputMode="numeric"
@@ -80,12 +81,12 @@ export default function SetRow({
       <button
         onClick={onToggleComplete}
         style={{
-          width: '44px',
-          height: '44px',
+          width: '40px',
+          height: '40px',
           borderRadius: '10px',
           border: set.completed ? 'none' : `1.5px solid ${theme.colors.border}`,
           backgroundColor: set.completed ? theme.colors.primary : 'transparent',
-          color: set.completed ? theme.colors.textPrimary : theme.colors.textMuted,
+          color: set.completed ? '#fff' : theme.colors.textMuted,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -94,7 +95,16 @@ export default function SetRow({
           transition: 'all 0.15s ease',
         }}
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           <polyline points="20 6 9 17 4 12" />
         </svg>
       </button>
@@ -107,21 +117,21 @@ export default function SetRow({
           border: 'none',
           color: theme.colors.textMuted,
           cursor: 'pointer',
-          padding: '8px 2px',
+          padding: '6px 2px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
-          opacity: 0.4,
+          opacity: 0.35,
           transition: 'opacity 0.15s ease',
+          fontSize: '16px',
+          fontWeight: 500,
+          lineHeight: 1,
         }}
         onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.4'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.35'; }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-        </svg>
+        ✕
       </button>
     </div>
   );
@@ -129,21 +139,21 @@ export default function SetRow({
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  maxWidth: '72px',
+  maxWidth: '70px',
   backgroundColor: theme.colors.surface,
   border: `1px solid ${theme.colors.border}`,
   borderRadius: '8px',
-  padding: '12px 8px',
+  padding: '10px 6px',
   color: theme.colors.textPrimary,
-  fontSize: '17px',
-  fontWeight: 600,
+  fontSize: '16px',
+  fontWeight: 700,
   textAlign: 'center',
   outline: 'none',
 };
 
 const unitStyle: React.CSSProperties = {
   color: theme.colors.textMuted,
-  fontSize: '13px',
+  fontSize: '12px',
   fontWeight: 500,
   flexShrink: 0,
 };
