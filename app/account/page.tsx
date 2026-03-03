@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
+import { useProfile } from '@/lib/profile/context';
 import { getTelegramUser } from '@/lib/auth/client';
 import { fetchSettings, updateSettings, fetchPresetsApi, deletePresetApi, type UserSettings } from '@/lib/api/client';
 import type { Preset } from '@/lib/api/types';
@@ -11,17 +12,33 @@ import { ui } from '@/lib/ui-styles';
 const KG_TO_LB = 2.20462;
 
 const GOAL_LABELS: Record<string, string> = {
-  muscle_growth: 'Muscle Growth',
-  strength: 'Strength',
-  endurance: 'Endurance',
-  weight_loss: 'Weight Loss',
-  general_fitness: 'General Fitness',
+  muscle_growth: 'Build Muscle',
+  strength: 'Increase Strength',
+  endurance: 'Improve Fitness',
+  weight_loss: 'Lose Fat',
+  general_fitness: 'Hybrid',
 };
 
 const EXP_LABELS: Record<string, string> = {
   beginner: 'Beginner',
   intermediate: 'Intermediate',
   advanced: 'Advanced',
+};
+
+const SPLIT_LABELS: Record<string, string> = {
+  full_body: 'Full Body',
+  upper_lower: 'Upper / Lower',
+  push_pull_legs: 'Push Pull Legs',
+  bro_split: 'Bro Split',
+  not_sure: 'Not sure yet',
+};
+
+const INJURY_LABELS: Record<string, string> = {
+  shoulder: 'Shoulder',
+  knee: 'Knee',
+  lower_back: 'Lower Back',
+  elbow_wrist: 'Elbow / Wrist',
+  ankle: 'Ankle',
 };
 
 function StatDisplay({ label, value, unit }: { label: string; value: string; unit: string }) {
@@ -83,6 +100,7 @@ const btnBase: React.CSSProperties = {
 export default function AccountPage() {
   const router = useRouter();
   const { user, isTelegram } = useAuth();
+  const { profile, updateProfile } = useProfile();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetsError, setPresetsError] = useState<string | null>(null);
@@ -97,6 +115,14 @@ export default function AccountPage() {
   const [editHeight, setEditHeight] = useState('');
   const [editAge, setEditAge] = useState('');
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+  const [editingTraining, setEditingTraining] = useState(false);
+  const [savingTraining, setSavingTraining] = useState(false);
+  const [editDays, setEditDays] = useState<number>(4);
+  const [editBench, setEditBench] = useState('');
+  const [editSquat, setEditSquat] = useState('');
+  const [editDeadlift, setEditDeadlift] = useState('');
+  const [editInjuries, setEditInjuries] = useState<string[]>([]);
 
   useEffect(() => {
     const tgUser = getTelegramUser();
@@ -215,6 +241,48 @@ export default function AccountPage() {
       setSettings((s) => (s ? { ...s, units: prev } : s));
       flash('Failed to update units');
     }
+  };
+
+  const startEditingTraining = () => {
+    setEditDays(profile?.trainingDaysPerWeek ?? 4);
+    setEditBench(profile?.bestLifts?.benchPress?.toString() ?? '');
+    setEditSquat(profile?.bestLifts?.squat?.toString() ?? '');
+    setEditDeadlift(profile?.bestLifts?.deadlift?.toString() ?? '');
+    setEditInjuries(profile?.injuries ?? []);
+    setEditingTraining(true);
+  };
+
+  const saveTrainingEdits = async () => {
+    setSavingTraining(true);
+    try {
+      const benchPress = parseFloat(editBench) || undefined;
+      const squat = parseFloat(editSquat) || undefined;
+      const deadlift = parseFloat(editDeadlift) || undefined;
+      const hasBestLifts = benchPress || squat || deadlift;
+
+      await updateProfile({
+        trainingDaysPerWeek: editDays,
+        bestLifts: hasBestLifts ? { benchPress, squat, deadlift } : null,
+        injuries: editInjuries.filter((i) => i !== 'none'),
+      });
+      setEditingTraining(false);
+      flash('Saved');
+    } catch {
+      flash('Failed to save');
+    } finally {
+      setSavingTraining(false);
+    }
+  };
+
+  const toggleInjury = (key: string) => {
+    if (key === 'none') {
+      setEditInjuries(['none']);
+      return;
+    }
+    setEditInjuries((prev) => {
+      const without = prev.filter((k) => k !== 'none');
+      return without.includes(key) ? without.filter((k) => k !== key) : [...without, key];
+    });
   };
 
   const handleLogout = () => {
@@ -363,6 +431,202 @@ export default function AccountPage() {
             </button>
           )}
         </div>
+      </div>
+
+      {/* ─── Training Profile ─── */}
+      <div
+        style={{
+          background: ui.cardBg,
+          border: ui.cardBorder,
+          borderRadius: ui.cardRadius,
+          padding: 18,
+          boxShadow: ui.cardShadow,
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: 0 }}>
+            Training Profile
+          </h3>
+          {!editingTraining && (
+            <button
+              onClick={startEditingTraining}
+              style={{ ...btnBase, background: 'transparent', color: ui.textLabel, border: ui.cardBorder, fontSize: 12 }}
+            >
+              Edit
+            </button>
+          )}
+        </div>
+
+        {/* Goal + Experience + Split - read-only pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          {[
+            { label: 'Goal', val: profile?.goal ? (GOAL_LABELS[profile.goal] ?? profile.goal) : null },
+            { label: 'Level', val: profile?.experienceLevel ? (EXP_LABELS[profile.experienceLevel] ?? profile.experienceLevel) : null },
+            { label: 'Split', val: profile?.splitPreference ? (SPLIT_LABELS[profile.splitPreference] ?? profile.splitPreference) : null },
+          ].map(({ label, val }) => (
+            <div key={label} style={{ background: 'rgba(255,255,255,0.05)', border: ui.cardBorder, borderRadius: 8, padding: '8px 12px' }}>
+              <div style={{ color: ui.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+              <div style={{ color: ui.textPrimary, fontSize: 14, fontWeight: 600, marginTop: 2 }}>{val ?? '—'}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Days per week */}
+        {editingTraining ? (
+          <>
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ color: ui.textMuted, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+                Days per Week
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <button
+                  onClick={() => setEditDays((d) => Math.max(2, d - 1))}
+                  disabled={editDays <= 2}
+                  style={{ ...btnBase, background: 'rgba(255,255,255,0.06)', border: ui.cardBorder, color: ui.textPrimary, width: 36, height: 36, padding: 0, opacity: editDays <= 2 ? 0.3 : 1 }}
+                >
+                  −
+                </button>
+                <span style={{ color: ui.textPrimary, fontSize: 22, fontWeight: 800, minWidth: 32, textAlign: 'center' }}>{editDays}</span>
+                <button
+                  onClick={() => setEditDays((d) => Math.min(6, d + 1))}
+                  disabled={editDays >= 6}
+                  style={{ ...btnBase, background: 'rgba(255,255,255,0.06)', border: ui.cardBorder, color: ui.textPrimary, width: 36, height: 36, padding: 0, opacity: editDays >= 6 ? 0.3 : 1 }}
+                >
+                  +
+                </button>
+                <span style={{ color: ui.textMuted, fontSize: 13 }}>days / week</span>
+              </div>
+            </div>
+
+            {/* Best Lifts */}
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ color: ui.textMuted, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+                Best Lifts (kg)
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                {[
+                  { label: 'Bench', value: editBench, set: setEditBench },
+                  { label: 'Squat', value: editSquat, set: setEditSquat },
+                  { label: 'Deadlift', value: editDeadlift, set: setEditDeadlift },
+                ].map(({ label, value, set }) => (
+                  <div key={label} style={{ textAlign: 'center' }}>
+                    <p style={{ color: ui.textMuted, fontSize: 10, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      value={value}
+                      onChange={(e) => set(e.target.value)}
+                      placeholder="0"
+                      style={{
+                        width: '100%', background: ui.cardBg, border: `1px solid ${ui.accent}`,
+                        borderRadius: 8, color: ui.textPrimary, fontSize: 16, fontWeight: 700,
+                        textAlign: 'center', padding: '8px 4px', outline: 'none', boxSizing: 'border-box',
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Injuries */}
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ color: ui.textMuted, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+                Injuries / Restrictions
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {[
+                  { key: 'shoulder', label: 'Shoulder' },
+                  { key: 'knee', label: 'Knee' },
+                  { key: 'lower_back', label: 'Lower Back' },
+                  { key: 'elbow_wrist', label: 'Elbow/Wrist' },
+                  { key: 'ankle', label: 'Ankle' },
+                  { key: 'none', label: 'None' },
+                ].map(({ key, label }) => {
+                  const sel = editInjuries.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => toggleInjury(key)}
+                      style={{
+                        padding: '8px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        background: sel ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.04)',
+                        border: sel ? `1.5px solid ${ui.accent}` : ui.cardBorder,
+                        color: sel ? ui.textPrimary : ui.textLabel,
+                        transition: 'border-color 0.2s, background 0.2s',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditingTraining(false)} disabled={savingTraining} style={{ ...btnBase, background: 'transparent', color: ui.textLabel, border: ui.cardBorder }}>
+                Cancel
+              </button>
+              <button onClick={saveTrainingEdits} disabled={savingTraining} style={{ ...btnBase, background: ui.accent, color: '#fff', opacity: savingTraining ? 0.6 : 1 }}>
+                {savingTraining ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Days per week display */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ background: 'rgba(255,255,255,0.05)', border: ui.cardBorder, borderRadius: 8, padding: '8px 12px' }}>
+                <div style={{ color: ui.textMuted, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Days/Week</div>
+                <div style={{ color: ui.textPrimary, fontSize: 14, fontWeight: 600, marginTop: 2 }}>{profile?.trainingDaysPerWeek ?? '—'}</div>
+              </div>
+            </div>
+
+            {/* Best lifts display */}
+            {profile?.bestLifts && (
+              <div style={{ marginBottom: 12 }}>
+                <p style={{ color: ui.textMuted, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+                  Best Lifts
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                  {[
+                    { label: 'Bench', val: profile.bestLifts.benchPress },
+                    { label: 'Squat', val: profile.bestLifts.squat },
+                    { label: 'Deadlift', val: profile.bestLifts.deadlift },
+                  ].map(({ label, val }) => (
+                    <div key={label} style={{ textAlign: 'center', background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 4px' }}>
+                      <div style={{ color: ui.textMuted, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</div>
+                      <div style={{ color: ui.textPrimary, fontSize: 16, fontWeight: 700, marginTop: 2 }}>
+                        {val ? `${val}` : '—'}<span style={{ fontSize: 11, color: ui.textMuted }}>{val ? ' kg' : ''}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Injuries display */}
+            {profile?.injuries && profile.injuries.length > 0 && (
+              <div>
+                <p style={{ color: ui.textMuted, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 8px' }}>
+                  Restrictions
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {profile.injuries.map((inj) => (
+                    <span
+                      key={inj}
+                      style={{
+                        padding: '5px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                        background: 'rgba(255,255,255,0.06)', border: ui.cardBorder, color: ui.textLabel,
+                      }}
+                    >
+                      {INJURY_LABELS[inj] ?? inj}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <div

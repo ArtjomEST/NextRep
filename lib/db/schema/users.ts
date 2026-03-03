@@ -8,6 +8,7 @@ import {
   numeric,
   pgEnum,
   uniqueIndex,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 
 export const unitsEnum = pgEnum('units', ['kg', 'lb']);
@@ -36,5 +37,11 @@ export const userProfiles = pgTable('user_profiles', {
   units: unitsEnum('units').notNull().default('kg'),
   experienceLevel: experienceLevelEnum('experience_level'),
   goal: goalEnum('goal'),
+  splitPreference: varchar('split_preference', { length: 32 }),
+  trainingDaysPerWeek: integer('training_days_per_week'),
+  bestLifts: jsonb('best_lifts').$type<{ benchPress?: number; squat?: number; deadlift?: number }>(),
+  injuries: jsonb('injuries').$type<string[]>(),
+  onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

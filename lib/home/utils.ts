@@ -417,6 +417,7 @@ export function getHomeStats(
   workouts: WorkoutListItem[],
   latestDetail: WorkoutDetail | null,
   totalVolumeFromApi: number | null,
+  trainingDaysPerWeek?: number | null,
 ): HomeStats {
   const month = getMonthSnapshot(workouts);
   const bestLift = findBestLiftInDetail(latestDetail);
@@ -430,7 +431,9 @@ export function getHomeStats(
     bestLift,
     streak: computeStreak(workouts),
     thisWeekDone: getThisWeekCount(workouts),
-    thisWeekTarget: WEEK_SESSION_TARGET,
+    thisWeekTarget: (trainingDaysPerWeek != null && trainingDaysPerWeek >= 1 && trainingDaysPerWeek <= 7)
+      ? trainingDaysPerWeek
+      : WEEK_SESSION_TARGET,
     weekStrip: getWeekStrip(workouts),
   };
 }

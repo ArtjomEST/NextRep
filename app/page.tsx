@@ -14,6 +14,7 @@ import {
 } from '@/lib/api/client';
 import type { WorkoutListItem, WorkoutDetail } from '@/lib/api/types';
 import { getTimeGreeting, getHomeStats } from '@/lib/home/utils';
+import { useProfile } from '@/lib/profile/context';
 import { ui } from '@/lib/ui-styles';
 import LegendsWorkoutSlider from '@/components/LegendsWorkoutSlider';
 import { SectionErrorBoundary } from './AppErrorBoundary';
@@ -27,6 +28,7 @@ export default function HomePage() {
   const router = useRouter();
   const { status: authStatus, user } = useAuth();
   const { hasDraft, draft, dispatch } = useWorkout();
+  const { profile } = useProfile();
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
@@ -75,7 +77,7 @@ export default function HomePage() {
     loadData();
   }, [loadData]);
 
-  const stats = getHomeStats(workouts, latestDetail, totalVolumeFromApi);
+  const stats = getHomeStats(workouts, latestDetail, totalVolumeFromApi, profile?.trainingDaysPerWeek);
   const latestItem = workouts[0] ?? null;
 
   const handleDiscardDraft = () => {

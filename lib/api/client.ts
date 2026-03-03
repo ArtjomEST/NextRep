@@ -268,6 +268,28 @@ export interface UserSettings {
   units: 'kg' | 'lb';
   experienceLevel: string | null;
   goal: string | null;
+  splitPreference: string | null;
+  trainingDaysPerWeek: number | null;
+  bestLifts: { benchPress?: number; squat?: number; deadlift?: number } | null;
+  injuries: string[] | null;
+  onboardingCompleted: boolean;
+}
+
+export interface UserProfile extends UserSettings {
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface OnboardingData {
+  goal: string;
+  experienceLevel: string;
+  splitPreference: string;
+  trainingDaysPerWeek: number;
+  heightCm: number | null;
+  weightKg: number | null;
+  age: number | null;
+  bestLifts: { benchPress?: number; squat?: number; deadlift?: number } | null;
+  injuries: string[];
 }
 
 export async function fetchSettings(): Promise<UserSettings> {
@@ -423,4 +445,47 @@ export async function deletePresetApi(id: string): Promise<void> {
     const json = await res.json().catch(() => ({}));
     throw new Error(json.error ?? `Failed to delete preset (${res.status})`);
   }
+}
+
+// ─── User Profile (Onboarding) ────────────────────────────────
+
+export async function fetchProfileApi(): Promise<UserProfile | null> {
+  const res = await fetch('/api/profile', { headers: getAuthHeaders() });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to fetch profile (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as UserProfile;
+}
+
+export async function saveProfileApi(data: OnboardingData): Promise<UserProfile> {
+  const res = await fetch('/api/profile', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to save profile (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as UserProfile;
+}
+
+export async function updateProfileApi(
+  data: Partial<OnboardingData>,
+): Promise<UserProfile> {
+  const res = await fetch('/api/profile', {
+    method: 'PUT',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to update profile (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as UserProfile;
 }

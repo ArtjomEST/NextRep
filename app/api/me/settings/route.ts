@@ -4,6 +4,24 @@ import { userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function serializeSettings(profile: any) {
+  return {
+    userId: profile.userId,
+    heightCm: profile.heightCm ?? null,
+    weightKg: profile.weightKg ?? null,
+    age: profile.age ?? null,
+    units: profile.units ?? 'kg',
+    experienceLevel: profile.experienceLevel ?? null,
+    goal: profile.goal ?? null,
+    splitPreference: profile.splitPreference ?? null,
+    trainingDaysPerWeek: profile.trainingDaysPerWeek ?? null,
+    bestLifts: profile.bestLifts ?? null,
+    injuries: profile.injuries ?? null,
+    onboardingCompleted: profile.onboardingCompleted ?? false,
+  };
+}
+
 export async function GET(req: NextRequest) {
   try {
     const db = getDb();
@@ -19,7 +37,7 @@ export async function GET(req: NextRequest) {
       .limit(1);
 
     return NextResponse.json({
-      data: profile ?? {
+      data: profile ? serializeSettings(profile) : {
         userId: auth.userId,
         heightCm: null,
         weightKg: null,
@@ -27,6 +45,11 @@ export async function GET(req: NextRequest) {
         units: 'kg',
         experienceLevel: null,
         goal: null,
+        splitPreference: null,
+        trainingDaysPerWeek: null,
+        bestLifts: null,
+        injuries: null,
+        onboardingCompleted: false,
       },
     });
   } catch (err) {
@@ -48,7 +71,7 @@ export async function PATCH(req: NextRequest) {
 
     const body = await req.json();
 
-    const allowed = ['heightCm', 'weightKg', 'age', 'units', 'experienceLevel', 'goal'] as const;
+    const allowed = ['heightCm', 'weightKg', 'age', 'units', 'experienceLevel', 'goal', 'splitPreference', 'trainingDaysPerWeek', 'bestLifts', 'injuries'] as const;
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
       if (key in body) {
@@ -83,7 +106,7 @@ export async function PATCH(req: NextRequest) {
       .where(eq(userProfiles.userId, auth.userId))
       .limit(1);
 
-    return NextResponse.json({ data: profile });
+    return NextResponse.json({ data: serializeSettings(profile) });
   } catch (err) {
     console.error('PATCH /api/me/settings error:', err);
     return NextResponse.json(
