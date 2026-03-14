@@ -328,6 +328,14 @@ export interface ProgressExercise {
   usageCount: number;
 }
 
+export interface ChartDataPoint {
+  date: string;
+  bestWeight: number;
+  bestReps: number;
+  volume: number;
+  estimatedOneRM: number | null;
+}
+
 export interface ProgressExerciseDetail {
   measurementType: string;
   pr: {
@@ -352,6 +360,7 @@ export interface ProgressExerciseDetail {
     deltaSeconds?: number;
     label: string;
   } | null;
+  chartData: ChartDataPoint[];
 }
 
 export async function fetchProgressExercisesApi(): Promise<ProgressExercise[]> {
@@ -368,8 +377,9 @@ export async function fetchProgressExercisesApi(): Promise<ProgressExercise[]> {
 
 export async function fetchProgressExerciseDetailApi(
   exerciseId: string,
+  days: 30 | 60 | 90 = 30,
 ): Promise<ProgressExerciseDetail> {
-  const res = await fetch(`/api/progress/exercises/${exerciseId}`, {
+  const res = await fetch(`/api/progress/exercises/${exerciseId}?days=${days}`, {
     headers: getAuthHeaders(),
   });
   if (!res.ok) {

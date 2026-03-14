@@ -11,6 +11,12 @@ import { authenticateRequest } from '@/lib/auth/helpers';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
+function estimateOneRM(weight: number, reps: number): number | null {
+  if (reps <= 0 || reps > 12) return null;
+  if (reps === 1) return weight;
+  return Math.round(weight / (1.0278 - 0.0278 * reps));
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -26,6 +32,9 @@ export async function GET(
     }
 
     const { id: exerciseId } = await params;
+
+    const daysParam = req.nextUrl.searchParams.get('days');
+    const days = daysParam === '60' ? 60 : daysParam === '90' ? 90 : 30;
 
     const [exercise] = await db
       .select({
@@ -68,6 +77,7 @@ export async function GET(
           pr: null,
           last5: [],
           progress30d: null,
+          chartData: [],
         },
       });
     }
@@ -337,12 +347,54 @@ export async function GET(
       };
     }
 
+    const chartCutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const chartWorkouts = sortedWorkouts
+      .filter((w) => new Date(w.date).getTime() >= chartCutoff)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const chartDataRaw = chartWorkouts
+      .map((w) => {
+        const completed = w.sets.filter(
+          (s) => s.completed && s.weight != null && s.weight > 0 && s.reps != null,
+        );
+        if (completed.length === 0) return null;
+
+        const bestSet = [...completed].sort(
+          (a, b) => (b.weight ?? 0) - (a.weight ?? 0),
+        )[0];
+        const bestWeight = bestSet.weight!;
+        const bestReps = bestSet.reps!;
+        const volume = completed.reduce(
+          (sum, s) => sum + s.weight! * s.reps!,
+          0,
+        );
+        const oneRM = estimateOneRM(bestWeight, bestReps);
+
+        return {
+          date: w.date,
+          bestWeight,
+          bestReps,
+          volume,
+          estimatedOneRM: oneRM,
+        };
+      })
+      .filter(Boolean) as {
+        date: string;
+        bestWeight: number;
+        bestReps: number;
+        volume: number;
+        estimatedOneRM: number | null;
+      }[];
+
+    const chartData = chartDataRaw.length >= 2 ? chartDataRaw : [];
+
     return NextResponse.json({
       data: {
         measurementType: exercise.measurementType,
         pr,
         last5,
         progress30d,
+        chartData,
       },
     });
   } catch (err) {
