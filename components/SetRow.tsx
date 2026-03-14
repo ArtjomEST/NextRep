@@ -1,8 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { theme } from '@/lib/theme';
 import type { WorkoutSet } from '@/lib/types';
+
+function normalizeDecimalInput(value: string): string {
+  return value.replace(',', '.');
+}
+
+function parseWeight(value: string): number {
+  const normalized = normalizeDecimalInput(value);
+  const parsed = parseFloat(normalized);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
 
 interface SetRowProps {
   index: number;
@@ -21,6 +31,18 @@ export default function SetRow({
   onToggleComplete,
   onRemove,
 }: SetRowProps) {
+  const [weightInput, setWeightInput] = useState(() =>
+    set.weight != null && set.weight !== 0 ? String(set.weight) : ''
+  );
+  const prevSetIdRef = useRef(set.id);
+
+  useEffect(() => {
+    if (set.id !== prevSetIdRef.current) {
+      prevSetIdRef.current = set.id;
+      setWeightInput(set.weight != null && set.weight !== 0 ? String(set.weight) : '');
+    }
+  }, [set.id, set.weight]);
+
   return (
     <div
       style={{
@@ -51,11 +73,15 @@ export default function SetRow({
       {/* Weight */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1 }}>
         <input
-          type="number"
+          type="text"
           inputMode="decimal"
-          value={set.weight || ''}
+          value={weightInput}
           placeholder="0"
-          onChange={(e) => onUpdateWeight(parseFloat(e.target.value) || 0)}
+          onChange={(e) => {
+            const raw = e.target.value;
+            setWeightInput(raw);
+            onUpdateWeight(parseWeight(raw));
+          }}
           style={inputStyle}
         />
         <span style={unitStyle}>kg</span>
