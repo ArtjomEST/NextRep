@@ -95,9 +95,22 @@ function ProgressChart({ chartData, metric }: ChartProps) {
   const chartWidth = svgWidth - padding.left - padding.right;
   const chartHeight = svgHeight - padding.top - padding.bottom;
 
-  const validPoints = chartData
-    .map((p, i) => ({ point: p, value: getValue(p, metric), idx: i }))
-    .filter((p) => p.value > 0);
+  // Merge same-calendar-date points: keep the one with the highest metric value.
+  const mergedByDate = (() => {
+    const map = new Map<string, { point: ChartDataPoint; value: number }>();
+    for (const p of chartData) {
+      const v = getValue(p, metric);
+      if (v <= 0) continue;
+      const dateKey = formatAxisDate(p.date);
+      const existing = map.get(dateKey);
+      if (!existing || v > existing.value) {
+        map.set(dateKey, { point: p, value: v });
+      }
+    }
+    return [...map.values()];
+  })();
+
+  const validPoints = mergedByDate;
 
   if (validPoints.length === 0) {
     return (
@@ -203,15 +216,22 @@ function ProgressChart({ chartData, metric }: ChartProps) {
         </text>
       ))}
 
-      {/* X-axis labels — first, middle, last */}
+      {/* X-axis labels — first, middle, last by date (deduplicated) */}
       {plotPoints.length >= 1 && (() => {
-        const xLabelIndices = plotPoints.length === 1
+        const candidateIndices = plotPoints.length === 1
           ? [0]
-          : plotPoints.length <= 2
-            ? [0, plotPoints.length - 1]
-            : [0, Math.floor((plotPoints.length - 1) / 2), plotPoints.length - 1];
-        const unique = [...new Set(xLabelIndices)];
-        return unique.map((idx) => (
+          : [0, Math.floor((plotPoints.length - 1) / 2), plotPoints.length - 1];
+        // Deduplicate: keep first occurrence of each formatted date string.
+        const seen = new Set<string>();
+        const deduped: number[] = [];
+        for (const idx of candidateIndices) {
+          const label = formatAxisDate(plotPoints[idx].date);
+          if (!seen.has(label)) {
+            seen.add(label);
+            deduped.push(idx);
+          }
+        }
+        return deduped.map((idx) => (
           <text
             key={idx}
             x={plotPoints[idx].x}
