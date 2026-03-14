@@ -207,7 +207,9 @@ function ProgressChart({ chartData, metric }: ChartProps) {
       {plotPoints.length >= 1 && (() => {
         const xLabelIndices = plotPoints.length === 1
           ? [0]
-          : [0, Math.floor((plotPoints.length - 1) / 2), plotPoints.length - 1];
+          : plotPoints.length <= 2
+            ? [0, plotPoints.length - 1]
+            : [0, Math.floor((plotPoints.length - 1) / 2), plotPoints.length - 1];
         const unique = [...new Set(xLabelIndices)];
         return unique.map((idx) => (
           <text
@@ -288,10 +290,10 @@ function ProgressChart({ chartData, metric }: ChartProps) {
       {/* Tooltip */}
       {tooltipPoint && (() => {
         const isRightHalf = tooltipPoint.x > svgWidth / 2;
-        const tooltipW = 110;
-        const tooltipH = 52;
+        const tooltipW = 100;
+        const tooltipH = 44;
         const tooltipX = isRightHalf
-          ? tooltipPoint.x - 118
+          ? tooltipPoint.x - 108
           : tooltipPoint.x + 8;
         const tooltipY = Math.max(0, tooltipPoint.y - 60);
         const dateStr = new Date(tooltipPoint.date).toLocaleDateString('en-GB', {
@@ -307,16 +309,15 @@ function ProgressChart({ chartData, metric }: ChartProps) {
                 background: '#1C2228',
                 border: '1px solid #1F2937',
                 borderRadius: 6,
-                padding: '6px 8px',
+                padding: 6,
                 color: '#fff',
-                fontSize: 11,
-                lineHeight: 1.5,
+                lineHeight: 1.4,
                 width: tooltipW - 2,
                 boxSizing: 'border-box',
               }}
             >
-              <div style={{ color: '#9CA3AF', fontSize: 10 }}>{dateStr}</div>
-              <div style={{ color: '#22C55E', fontWeight: 700, fontSize: 13 }}>{valStr}</div>
+              <div style={{ color: '#9CA3AF', fontSize: 9 }}>{dateStr}</div>
+              <div style={{ color: '#22C55E', fontWeight: 700, fontSize: 11 }}>{valStr}</div>
             </div>
           </foreignObject>
         );
