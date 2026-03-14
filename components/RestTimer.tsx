@@ -40,6 +40,7 @@ export default function RestTimer({
   const [tick, setTick] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasAutoClosedRef = useRef(false);
+  const justBecameVisibleRef = useRef(false);
 
   const clearIntervalRef = useCallback(() => {
     if (intervalRef.current) {
@@ -53,6 +54,7 @@ export default function RestTimer({
   // Initialize when visible (and not just minimizing)
   useEffect(() => {
     if (visible) {
+      justBecameVisibleRef.current = true;
       setRestEndsAt(Date.now() + DEFAULT_REST_MS);
       setIsPaused(false);
       setRemainingWhenPaused(0);
@@ -85,8 +87,14 @@ export default function RestTimer({
   }, [visible, forceRecalc]);
 
   // Auto-close when timer reaches 0 (full and minimized)
+  // Skip on first run after visible becomes true: init effect schedules setRestEndsAt
+  // but auto-close runs in same cycle and would see stale restEndsAt (0 or past) → immediate dismiss
   useEffect(() => {
     if (!visible || hasAutoClosedRef.current) return;
+    if (justBecameVisibleRef.current) {
+      justBecameVisibleRef.current = false;
+      return;
+    }
     const remainingSecs = isPaused
       ? remainingWhenPaused
       : Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
