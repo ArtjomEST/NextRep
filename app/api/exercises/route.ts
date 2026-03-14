@@ -1,25 +1,70 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { exercises } from '@/lib/db/schema';
-import { ilike, and, sql } from 'drizzle-orm';
+import { authenticateRequest } from '@/lib/auth/helpers';
+import { and, sql } from 'drizzle-orm';
+
+const SYNONYMS: Record<string, string> = {
+  бицепс: 'bicep',
+  трицепс: 'tricep',
+  грудь: 'chest',
+  спина: 'back',
+  плечи: 'shoulder',
+  ноги: 'leg',
+  жим: 'press',
+  тяга: 'row',
+  присед: 'squat',
+  подтягивания: 'pull-up',
+  отжимания: 'push-up',
+};
+
+function normalizeQuery(q: string): string {
+  const lower = q.toLowerCase().trim();
+  return SYNONYMS[lower] ?? lower;
+}
 
 export async function GET(req: NextRequest) {
   try {
     const db = getDb();
     const { searchParams } = req.nextUrl;
-    const query = searchParams.get('q') ?? '';
+    const query = normalizeQuery(searchParams.get('q') ?? '');
     const category = searchParams.get('category');
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200);
     const offset = Math.max(parseInt(searchParams.get('offset') ?? '0'), 0);
+    const myExercises = searchParams.get('myExercises') === 'true';
 
-    const conditions = [];
+    let auth: Awaited<ReturnType<typeof authenticateRequest>> = null;
+    if (myExercises) {
+      auth = await authenticateRequest(req);
+      if (!auth) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 },
+        );
+      }
+    }
+
+    const conditions: ReturnType<typeof sql>[] = [];
 
     if (query.length > 0) {
-      conditions.push(ilike(exercises.name, `%${query}%`));
+      conditions.push(
+        sql`(${exercises.name} % ${query} OR ${exercises.name} ILIKE ${'%' + query + '%'})`,
+      );
     }
 
     if (category) {
-      conditions.push(ilike(exercises.category, category));
+      conditions.push(sql`${exercises.category} ILIKE ${category}`);
+    }
+
+    if (myExercises && auth) {
+      conditions.push(
+          sql`${exercises.id} IN (
+            SELECT DISTINCT we.exercise_id
+            FROM workout_exercises we
+            JOIN workouts w ON we.workout_id = w.id
+            WHERE w.user_id = ${auth.userId}
+          )`,
+      );
     }
 
     const where =
@@ -34,7 +79,11 @@ export async function GET(req: NextRequest) {
         .select()
         .from(exercises)
         .where(where)
-        .orderBy(exercises.name)
+        .orderBy(
+          ...(query.length > 0
+            ? [sql`similarity(${exercises.name}, ${query}) DESC`, exercises.name]
+            : [exercises.name]),
+        )
         .limit(limit)
         .offset(offset),
       db
