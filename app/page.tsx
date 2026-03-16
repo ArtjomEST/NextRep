@@ -346,24 +346,24 @@ export default function HomePage() {
       )}
 
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '0 8px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: 22 }}><Skeleton height={80} /></div>
-            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: 22 }}><Skeleton height={80} /></div>
-            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: 22 }}><Skeleton height={80} /></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: '18px 12px' }}><Skeleton height={72} /></div>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: '18px 12px' }}><Skeleton height={72} /></div>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: '18px 12px' }}><Skeleton height={72} /></div>
           </div>
-          <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: 24 }}><Skeleton height={72} /></div>
+          <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: '20px 20px' }}><Skeleton height={68} /></div>
         </div>
       ) : (
         <>
-          {/* ─── 4) Stats: top row 3 cards (Volume, Workouts, Total Sets), bottom full-width Best Lift / PR ─ */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '0 8px' }}>
-            {/* Top row: Total Volume, Workouts, Total Sets — equal width */}
+          {/* ─── 4) Stats: top row 3 cards (Volume, Workouts, Sets), bottom full-width Best Lift / PR ─ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Top row — three equal-width cards, no extra horizontal padding (layout shell owns the 16px sides) */}
             <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 20,
+                gap: 10,
                 minWidth: 0,
               }}
             >
@@ -372,29 +372,33 @@ export default function HomePage() {
                   background: statCardBg,
                   border: statCardBorder,
                   borderRadius: 14,
-                  padding: '20px 18px',
+                  padding: '18px 12px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
                   minWidth: 0,
+                  overflow: 'hidden',
                 }}
               >
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: 700,
                     margin: 0,
-                    letterSpacing: '0.08em',
+                    letterSpacing: '0.07em',
                     textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
-                  Total Volume
+                  Volume
                 </p>
                 <p
                   style={{
                     color: '#f3f4f6',
-                    fontSize: 'clamp(18px, 4.5vw, 24px)',
+                    fontSize: 'clamp(14px, 3.8vw, 20px)',
                     fontWeight: 800,
-                    margin: '8px 0 0',
+                    margin: '6px 0 0',
                     fontVariantNumeric: 'tabular-nums',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -403,7 +407,7 @@ export default function HomePage() {
                 >
                   {formatVolume(stats.totalVolumeAllTime)} kg
                 </p>
-                <p style={{ color: textMutedSoft, fontSize: 11, margin: '8px 0 0' }}>
+                <p style={{ color: textMutedSoft, fontSize: 10, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
                   All time
                 </p>
               </div>
@@ -412,19 +416,23 @@ export default function HomePage() {
                   background: statCardBg,
                   border: statCardBorder,
                   borderRadius: 14,
-                  padding: '20px 18px',
+                  padding: '18px 12px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
                   minWidth: 0,
+                  overflow: 'hidden',
                 }}
               >
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: 700,
                     margin: 0,
-                    letterSpacing: '0.08em',
+                    letterSpacing: '0.07em',
                     textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
                   Workouts
@@ -432,18 +440,18 @@ export default function HomePage() {
                 <p
                   style={{
                     color: '#f3f4f6',
-                    fontSize: 'clamp(18px, 4.5vw, 24px)',
+                    fontSize: 'clamp(14px, 3.8vw, 20px)',
                     fontWeight: 800,
-                    margin: '8px 0 0',
+                    margin: '6px 0 0',
                     fontVariantNumeric: 'tabular-nums',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  {stats.workoutsThisMonth} total
+                  {stats.workoutsThisMonth}
                 </p>
-                <p style={{ color: textMutedSoft, fontSize: 11, margin: '8px 0 0' }}>
+                <p style={{ color: textMutedSoft, fontSize: 10, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
                   This month
                 </p>
               </div>
@@ -452,29 +460,33 @@ export default function HomePage() {
                   background: statCardBg,
                   border: statCardBorder,
                   borderRadius: 14,
-                  padding: '20px 18px',
+                  padding: '18px 12px',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
                   minWidth: 0,
+                  overflow: 'hidden',
                 }}
               >
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 10,
+                    fontSize: 9,
                     fontWeight: 700,
                     margin: 0,
-                    letterSpacing: '0.08em',
+                    letterSpacing: '0.07em',
                     textTransform: 'uppercase',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
                   }}
                 >
-                  Total Sets
+                  Sets
                 </p>
                 <p
                   style={{
                     color: '#f3f4f6',
-                    fontSize: 'clamp(18px, 4.5vw, 24px)',
+                    fontSize: 'clamp(14px, 3.8vw, 20px)',
                     fontWeight: 800,
-                    margin: '8px 0 0',
+                    margin: '6px 0 0',
                     fontVariantNumeric: 'tabular-nums',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -485,7 +497,7 @@ export default function HomePage() {
                     ? totalSetsFromApi.toLocaleString('en-US')
                     : workouts.reduce((sum, w) => sum + (w.totalSets ?? 0), 0).toLocaleString('en-US')}
                 </p>
-                <p style={{ color: textMutedSoft, fontSize: 11, margin: '8px 0 0' }}>
+                <p style={{ color: textMutedSoft, fontSize: 10, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
                   All time
                 </p>
               </div>
