@@ -33,7 +33,7 @@ export default function ActiveWorkoutPage() {
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [lastSetsMap, setLastSetsMap] = useState<
-    Record<string, Array<{ weight: number | null; reps: number | null }>>
+    Record<string, { sets: Array<{ weight: number | null; reps: number | null }>; lastWorkoutDate: string }>
   >({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const exerciseRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -414,6 +414,67 @@ export default function ActiveWorkoutPage() {
                     </button>
                   </div>
 
+                  {/* Last time block */}
+                  {(() => {
+                    const lastData = lastSetsMap[entry.exerciseId];
+                    if (!lastData || lastData.sets.length === 0) return null;
+                    const daysAgo = Math.floor(
+                      (Date.now() - new Date(lastData.lastWorkoutDate).getTime()) /
+                        (1000 * 60 * 60 * 24),
+                    );
+                    const daysLabel =
+                      daysAgo === 0 ? 'TODAY' : daysAgo === 1 ? '1 DAY AGO' : `${daysAgo} DAYS AGO`;
+                    return (
+                      <div
+                        style={{
+                          margin: '0 0 12px 0',
+                          background: 'rgba(34, 197, 94, 0.06)',
+                          border: '1px solid rgba(34, 197, 94, 0.18)',
+                          borderRadius: '10px',
+                          padding: '9px 12px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '5px',
+                            marginBottom: '7px',
+                            color: '#4B9E6A',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#4B9E6A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16 14" />
+                          </svg>
+                          LAST TIME · {daysLabel}
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {lastData.sets.map((s, i) => (
+                            <span
+                              key={i}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '6px',
+                                padding: '4px 9px',
+                                color: '#D1D5DB',
+                                fontSize: '12px',
+                                fontWeight: 600,
+                              }}
+                            >
+                              {s.weight != null ? `${s.weight} kg × ${s.reps ?? 0}` : `${s.reps ?? 0} reps`}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   {/* Sets label */}
                   <p
                     style={{
@@ -435,7 +496,6 @@ export default function ActiveWorkoutPage() {
                         key={set.id}
                         index={si}
                         set={set}
-                        lastSet={lastSetsMap[entry.exerciseId]?.[si]}
                         onUpdateWeight={(v) =>
                           dispatch({ type: 'UPDATE_SET', exerciseEntryId: entry.id, setId: set.id, field: 'weight', value: v })
                         }

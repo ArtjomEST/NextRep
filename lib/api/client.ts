@@ -202,7 +202,7 @@ export async function fetchWorkoutStatsApi(): Promise<{
 
 export async function fetchLastSetsApi(
   exerciseIds: string[],
-): Promise<Record<string, Array<{ weight: number | null; reps: number | null }>>> {
+): Promise<Record<string, { sets: Array<{ weight: number | null; reps: number | null }>; lastWorkoutDate: string }>> {
   if (exerciseIds.length === 0) return {};
   const params = new URLSearchParams({ exerciseIds: exerciseIds.join(',') });
   const res = await fetch(`/api/workouts/last-sets?${params}`, {

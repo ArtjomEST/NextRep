@@ -49,20 +49,19 @@ export async function GET(req: NextRequest) {
       .orderBy(desc(workouts.endedAt));
 
     // For each exerciseId, keep only the most recent workoutExercise
-    const latestWeByExercise = new Map<string, string>(); // exerciseId -> weId
+    const latestWeByExercise = new Map<string, { weId: string; endedAt: Date }>();
     for (const row of recentWEs) {
-      if (!latestWeByExercise.has(row.exerciseId)) {
-        latestWeByExercise.set(row.exerciseId, row.weId);
+      if (!latestWeByExercise.has(row.exerciseId) && row.endedAt) {
+        latestWeByExercise.set(row.exerciseId, { weId: row.weId, endedAt: row.endedAt });
       }
     }
 
-    const weIds = [...latestWeByExercise.values()];
+    const weIds = [...latestWeByExercise.values()].map((v) => v.weId);
     const allSets =
       weIds.length > 0
         ? await db
             .select({
               workoutExerciseId: workoutSets.workoutExerciseId,
-              setIndex: workoutSets.setIndex,
               weight: workoutSets.weight,
               reps: workoutSets.reps,
             })
@@ -71,15 +70,21 @@ export async function GET(req: NextRequest) {
             .orderBy(asc(workoutSets.setIndex))
         : [];
 
-    const result: Record<string, Array<{ weight: number | null; reps: number | null }>> = {};
+    const result: Record<
+      string,
+      { sets: Array<{ weight: number | null; reps: number | null }>; lastWorkoutDate: string }
+    > = {};
 
-    for (const [exerciseId, weId] of latestWeByExercise) {
-      result[exerciseId] = allSets
-        .filter((s) => s.workoutExerciseId === weId)
-        .map((s) => ({
-          weight: s.weight != null ? Number(s.weight) : null,
-          reps: s.reps,
-        }));
+    for (const [exerciseId, { weId, endedAt }] of latestWeByExercise) {
+      result[exerciseId] = {
+        sets: allSets
+          .filter((s) => s.workoutExerciseId === weId)
+          .map((s) => ({
+            weight: s.weight != null ? Number(s.weight) : null,
+            reps: s.reps,
+          })),
+        lastWorkoutDate: endedAt.toISOString(),
+      };
     }
 
     return NextResponse.json({ data: result });

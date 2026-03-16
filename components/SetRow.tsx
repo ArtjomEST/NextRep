@@ -21,73 +21,6 @@ interface SetRowProps {
   onUpdateReps: (value: number) => void;
   onToggleComplete: () => void;
   onRemove: () => void;
-  lastSet?: { weight: number | null; reps: number | null };
-}
-
-function PrevHint({ value }: { value: number }) {
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        right: '10px',
-        top: '50%',
-        transform: 'translateY(-50%)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '4px',
-        pointerEvents: 'none',
-      }}
-    >
-      <span
-        style={{
-          fontSize: '10px',
-          fontWeight: 600,
-          color: '#2E4A3C',
-          textTransform: 'uppercase',
-          letterSpacing: '0.04em',
-        }}
-      >
-        prev
-      </span>
-      <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
-        <circle cx="6" cy="6" r="4.5" stroke="#2E4A3C" strokeWidth="1.3" />
-        <path
-          d="M6 4V6.2L4.8 7.1"
-          stroke="#2E4A3C"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path
-          d="M4 2.3 A4 4 0 0 0 2.2 5.2"
-          stroke="#2E4A3C"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-        />
-        <path
-          d="M4 2.3 L3 1.5"
-          stroke="#2E4A3C"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-        />
-        <path
-          d="M4 2.3 L5 1.7"
-          stroke="#2E4A3C"
-          strokeWidth="1.3"
-          strokeLinecap="round"
-        />
-      </svg>
-      <span
-        style={{
-          fontSize: '12px',
-          fontWeight: 600,
-          color: '#3D6B52',
-        }}
-      >
-        {value}
-      </span>
-    </div>
-  );
 }
 
 export default function SetRow({
@@ -97,13 +30,10 @@ export default function SetRow({
   onUpdateReps,
   onToggleComplete,
   onRemove,
-  lastSet,
 }: SetRowProps) {
   const [weightInput, setWeightInput] = useState(() =>
     set.weight != null && set.weight !== 0 ? String(set.weight) : ''
   );
-  const [weightFocused, setWeightFocused] = useState(false);
-  const [repsFocused, setRepsFocused] = useState(false);
   const prevSetIdRef = useRef(set.id);
 
   useEffect(() => {
@@ -112,18 +42,6 @@ export default function SetRow({
       setWeightInput(set.weight != null && set.weight !== 0 ? String(set.weight) : '');
     }
   }, [set.id, set.weight]);
-
-  const showWeightHint =
-    !weightFocused &&
-    parseWeight(weightInput) === 0 &&
-    lastSet?.weight != null &&
-    lastSet.weight > 0;
-
-  const showRepsHint =
-    !repsFocused &&
-    (!set.reps || set.reps === 0) &&
-    lastSet?.reps != null &&
-    lastSet.reps > 0;
 
   return (
     <div
@@ -154,23 +72,18 @@ export default function SetRow({
 
       {/* Weight */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1 }}>
-        <div style={{ position: 'relative', overflow: 'hidden', width: '100%', maxWidth: '70px' }}>
-          <input
-            type="text"
-            inputMode="decimal"
-            value={weightInput}
-            placeholder="0"
-            onFocus={() => setWeightFocused(true)}
-            onBlur={() => setWeightFocused(false)}
-            onChange={(e) => {
-              const raw = e.target.value;
-              setWeightInput(raw);
-              onUpdateWeight(parseWeight(raw));
-            }}
-            style={inputStyle}
-          />
-          {showWeightHint && <PrevHint value={lastSet!.weight!} />}
-        </div>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={weightInput}
+          placeholder="0"
+          onChange={(e) => {
+            const raw = e.target.value;
+            setWeightInput(raw);
+            onUpdateWeight(parseWeight(raw));
+          }}
+          style={inputStyle}
+        />
         <span style={unitStyle}>kg</span>
       </div>
 
@@ -179,19 +92,14 @@ export default function SetRow({
 
       {/* Reps */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: 1 }}>
-        <div style={{ position: 'relative', overflow: 'hidden', width: '100%', maxWidth: '70px' }}>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={set.reps || ''}
-            placeholder="0"
-            onFocus={() => setRepsFocused(true)}
-            onBlur={() => setRepsFocused(false)}
-            onChange={(e) => onUpdateReps(parseInt(e.target.value) || 0)}
-            style={inputStyle}
-          />
-          {showRepsHint && <PrevHint value={lastSet!.reps!} />}
-        </div>
+        <input
+          type="number"
+          inputMode="numeric"
+          value={set.reps || ''}
+          placeholder="0"
+          onChange={(e) => onUpdateReps(parseInt(e.target.value) || 0)}
+          style={inputStyle}
+        />
         <span style={unitStyle}>reps</span>
       </div>
 
@@ -257,6 +165,7 @@ export default function SetRow({
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
+  maxWidth: '70px',
   backgroundColor: theme.colors.surface,
   border: `1px solid ${theme.colors.border}`,
   borderRadius: '8px',
