@@ -35,6 +35,7 @@ export default function HomePage() {
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
   const [latestDetail, setLatestDetail] = useState<WorkoutDetail | null>(null);
   const [totalVolumeFromApi, setTotalVolumeFromApi] = useState<number | null>(null);
+  const [totalSetsFromApi, setTotalSetsFromApi] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,6 +59,11 @@ export default function HomePage() {
       } else {
         setTotalVolumeFromApi(null);
       }
+      if (statsRes?.totalSets != null) {
+        setTotalSetsFromApi(Number(statsRes.totalSets));
+      } else {
+        setTotalSetsFromApi(null);
+      }
       if (list.length >= 1) {
         const detail = await fetchWorkoutDetailApi(list[0].id);
         setLatestDetail(detail);
@@ -69,6 +75,7 @@ export default function HomePage() {
       setWorkouts([]);
       setLatestDetail(null);
       setTotalVolumeFromApi(null);
+      setTotalSetsFromApi(null);
     } finally {
       setLoading(false);
     }
@@ -292,23 +299,6 @@ export default function HomePage() {
               {stats.streak} day{stats.streak !== 1 ? 's' : ''} 🔥
             </p>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <p
-              style={{
-                color: textLabelSoft,
-                fontSize: 10,
-                fontWeight: 700,
-                margin: 0,
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-              }}
-            >
-              This week
-            </p>
-            <p style={{ color: '#ffffff', fontSize: 17, fontWeight: 700, margin: '4px 0 0' }}>
-              {stats.thisWeekDone}/{stats.thisWeekTarget}
-            </p>
-          </div>
         </div>
       </div>
 
@@ -361,12 +351,13 @@ export default function HomePage() {
             <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
             <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
             <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
           </div>
           <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={60} /></div>
         </>
       ) : (
         <>
-          {/* ─── 4) Three stat cards: darker elevated surface, soft border, screenshot proportions ─ */}
+          {/* ─── 4) Four stat cards: darker elevated surface, soft border, screenshot proportions ─ */}
           <div
             style={{
               display: 'grid',
@@ -498,6 +489,47 @@ export default function HomePage() {
                 }}
               >
                 {stats.bestLift?.label ?? '—'}
+              </p>
+            </div>
+            <div
+              style={{
+                background: statCardBg,
+                border: statCardBorder,
+                borderRadius: 14,
+                padding: '16px 14px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+              }}
+            >
+              <p
+                style={{
+                  color: textMutedSoft,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  margin: 0,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                TOTAL SETS
+              </p>
+              <p
+                style={{
+                  color: '#f3f4f6',
+                  fontSize: 'clamp(20px, 5.5vw, 24px)',
+                  fontWeight: 800,
+                  margin: '6px 0 0',
+                  fontVariantNumeric: 'tabular-nums',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {totalSetsFromApi != null
+                  ? totalSetsFromApi.toLocaleString('en-US')
+                  : workouts.reduce((sum, w) => sum + (w.totalSets ?? 0), 0).toLocaleString('en-US')}
+              </p>
+              <p style={{ color: textMutedSoft, fontSize: 11, margin: '6px 0 0' }}>
+                All time
               </p>
             </div>
           </div>
