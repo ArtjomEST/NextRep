@@ -13,11 +13,13 @@ import {
 } from '@/lib/workout/metrics';
 import { fetchExerciseDetailApi, fetchLastSetsApi } from '@/lib/api/client';
 import type { ExerciseDetail } from '@/lib/api/types';
+import type { Exercise } from '@/lib/types';
 import SetRow from '@/components/SetRow';
 import RestTimer from '@/components/RestTimer';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
 import ExerciseInfoSheet from '@/components/ExerciseInfoSheet';
+import ExercisePicker from '@/components/ExercisePicker';
 
 export default function ActiveWorkoutPage() {
   const router = useRouter();
@@ -35,6 +37,13 @@ export default function ActiveWorkoutPage() {
   const [lastSetsMap, setLastSetsMap] = useState<
     Record<string, { sets: Array<{ weight: number | null; reps: number | null }>; lastWorkoutDate: string }>
   >({});
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [removeConfirmEntry, setRemoveConfirmEntry] = useState<{
+    id: string;
+    name: string;
+    hasLoggedSets: boolean;
+  } | null>(null);
+  const [exitingId, setExitingId] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const exerciseRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -62,6 +71,15 @@ export default function ActiveWorkoutPage() {
     const ids = exerciseIdKey.split(',');
     fetchLastSetsApi(ids).then(setLastSetsMap).catch(() => {});
   }, [exerciseIdKey]);
+
+  useEffect(() => {
+    if (!exitingId) return;
+    const t = setTimeout(() => {
+      dispatch({ type: 'REMOVE_EXERCISE', exerciseEntryId: exitingId });
+      setExitingId(null);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [exitingId, dispatch]);
 
   const scrollToExercise = useCallback((id: string) => {
     setTimeout(() => {
@@ -171,6 +189,17 @@ export default function ActiveWorkoutPage() {
     setInfoDetail(null);
   }
 
+  function handleAddExercises(exercises: Exercise[]) {
+    exercises.forEach((ex) => dispatch({ type: 'ADD_EXERCISE', exercise: ex }));
+    setPickerOpen(false);
+  }
+
+  function handleConfirmRemove() {
+    if (!removeConfirmEntry) return;
+    setExitingId(removeConfirmEntry.id);
+    setRemoveConfirmEntry(null);
+  }
+
   const totalVolume = computeTotalVolume(draft.exercises);
   const totalSets = computeTotalSets(draft.exercises);
   const totalExercises = computeTotalExercises(draft.exercises);
@@ -259,9 +288,11 @@ export default function ActiveWorkoutPage() {
                 border: `1.5px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
                 borderRadius: '14px',
                 padding: isActive ? '14px 16px' : '12px 14px',
-                transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
+                transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, transform 0.2s ease',
                 boxShadow: isActive ? `0 0 24px rgba(31,138,91,0.12)` : 'none',
-                opacity: isCompleted ? 0.65 : 1,
+                opacity: exitingId === entry.id ? 0 : isCompleted ? 0.65 : 1,
+                transform: exitingId === entry.id ? 'scale(0.98)' : 'none',
+                pointerEvents: exitingId === entry.id ? 'none' : 'auto',
               }}
             >
               {/* ─── Exercise Header ─── */}
@@ -339,6 +370,37 @@ export default function ActiveWorkoutPage() {
 
                 {/* Right action */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const hasLoggedSets = entry.sets.some((s) => s.completed);
+                      setRemoveConfirmEntry({
+                        id: entry.id,
+                        name: entry.exerciseName,
+                        hasLoggedSets,
+                      });
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: theme.colors.textMuted,
+                      cursor: 'pointer',
+                      padding: '6px 4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      fontSize: '16px',
+                      opacity: 0.4,
+                      transition: 'opacity 0.15s ease',
+                      lineHeight: 1,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.4'; }}
+                    aria-label="Remove exercise"
+                  >
+                    ✕
+                  </button>
                   {isCompleted && !isActive && (
                     <button
                       onClick={(e) => { e.stopPropagation(); handleRestoreExercise(entry.id); }}
@@ -554,6 +616,26 @@ export default function ActiveWorkoutPage() {
         })}
       </div>
 
+      {/* ─── Add Exercise ─── */}
+      <button
+        onClick={() => setPickerOpen(true)}
+        style={{
+          width: '100%',
+          backgroundColor: 'transparent',
+          border: `1px dashed ${theme.colors.border}`,
+          borderRadius: '10px',
+          padding: '14px',
+          color: theme.colors.textMuted,
+          fontSize: '15px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          transition: 'border-color 0.15s ease',
+          marginTop: '10px',
+        }}
+      >
+        + Add Exercise
+      </button>
+
       {/* ─── Rest Timer Overlay / Mini ─── */}
       <RestTimer
         visible={showRest}
@@ -575,6 +657,37 @@ export default function ActiveWorkoutPage() {
         loading={infoLoading}
         onClose={handleCloseInfo}
       />
+
+      {/* ─── Exercise Picker (add during workout) ─── */}
+      <ExercisePicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onAdd={handleAddExercises}
+        alreadyAddedIds={draft.exercises.map((e) => e.exerciseId)}
+      />
+
+      {/* ─── Remove Exercise Confirmation ─── */}
+      <Modal
+        open={removeConfirmEntry !== null}
+        onClose={() => setRemoveConfirmEntry(null)}
+      >
+        <h3 style={{ color: theme.colors.textPrimary, fontSize: '18px', fontWeight: 700, margin: '0 0 8px' }}>
+          Remove exercise?
+        </h3>
+        <p style={{ color: theme.colors.textMuted, fontSize: '14px', margin: '0 0 16px' }}>
+          {removeConfirmEntry?.hasLoggedSets
+            ? `${removeConfirmEntry.name} has logged sets. Removing it will delete that data.`
+            : 'This exercise will be removed from this workout.'}
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <Button fullWidth onClick={handleConfirmRemove}>
+            Remove
+          </Button>
+          <Button variant="ghost" fullWidth onClick={() => setRemoveConfirmEntry(null)}>
+            Cancel
+          </Button>
+        </div>
+      </Modal>
 
       {/* ─── All Done Modal ─── */}
       <Modal open={showAllDoneModal} onClose={() => setShowAllDoneModal(false)}>
