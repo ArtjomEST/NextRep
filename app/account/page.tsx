@@ -790,7 +790,7 @@ export default function AccountPage() {
           boxShadow: ui.cardShadow,
         }}
       >
-        <SettingRow label="About NextRep" value="v1.0" />
+        <SettingRow label="About NextRep" value="v1.1" />
         <div onClick={handleLogout} style={{ padding: '14px 0', cursor: 'pointer' }}>
           <span style={{ color: '#EF4444', fontSize: 15 }}>Log Out</span>
         </div>
