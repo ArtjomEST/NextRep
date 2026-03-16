@@ -346,191 +346,228 @@ export default function HomePage() {
       )}
 
       {loading ? (
-        <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 12 }}>
-            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
-            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
-            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
-            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={72} /></div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '0 8px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: 22 }}><Skeleton height={80} /></div>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: 22 }}><Skeleton height={80} /></div>
+            <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: 22 }}><Skeleton height={80} /></div>
           </div>
-          <div style={{ background: statCardBg, border: statCardBorder, borderRadius: ui.cardRadius, padding: 18 }}><Skeleton height={60} /></div>
-        </>
+          <div style={{ background: statCardBg, border: statCardBorder, borderRadius: 14, padding: 24 }}><Skeleton height={72} /></div>
+        </div>
       ) : (
         <>
-          {/* ─── 4) Four stat cards: darker elevated surface, soft border, screenshot proportions ─ */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 140px), 1fr))',
-              gap: 14,
-            }}
-          >
+          {/* ─── 4) Stats: top row 3 cards (Volume, Workouts, Total Sets), bottom full-width Best Lift / PR ─ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '0 8px' }}>
+            {/* Top row: Total Volume, Workouts, Total Sets — equal width */}
             <div
               style={{
-                background: statCardBg,
-                border: statCardBorder,
-                borderRadius: 14,
-                padding: '16px 14px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 20,
+                minWidth: 0,
               }}
             >
-              <p
+              <div
                 style={{
-                  color: textMutedSoft,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  margin: 0,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
+                  background: statCardBg,
+                  border: statCardBorder,
+                  borderRadius: 14,
+                  padding: '20px 18px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                  minWidth: 0,
                 }}
               >
-                Total Volume
-              </p>
-              <p
+                <p
+                  style={{
+                    color: textMutedSoft,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    margin: 0,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Total Volume
+                </p>
+                <p
+                  style={{
+                    color: '#f3f4f6',
+                    fontSize: 'clamp(18px, 4.5vw, 24px)',
+                    fontWeight: 800,
+                    margin: '8px 0 0',
+                    fontVariantNumeric: 'tabular-nums',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatVolume(stats.totalVolumeAllTime)} kg
+                </p>
+                <p style={{ color: textMutedSoft, fontSize: 11, margin: '8px 0 0' }}>
+                  All time
+                </p>
+              </div>
+              <div
                 style={{
-                  color: '#f3f4f6',
-                  fontSize: 'clamp(20px, 5.5vw, 24px)',
-                  fontWeight: 800,
-                  margin: '6px 0 0',
-                  fontVariantNumeric: 'tabular-nums',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  background: statCardBg,
+                  border: statCardBorder,
+                  borderRadius: 14,
+                  padding: '20px 18px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                  minWidth: 0,
                 }}
               >
-                {formatVolume(stats.totalVolumeAllTime)} kg
-              </p>
-              <p style={{ color: textMutedSoft, fontSize: 11, margin: '6px 0 0' }}>
-                All time
-              </p>
+                <p
+                  style={{
+                    color: textMutedSoft,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    margin: 0,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Workouts
+                </p>
+                <p
+                  style={{
+                    color: '#f3f4f6',
+                    fontSize: 'clamp(18px, 4.5vw, 24px)',
+                    fontWeight: 800,
+                    margin: '8px 0 0',
+                    fontVariantNumeric: 'tabular-nums',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {stats.workoutsThisMonth} total
+                </p>
+                <p style={{ color: textMutedSoft, fontSize: 11, margin: '8px 0 0' }}>
+                  This month
+                </p>
+              </div>
+              <div
+                style={{
+                  background: statCardBg,
+                  border: statCardBorder,
+                  borderRadius: 14,
+                  padding: '20px 18px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                  minWidth: 0,
+                }}
+              >
+                <p
+                  style={{
+                    color: textMutedSoft,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    margin: 0,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Total Sets
+                </p>
+                <p
+                  style={{
+                    color: '#f3f4f6',
+                    fontSize: 'clamp(18px, 4.5vw, 24px)',
+                    fontWeight: 800,
+                    margin: '8px 0 0',
+                    fontVariantNumeric: 'tabular-nums',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {totalSetsFromApi != null
+                    ? totalSetsFromApi.toLocaleString('en-US')
+                    : workouts.reduce((sum, w) => sum + (w.totalSets ?? 0), 0).toLocaleString('en-US')}
+                </p>
+                <p style={{ color: textMutedSoft, fontSize: 11, margin: '8px 0 0' }}>
+                  All time
+                </p>
+              </div>
             </div>
+
+            {/* Bottom: full-width Best Lift / Personal Record — stat left, trophy badge right */}
             <div
               style={{
                 background: statCardBg,
                 border: statCardBorder,
                 borderRadius: 14,
-                padding: '16px 14px',
+                padding: '24px 28px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 24,
+                minWidth: 0,
               }}
             >
-              <p
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <p
+                  style={{
+                    color: textMutedSoft,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    margin: 0,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Best Lift / Personal Record
+                </p>
+                <p
+                  style={{
+                    color: '#f3f4f6',
+                    fontSize: 'clamp(20px, 5vw, 26px)',
+                    fontWeight: 800,
+                    margin: '10px 0 0',
+                    fontVariantNumeric: 'tabular-nums',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {stats.bestLift ? `${stats.bestLift.value} kg` : '—'}
+                </p>
+                <p
+                  style={{
+                    color: stats.bestLift ? 'rgba(34,197,94,0.95)' : textMutedSoft,
+                    fontSize: 12,
+                    margin: '8px 0 0',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {stats.bestLift?.label ?? '—'}
+                </p>
+              </div>
+              <div
                 style={{
-                  color: textMutedSoft,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  margin: 0,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
+                  flexShrink: 0,
+                  width: 56,
+                  height: 56,
+                  borderRadius: 14,
+                  background: 'linear-gradient(145deg, rgba(234,179,8,0.25) 0%, rgba(234,179,8,0.08) 100%)',
+                  border: '1px solid rgba(234,179,8,0.35)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                Workouts
-              </p>
-              <p
-                style={{
-                  color: '#f3f4f6',
-                  fontSize: 'clamp(20px, 5.5vw, 24px)',
-                  fontWeight: 800,
-                  margin: '6px 0 0',
-                  fontVariantNumeric: 'tabular-nums',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {stats.workoutsThisMonth} total
-              </p>
-              <p style={{ color: textMutedSoft, fontSize: 11, margin: '6px 0 0' }}>
-                This month
-              </p>
-            </div>
-            <div
-              style={{
-                background: statCardBg,
-                border: statCardBorder,
-                borderRadius: 14,
-                padding: '16px 14px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-              }}
-            >
-              <p
-                style={{
-                  color: textMutedSoft,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  margin: 0,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Best Lift
-              </p>
-              <p
-                style={{
-                  color: '#f3f4f6',
-                  fontSize: 'clamp(20px, 5.5vw, 24px)',
-                  fontWeight: 800,
-                  margin: '6px 0 0',
-                  fontVariantNumeric: 'tabular-nums',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {stats.bestLift ? `${stats.bestLift.value} kg` : '—'}
-              </p>
-              <p
-                style={{
-                  color: stats.bestLift ? 'rgba(34,197,94,0.95)' : textMutedSoft,
-                  fontSize: 11,
-                  margin: '6px 0 0',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {stats.bestLift?.label ?? '—'}
-              </p>
-            </div>
-            <div
-              style={{
-                background: statCardBg,
-                border: statCardBorder,
-                borderRadius: 14,
-                padding: '16px 14px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-              }}
-            >
-              <p
-                style={{
-                  color: textMutedSoft,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  margin: 0,
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                TOTAL SETS
-              </p>
-              <p
-                style={{
-                  color: '#f3f4f6',
-                  fontSize: 'clamp(20px, 5.5vw, 24px)',
-                  fontWeight: 800,
-                  margin: '6px 0 0',
-                  fontVariantNumeric: 'tabular-nums',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {totalSetsFromApi != null
-                  ? totalSetsFromApi.toLocaleString('en-US')
-                  : workouts.reduce((sum, w) => sum + (w.totalSets ?? 0), 0).toLocaleString('en-US')}
-              </p>
-              <p style={{ color: textMutedSoft, fontSize: 11, margin: '6px 0 0' }}>
-                All time
-              </p>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(234,179,8,0.9)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                  <path d="M6 9a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2" />
+                  <path d="M12 2v4" />
+                  <path d="M8 22h8" />
+                  <path d="M12 22V12" />
+                  <path d="m8 12 4-4 4 4" />
+                </svg>
+              </div>
             </div>
           </div>
 
