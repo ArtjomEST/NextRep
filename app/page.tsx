@@ -17,6 +17,7 @@ import { getTimeGreeting, getHomeStats } from '@/lib/home/utils';
 import { useProfile } from '@/lib/profile/context';
 import { ui } from '@/lib/ui-styles';
 import LegendsWorkoutSlider from '@/components/LegendsWorkoutSlider';
+import WeeklyVolumeChart from '@/components/WeeklyVolumeChart';
 import { SectionErrorBoundary } from './AppErrorBoundary';
 
 function formatVolume(kg: number): string {
@@ -501,106 +502,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ─── 5) Weekly strip: muted header, darker day cells, screenshot-like ─ */}
-          <section>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 14,
-              }}
-            >
-              <h2
-                style={{
-                  color: textLabelSoft,
-                  fontSize: 15,
-                  fontWeight: 700,
-                  margin: 0,
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                This Week
-              </h2>
-              <span
-                style={{
-                  color: 'rgba(34,197,94,0.95)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                {stats.thisWeekDone}/{stats.thisWeekTarget} done
-              </span>
-            </div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-              }}
-            >
-              {stats.weekStrip.map((cell, i) => (
-                <div
-                  key={i}
-                  style={{
-                    flex: 1,
-                    aspectRatio: '1',
-                    maxWidth: 50,
-                    borderRadius: 12,
-                    background:
-                      cell.status === 'completed'
-                        ? 'linear-gradient(145deg, #1a5c3a 0%, #165834 100%)'
-                        : 'linear-gradient(180deg, #1a2026 0%, #151b21 100%)',
-                    border: cell.status === 'completed' ? '1px solid rgba(34,197,94,0.2)' : '1px solid rgba(255,255,255,0.06)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 5,
-                  }}
-                >
-                  <span
-                    style={{
-                      color:
-                        cell.status === 'completed' || cell.status === 'current'
-                          ? '#f3f4f6'
-                          : textMutedSoft,
-                      fontSize: 11,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {cell.dayLetter}
-                  </span>
-                  {cell.status === 'completed' && (
-                    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                  {cell.status === 'current' && (
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        backgroundColor: '#f3f4f6',
-                      }}
-                    />
-                  )}
-                  {cell.status === 'empty' && (
-                    <span
-                      style={{
-                        width: 12,
-                        height: 2,
-                        backgroundColor: textMutedSoft,
-                        borderRadius: 1,
-                      }}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </section>
+          {/* ─── 5) Weekly Volume Chart ──────────────────────────────────── */}
+          <WeeklyVolumeChart />
 
           {/* ─── Legends Workouts: hero cards, horizontal slider ───────────── */}
           <SectionErrorBoundary>

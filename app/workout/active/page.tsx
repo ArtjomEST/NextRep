@@ -11,7 +11,7 @@ import {
   computeTotalExercises,
   getNextPendingExerciseId,
 } from '@/lib/workout/metrics';
-import { fetchExerciseDetailApi } from '@/lib/api/client';
+import { fetchExerciseDetailApi, fetchLastSetsApi } from '@/lib/api/client';
 import type { ExerciseDetail } from '@/lib/api/types';
 import SetRow from '@/components/SetRow';
 import RestTimer from '@/components/RestTimer';
@@ -32,6 +32,9 @@ export default function ActiveWorkoutPage() {
   const [infoDetail, setInfoDetail] = useState<ExerciseDetail | null>(null);
   const [infoLoading, setInfoLoading] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
+  const [lastSetsMap, setLastSetsMap] = useState<
+    Record<string, Array<{ weight: number | null; reps: number | null }>>
+  >({});
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const exerciseRefs = useRef<Record<string, HTMLElement | null>>({});
 
@@ -53,6 +56,13 @@ export default function ActiveWorkoutPage() {
     }
   }, [draft.startedAt]);
 
+  const exerciseIdKey = draft.exercises.map((e) => e.exerciseId).join(',');
+  useEffect(() => {
+    if (!exerciseIdKey) return;
+    const ids = exerciseIdKey.split(',');
+    fetchLastSetsApi(ids).then(setLastSetsMap).catch(() => {});
+  }, [exerciseIdKey]);
+
   const scrollToExercise = useCallback((id: string) => {
     setTimeout(() => {
       exerciseRefs.current[id]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -60,12 +70,14 @@ export default function ActiveWorkoutPage() {
   }, []);
 
   const handleToggleComplete = useCallback(
-    (exerciseEntryId: string, setId: string, exerciseName: string, setIndex: number) => {
+    (exerciseEntryId: string, setId: string, exerciseName: string, setIndex: number, wasCompleted: boolean) => {
       setLastLoggedExerciseName(exerciseName);
       setLastLoggedSetIndex(setIndex);
       dispatch({ type: 'TOGGLE_SET_COMPLETE', exerciseEntryId, setId });
-      setShowRest(true);
-      setRestMinimized(false);
+      if (!wasCompleted) {
+        setShowRest(true);
+        setRestMinimized(false);
+      }
     },
     [dispatch],
   );
@@ -423,6 +435,7 @@ export default function ActiveWorkoutPage() {
                         key={set.id}
                         index={si}
                         set={set}
+                        lastSet={lastSetsMap[entry.exerciseId]?.[si]}
                         onUpdateWeight={(v) =>
                           dispatch({ type: 'UPDATE_SET', exerciseEntryId: entry.id, setId: set.id, field: 'weight', value: v })
                         }
@@ -430,7 +443,7 @@ export default function ActiveWorkoutPage() {
                           dispatch({ type: 'UPDATE_SET', exerciseEntryId: entry.id, setId: set.id, field: 'reps', value: v })
                         }
                         onToggleComplete={() =>
-                          handleToggleComplete(entry.id, set.id, entry.exerciseName, si)
+                          handleToggleComplete(entry.id, set.id, entry.exerciseName, si, set.completed)
                         }
                         onRemove={() =>
                           dispatch({ type: 'REMOVE_SET', exerciseEntryId: entry.id, setId: set.id })

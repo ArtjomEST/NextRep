@@ -200,6 +200,21 @@ export async function fetchWorkoutStatsApi(): Promise<{
   return json.data;
 }
 
+export async function fetchLastSetsApi(
+  exerciseIds: string[],
+): Promise<Record<string, Array<{ weight: number | null; reps: number | null }>>> {
+  if (exerciseIds.length === 0) return {};
+  const params = new URLSearchParams({ exerciseIds: exerciseIds.join(',') });
+  const res = await fetch(`/api/workouts/last-sets?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    return {};
+  }
+  const json = await res.json();
+  return json.data ?? {};
+}
+
 export async function deleteWorkoutApi(id: string): Promise<void> {
   const res = await fetch(`/api/workouts/${id}`, {
     method: 'DELETE',

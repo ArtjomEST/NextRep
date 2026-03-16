@@ -6,7 +6,7 @@ import {
   workoutSets,
   exercises,
 } from '@/lib/db/schema';
-import { eq, asc, inArray } from 'drizzle-orm';
+import { eq, asc, inArray, and, isNotNull, ne, desc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 import type {
   WorkoutDetail,
@@ -146,6 +146,62 @@ export async function GET(
       }
     }
 
+    // Fetch last sets from the most recent prior completed workout for each exercise
+    const exerciseIds = weRows.map((r) => r.exerciseId);
+    const lastSetsMap = new Map<string, Array<{ weight: number | null; reps: number | null }>>();
+
+    if (exerciseIds.length > 0) {
+      const recentWEs = await db
+        .select({
+          weId: workoutExercises.id,
+          exerciseId: workoutExercises.exerciseId,
+        })
+        .from(workoutExercises)
+        .innerJoin(workouts, eq(workoutExercises.workoutId, workouts.id))
+        .where(
+          and(
+            inArray(workoutExercises.exerciseId, exerciseIds),
+            eq(workouts.userId, auth.userId),
+            isNotNull(workouts.endedAt),
+            ne(workouts.id, id),
+          ),
+        )
+        .orderBy(desc(workouts.endedAt));
+
+      const latestWeByExercise = new Map<string, string>();
+      for (const row of recentWEs) {
+        if (!latestWeByExercise.has(row.exerciseId)) {
+          latestWeByExercise.set(row.exerciseId, row.weId);
+        }
+      }
+
+      const prevWeIds = [...latestWeByExercise.values()];
+      const prevSets =
+        prevWeIds.length > 0
+          ? await db
+              .select({
+                workoutExerciseId: workoutSets.workoutExerciseId,
+                weight: workoutSets.weight,
+                reps: workoutSets.reps,
+              })
+              .from(workoutSets)
+              .where(inArray(workoutSets.workoutExerciseId, prevWeIds))
+              .orderBy(asc(workoutSets.setIndex))
+          : [];
+
+      for (const [exerciseId, weId] of latestWeByExercise) {
+        lastSetsMap.set(
+          exerciseId,
+          prevSets
+            .filter((s) => s.workoutExerciseId === weId)
+            .map((s) => ({
+              weight: s.weight != null ? Number(s.weight) : null,
+              reps: s.reps,
+            })),
+        );
+      }
+    }
+
     const detailExercises: WorkoutDetailExercise[] = weRows.map((r) => ({
       id: r.weId,
       exerciseId: r.exerciseId,
@@ -156,6 +212,7 @@ export async function GET(
       order: r.order,
       status: r.status,
       sets: setsMap.get(r.weId) ?? [],
+      lastSets: lastSetsMap.get(r.exerciseId) ?? [],
     }));
 
     const detail: WorkoutDetail = {

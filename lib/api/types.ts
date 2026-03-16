@@ -57,6 +57,11 @@ export interface WorkoutDetailSet {
   completed: boolean;
 }
 
+export interface LastSet {
+  weight: number | null;
+  reps: number | null;
+}
+
 export interface WorkoutDetailExercise {
   id: string;
   exerciseId: string;
@@ -67,6 +72,7 @@ export interface WorkoutDetailExercise {
   order: number;
   status: string;
   sets: WorkoutDetailSet[];
+  lastSets: LastSet[];
 }
 
 export interface WorkoutDetail {
