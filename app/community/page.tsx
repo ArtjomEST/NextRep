@@ -13,7 +13,11 @@ import {
   type FeedFilter,
   type FeedContentType,
 } from '@/lib/api/client';
-import type { FeedItem, FeedPostItem, WorkoutCommentRow } from '@/lib/api/types';
+import type {
+  FeedItem,
+  FeedPostItem,
+  WorkoutCommentRow,
+} from '@/lib/api/types';
 import { formatTimeAgo, formatFeedDuration } from '@/lib/community/time';
 import { hapticImpactLight } from '@/lib/telegram/haptic';
 import CommunityCommentsSheet, {
@@ -22,7 +26,76 @@ import CommunityCommentsSheet, {
 import CreatePostSheet from '@/components/CreatePostSheet';
 import Card from '@/components/Card';
 
-function SearchIcon({ color }: { color: string }) {
+const FEED_CACHE_KEY = 'feed_cache';
+const FEED_CACHE_TTL_MS = 5 * 60 * 1000;
+
+type FeedCacheStore = {
+  v: 1;
+  entries: Record<
+    string,
+    {
+      at: number;
+      items: FeedItem[];
+    }
+  >;
+};
+
+function feedCacheEntryKey(filter: FeedFilter, type: FeedContentType): string {
+  return `${filter}:${type}`;
+}
+
+function readValidCachedFeed(
+  filter: FeedFilter,
+  type: FeedContentType,
+): FeedItem[] | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(FEED_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as FeedCacheStore;
+    if (parsed.v !== 1 || !parsed.entries) return null;
+    const ent = parsed.entries[feedCacheEntryKey(filter, type)];
+    if (!ent || !Array.isArray(ent.items)) return null;
+    if (Date.now() - ent.at > FEED_CACHE_TTL_MS) return null;
+    return ent.items;
+  } catch {
+    return null;
+  }
+}
+
+function writeFeedCache(
+  filter: FeedFilter,
+  type: FeedContentType,
+  items: FeedItem[],
+): void {
+  if (typeof window === 'undefined') return;
+  try {
+    let store: FeedCacheStore = { v: 1, entries: {} };
+    const raw = localStorage.getItem(FEED_CACHE_KEY);
+    if (raw) {
+      const p = JSON.parse(raw) as unknown;
+      if (
+        p &&
+        typeof p === 'object' &&
+        'v' in p &&
+        (p as FeedCacheStore).v === 1 &&
+        'entries' in p &&
+        typeof (p as FeedCacheStore).entries === 'object'
+      ) {
+        store = p as FeedCacheStore;
+      }
+    }
+    store.entries[feedCacheEntryKey(filter, type)] = {
+      at: Date.now(),
+      items,
+    };
+    localStorage.setItem(FEED_CACHE_KEY, JSON.stringify(store));
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+function PersonPlusIcon({ color }: { color: string }) {
   return (
     <svg
       width="22"
@@ -35,8 +108,9 @@ function SearchIcon({ color }: { color: string }) {
       strokeLinejoin="round"
       aria-hidden
     >
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.35-4.35" />
+      <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="8.5" cy="7" r="4" />
+      <path d="M20 8v6M23 11h-6" />
     </svg>
   );
 }
@@ -132,23 +206,43 @@ export default function CommunityPage() {
   const [savedPresetIds, setSavedPresetIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(
-    async (filter: FeedFilter, type: FeedContentType) => {
-      setLoading(true);
+    async (
+      filter: FeedFilter,
+      type: FeedContentType,
+      opts?: { silent?: boolean },
+    ) => {
+      if (!opts?.silent) {
+        setLoading(true);
+      }
       setError(null);
       try {
-        const { data } = await fetchFeedApi(30, 0, filter, type);
+        const { data } = await fetchFeedApi(10, 0, filter, type);
         setItems(data);
+        writeFeedCache(filter, type, data);
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load feed');
+        if (!opts?.silent) {
+          setError(e instanceof Error ? e.message : 'Failed to load feed');
+        }
       } finally {
-        setLoading(false);
+        if (!opts?.silent) {
+          setLoading(false);
+        }
       }
     },
     [],
   );
 
   useEffect(() => {
-    void load(feedTab, contentTab);
+    const cached = readValidCachedFeed(feedTab, contentTab);
+    if (cached) {
+      setItems(cached);
+      setLoading(false);
+      setError(null);
+      void load(feedTab, contentTab, { silent: true });
+    } else {
+      setItems([]);
+      void load(feedTab, contentTab);
+    }
   }, [feedTab, contentTab, load]);
 
   async function handleWorkoutLike(workoutId: string) {
@@ -292,7 +386,7 @@ export default function CommunityPage() {
   const emptyFeedWorkoutsCopy =
     'No public workouts to show yet. Check back later or invite friends.';
   const emptyFeedPostsCopy =
-    'No posts yet. Tap + Post to share a workout thought or photo.';
+    'No posts yet. Tap + Create Post to share a workout thought or photo.';
   const emptyFeedAllCopy =
     'Nothing in the feed yet. Finish a public workout or start a post.';
 
@@ -330,7 +424,8 @@ export default function CommunityPage() {
             type="button"
             onClick={() => setCreateOpen(true)}
             style={{
-              padding: '8px 12px',
+              padding: '8px 24px',
+              minWidth: '160px',
               borderRadius: theme.radius.md,
               border: `1.5px solid ${theme.colors.primary}`,
               backgroundColor: theme.colors.surface,
@@ -340,7 +435,7 @@ export default function CommunityPage() {
               cursor: 'pointer',
             }}
           >
-            + Post
+            + Create Post
           </button>
           <button
             type="button"
@@ -359,7 +454,7 @@ export default function CommunityPage() {
               padding: 0,
             }}
           >
-            <SearchIcon color={theme.colors.textMuted} />
+            <PersonPlusIcon color={theme.colors.textMuted} />
           </button>
         </div>
       </div>

@@ -35,18 +35,6 @@ const CommunityIcon = ({ color }: { color: string }) => (
   </svg>
 );
 
-const ExercisesIcon = ({ color }: { color: string }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M6.5 6.5h11" />
-    <path d="M6.5 17.5h11" />
-    <path d="M4 6.5a2.5 2.5 0 0 1 0-5h0a2.5 2.5 0 0 1 0 5" />
-    <path d="M20 6.5a2.5 2.5 0 0 0 0-5h0a2.5 2.5 0 0 0 0 5" />
-    <path d="M4 20a2.5 2.5 0 0 1 0-5h0a2.5 2.5 0 0 1 0 5" />
-    <path d="M20 20a2.5 2.5 0 0 0 0-5h0a2.5 2.5 0 0 0 0 5" />
-    <path d="M12 3v18" />
-  </svg>
-);
-
 const AccountIcon = ({ color }: { color: string }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -58,7 +46,6 @@ const tabs: Tab[] = [
   { id: 'home', label: 'Home', path: '/', icon: <HomeIcon color="currentColor" /> },
   { id: 'history', label: 'History', path: '/history', icon: <HistoryIcon color="currentColor" /> },
   { id: 'community', label: 'Community', path: '/community', icon: <CommunityIcon color="currentColor" /> },
-  { id: 'exercises', label: 'Exercises', path: '/exercises', icon: <ExercisesIcon color="currentColor" /> },
   { id: 'account', label: 'Account', path: '/account', icon: <AccountIcon color="currentColor" /> },
 ];
 
@@ -74,7 +61,7 @@ export default function TabBar() {
   const getActiveTab = (): TabId => {
     if (pathname === '/') return 'home';
     const segment = pathname.split('/')[1];
-    if (['history', 'community', 'exercises', 'account'].includes(segment)) {
+    if (['history', 'community', 'account'].includes(segment)) {
       return segment as TabId;
     }
     return 'home';
