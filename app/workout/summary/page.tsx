@@ -10,11 +10,17 @@ import {
   computeDuration,
   computePRsPlaceholder,
 } from '@/lib/workout/metrics';
-import { saveWorkoutApi, uploadWorkoutPhotoApi } from '@/lib/api/client';
+import {
+  saveWorkoutApi,
+  uploadWorkoutPhotoApi,
+  UploadPhotoError,
+} from '@/lib/api/client';
 import type { SaveWorkoutRequest } from '@/lib/api/types';
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+
+const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 export default function WorkoutSummaryPage() {
   const router = useRouter();
@@ -25,6 +31,7 @@ export default function WorkoutSummaryPage() {
   const [isPublic, setIsPublic] = useState(true);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [saveNotice, setSaveNotice] = useState<string | null>(null);
 
   const stats = useMemo(
     () => ({
@@ -46,6 +53,13 @@ export default function WorkoutSummaryPage() {
     const f = e.target.files?.[0];
     e.target.value = '';
     if (!f || !f.type.startsWith('image/')) return;
+    if (f.size > MAX_PHOTO_BYTES) {
+      setError(
+        'Photo is too large. Please choose an image under 4MB.',
+      );
+      return;
+    }
+    setError(null);
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
     setPhotoFile(f);
     setPhotoPreviewUrl(URL.createObjectURL(f));
@@ -61,20 +75,48 @@ export default function WorkoutSummaryPage() {
     if (saving || savedWorkoutId) return;
     setSaving(true);
     setError(null);
+    setSaveNotice(null);
 
     try {
       let photoUrl: string | null = null;
+      let uploadSkippedNotice: string | null = null;
       if (photoFile) {
-        try {
-          photoUrl = await uploadWorkoutPhotoApi(photoFile);
-        } catch (uploadErr) {
+        if (photoFile.size > MAX_PHOTO_BYTES) {
           setError(
-            uploadErr instanceof Error
-              ? uploadErr.message
-              : 'Photo upload failed',
+            'Photo is too large. Please choose an image under 4MB.',
           );
           setSaving(false);
           return;
+        }
+        try {
+          photoUrl = await uploadWorkoutPhotoApi(photoFile);
+        } catch (uploadErr) {
+          if (uploadErr instanceof UploadPhotoError) {
+            if (uploadErr.status === 413) {
+              setError(
+                'Photo is too large. Please choose a smaller image.',
+              );
+              setSaving(false);
+              return;
+            }
+            if (uploadErr.status === 503) {
+              photoUrl = null;
+              uploadSkippedNotice =
+                'Photo upload is unavailable right now. Your workout was saved without a photo.';
+            } else {
+              setError(uploadErr.message);
+              setSaving(false);
+              return;
+            }
+          } else {
+            setError(
+              uploadErr instanceof Error
+                ? uploadErr.message
+                : 'Photo upload failed',
+            );
+            setSaving(false);
+            return;
+          }
         }
       }
 
@@ -101,6 +143,7 @@ export default function WorkoutSummaryPage() {
 
       const result = await saveWorkoutApi(request);
       setSavedWorkoutId(result.workoutId);
+      setSaveNotice(uploadSkippedNotice);
       dispatch({ type: 'RESET_DRAFT' });
     } catch (err) {
       setError(
@@ -182,6 +225,19 @@ export default function WorkoutSummaryPage() {
         >
           Your workout has been saved to your history.
         </p>
+        {saveNotice && (
+          <p
+            style={{
+              color: theme.colors.textMuted,
+              fontSize: '13px',
+              margin: '12px 0 0',
+              textAlign: 'center',
+              lineHeight: 1.45,
+            }}
+          >
+            {saveNotice}
+          </p>
+        )}
         <div
           style={{
             display: 'flex',
@@ -397,22 +453,11 @@ export default function WorkoutSummaryPage() {
             color: theme.colors.textPrimary,
             fontSize: '15px',
             fontWeight: 600,
-            margin: '0 0 10px',
-          }}
-        >
-          Workout photo
-        </h3>
-        <p
-          style={{
-            color: theme.colors.textMuted,
-            fontSize: '13px',
             margin: '0 0 12px',
-            lineHeight: 1.45,
           }}
         >
-          Optional — add a picture to your saved workout. Requires upload storage
-          (Vercel Blob) to be configured.
-        </p>
+          Workout Photo
+        </h3>
         {photoPreviewUrl && (
           <div style={{ marginBottom: '12px', position: 'relative' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}

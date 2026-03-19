@@ -11,7 +11,7 @@ import type {
   PublicProfileData,
   WorkoutCommentRow,
 } from './types';
-import { getAuthHeaders } from '@/lib/auth/client';
+import { getAuthHeaders, getTelegramInitData } from '@/lib/auth/client';
 
 // ─── Exercises ──────────────────────────────────────────────
 
@@ -266,17 +266,42 @@ export async function fetchMe(): Promise<MeResponse | null> {
   return json.data as MeResponse;
 }
 
+/** Thrown by {@link uploadWorkoutPhotoApi} with HTTP status for UI messaging. */
+export class UploadPhotoError extends Error {
+  readonly status: number;
+
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'UploadPhotoError';
+    this.status = status;
+  }
+}
+
+function authHeadersForFormData(): HeadersInit {
+  const initData = getTelegramInitData();
+  if (!initData) return {};
+  return { 'x-telegram-init-data': initData };
+}
+
 export async function uploadWorkoutPhotoApi(file: File): Promise<string> {
   const form = new FormData();
   form.append('file', file);
   const res = await fetch('/api/upload/workout-photo', {
     method: 'POST',
-    headers: getAuthHeaders(),
+    headers: authHeadersForFormData(),
     body: form,
   });
-  const json = await res.json().catch(() => ({}));
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: string;
+    url?: string;
+  };
   if (!res.ok) {
-    throw new Error(json.error ?? `Upload failed (${res.status})`);
+    throw new UploadPhotoError(
+      res.status,
+      typeof json.error === 'string' && json.error.length > 0
+        ? json.error
+        : `Upload failed (${res.status})`,
+    );
   }
   return json.url as string;
 }

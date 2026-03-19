@@ -6,6 +6,7 @@ const ALLOWED = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const MAX_BYTES = 4 * 1024 * 1024;
 
 export async function POST(req: NextRequest) {
+  console.log('BLOB_READ_WRITE_TOKEN set:', !!process.env.BLOB_READ_WRITE_TOKEN);
   try {
     const auth = await authenticateRequest(req);
     if (!auth) {
@@ -58,11 +59,8 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: blob.url });
-  } catch (err) {
-    console.error('POST /api/upload/workout-photo:', err);
-    return NextResponse.json(
-      { error: 'Upload failed', message: String(err) },
-      { status: 500 },
-    );
+  } catch (error) {
+    console.error('Upload error:', error);
+    return NextResponse.json({ error: String(error) }, { status: 500 });
   }
 }
