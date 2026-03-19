@@ -37,50 +37,71 @@ export async function GET(req: NextRequest) {
     const { searchParams } = req.nextUrl;
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '20', 10), 50);
     const offset = Math.max(parseInt(searchParams.get('offset') ?? '0', 10), 0);
+    const filter = searchParams.get('filter') ?? 'all';
+    const followingOnly = filter === 'following';
 
-    const feedRows = await db
-      .select({
-        workoutId: workouts.id,
-        userId: users.id,
-        firstName: users.firstName,
-        lastName: users.lastName,
-        username: users.username,
-        avatarUrl: users.avatarUrl,
-        name: workouts.name,
-        endedAt: workouts.endedAt,
-        createdAt: workouts.createdAt,
-        durationSec: workouts.durationSec,
-        totalVolume: workouts.totalVolume,
-        totalSets: workouts.totalSets,
-        photoUrl: workouts.photoUrl,
-      })
-      .from(workouts)
-      .innerJoin(users, eq(workouts.userId, users.id))
-      .innerJoin(
-        follows,
-        and(
-          eq(follows.followingId, workouts.userId),
-          eq(follows.followerId, auth.userId),
-        ),
-      )
-      .where(
-        and(eq(workouts.isPublic, true), isNotNull(workouts.endedAt)),
-      )
-      .orderBy(desc(workouts.endedAt))
-      .limit(limit)
-      .offset(offset);
+    const publicCompletedWhere = and(
+      eq(workouts.isPublic, true),
+      isNotNull(workouts.endedAt),
+    );
 
-    const [exactTotal] = await db
-      .select({ c: drizzleCount() })
-      .from(workouts)
-      .innerJoin(
-        follows,
-        and(
-          eq(follows.followingId, workouts.userId),
-          eq(follows.followerId, auth.userId),
-        ),
-      )
-      .where(and(eq(workouts.isPublic, true), isNotNull(workouts.endedAt)));
+    const feedSelect = {
+      workoutId: workouts.id,
+      userId: users.id,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      username: users.username,
+      avatarUrl: users.avatarUrl,
+      name: workouts.name,
+      endedAt: workouts.endedAt,
+      createdAt: workouts.createdAt,
+      durationSec: workouts.durationSec,
+      totalVolume: workouts.totalVolume,
+      totalSets: workouts.totalSets,
+      photoUrl: workouts.photoUrl,
+    };
+
+    const feedRows = followingOnly
+      ? await db
+          .select(feedSelect)
+          .from(workouts)
+          .innerJoin(users, eq(workouts.userId, users.id))
+          .innerJoin(
+            follows,
+            and(
+              eq(follows.followingId, workouts.userId),
+              eq(follows.followerId, auth.userId),
+            ),
+          )
+          .where(publicCompletedWhere)
+          .orderBy(desc(workouts.endedAt))
+          .limit(limit)
+          .offset(offset)
+      : await db
+          .select(feedSelect)
+          .from(workouts)
+          .innerJoin(users, eq(workouts.userId, users.id))
+          .where(publicCompletedWhere)
+          .orderBy(desc(workouts.endedAt))
+          .limit(limit)
+          .offset(offset);
+
+    const [exactTotal] = followingOnly
+      ? await db
+          .select({ c: drizzleCount() })
+          .from(workouts)
+          .innerJoin(
+            follows,
+            and(
+              eq(follows.followingId, workouts.userId),
+              eq(follows.followerId, auth.userId),
+            ),
+          )
+          .where(publicCompletedWhere)
+      : await db
+          .select({ c: drizzleCount() })
+          .from(workouts)
+          .where(publicCompletedWhere);
 
     const totalCount = Number(exactTotal?.c ?? 0);
 

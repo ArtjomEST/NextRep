@@ -7,11 +7,50 @@ import { theme } from '@/lib/theme';
 import {
   fetchFeedApi,
   toggleWorkoutLikeApi,
+  type FeedFilter,
 } from '@/lib/api/client';
 import type { FeedItem, WorkoutCommentRow } from '@/lib/api/types';
 import { formatTimeAgo, formatFeedDuration } from '@/lib/community/time';
+import { hapticImpactLight } from '@/lib/telegram/haptic';
 import CommunityCommentsSheet from '@/components/CommunityCommentsSheet';
 import Card from '@/components/Card';
+
+function SearchIcon({ color }: { color: string }) {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.35-4.35" />
+    </svg>
+  );
+}
+
+function CommentBubbleIcon({ color }: { color: string }) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
 
 function Avatar({
   url,
@@ -72,17 +111,18 @@ function Avatar({
 
 export default function CommunityPage() {
   const router = useRouter();
+  const [feedTab, setFeedTab] = useState<FeedFilter>('all');
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sheetWorkoutId, setSheetWorkoutId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (filter: FeedFilter) => {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await fetchFeedApi(30, 0);
+      const { data } = await fetchFeedApi(30, 0, filter);
       setItems(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load feed');
@@ -92,10 +132,11 @@ export default function CommunityPage() {
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(feedTab);
+  }, [feedTab, load]);
 
   async function handleLike(workoutId: string) {
+    hapticImpactLight();
     const prev = items;
     const idx = prev.findIndex((i) => i.workoutId === workoutId);
     if (idx < 0) return;
@@ -161,6 +202,11 @@ export default function CommunityPage() {
     );
   }
 
+  const emptyFollowingCopy =
+    'Your Following feed is empty. Follow people to see their public workouts here.';
+  const emptyFeedCopy =
+    'No public workouts to show yet. Check back later or invite friends.';
+
   return (
     <div style={{ paddingTop: '12px', paddingBottom: '8px' }}>
       <div
@@ -168,7 +214,7 @@ export default function CommunityPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          marginBottom: '16px',
+          marginBottom: '14px',
         }}
       >
         <h1
@@ -181,17 +227,85 @@ export default function CommunityPage() {
         >
           Community
         </h1>
-        <Link
-          href="/community/search"
+        <button
+          type="button"
+          onClick={() => router.push('/community/search')}
+          aria-label="Search people"
           style={{
-            color: theme.colors.primary,
-            fontSize: '14px',
-            fontWeight: 600,
-            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 40,
+            height: 40,
+            borderRadius: theme.radius.md,
+            border: `1px solid ${theme.colors.border}`,
+            backgroundColor: theme.colors.surface,
+            cursor: 'pointer',
+            padding: 0,
           }}
         >
-          Find people
-        </Link>
+          <SearchIcon color={theme.colors.textMuted} />
+        </button>
+      </div>
+
+      <div
+        role="tablist"
+        aria-label="Community feed scope"
+        style={{
+          display: 'flex',
+          borderRadius: theme.radius.md,
+          overflow: 'hidden',
+          border: `1px solid ${theme.colors.border}`,
+          marginBottom: '16px',
+        }}
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={feedTab === 'all'}
+          onClick={() => setFeedTab('all')}
+          style={{
+            flex: 1,
+            padding: '10px 12px',
+            border: 'none',
+            cursor: 'pointer',
+            fontWeight: 700,
+            fontSize: '14px',
+            backgroundColor:
+              feedTab === 'all' ? theme.colors.primary : theme.colors.surface,
+            color:
+              feedTab === 'all'
+                ? theme.colors.textPrimary
+                : theme.colors.textMuted,
+          }}
+        >
+          Feed
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={feedTab === 'following'}
+          onClick={() => setFeedTab('following')}
+          style={{
+            flex: 1,
+            padding: '10px 12px',
+            border: 'none',
+            borderLeft: `1px solid ${theme.colors.border}`,
+            cursor: 'pointer',
+            fontWeight: 700,
+            fontSize: '14px',
+            backgroundColor:
+              feedTab === 'following'
+                ? theme.colors.primary
+                : theme.colors.surface,
+            color:
+              feedTab === 'following'
+                ? theme.colors.textPrimary
+                : theme.colors.textMuted,
+          }}
+        >
+          Following
+        </button>
       </div>
 
       {loading && (
@@ -213,21 +327,23 @@ export default function CommunityPage() {
               lineHeight: 1.5,
             }}
           >
-            Your feed is empty. Follow people to see their public workouts here.
+            {feedTab === 'following' ? emptyFollowingCopy : emptyFeedCopy}
           </p>
-          <Link
-            href="/community/search"
-            style={{
-              display: 'inline-block',
-              marginTop: '12px',
-              color: theme.colors.primary,
-              fontWeight: 600,
-              fontSize: '14px',
-              textDecoration: 'none',
-            }}
-          >
-            Search users
-          </Link>
+          {feedTab === 'following' && (
+            <Link
+              href="/community/search"
+              style={{
+                display: 'inline-block',
+                marginTop: '12px',
+                color: theme.colors.primary,
+                fontWeight: 600,
+                fontSize: '14px',
+                textDecoration: 'none',
+              }}
+            >
+              Search users
+            </Link>
+          )}
         </Card>
       )}
 
@@ -465,12 +581,16 @@ export default function CommunityPage() {
                   border: 'none',
                   padding: 0,
                   cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
                   color: theme.colors.textMuted,
                   fontSize: '14px',
                   fontWeight: 600,
                 }}
               >
-                💬 {item.commentCount}
+                <CommentBubbleIcon color="currentColor" />
+                {item.commentCount}
               </button>
             </div>
 

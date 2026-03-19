@@ -281,14 +281,18 @@ export async function uploadWorkoutPhotoApi(file: File): Promise<string> {
   return json.url as string;
 }
 
+export type FeedFilter = 'all' | 'following';
+
 export async function fetchFeedApi(
   limit = 20,
   offset = 0,
+  filter: FeedFilter = 'all',
 ): Promise<{ data: FeedItem[]; total: number }> {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
   });
+  if (filter === 'following') params.set('filter', 'following');
   const res = await fetch(`/api/feed?${params}`, {
     headers: getAuthHeaders(),
   });
