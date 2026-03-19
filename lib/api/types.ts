@@ -21,6 +21,10 @@ export interface SaveWorkoutRequest {
   endedAt?: string;
   durationSec?: number;
   notes?: string;
+  /** Public workouts appear in followers' feeds. Default true when omitted. */
+  isPublic?: boolean;
+  /** Optional workout photo URL (e.g. Vercel Blob) after client upload. */
+  photoUrl?: string | null;
   exercises: SaveWorkoutExercisePayload[];
 }
 
@@ -117,4 +121,76 @@ export interface Preset {
   exerciseIds: string[];
   createdAt: string;
   updatedAt: string;
+}
+
+// ─── Community / Feed ───────────────────────────────────────
+
+export interface FeedWorkoutLogLine {
+  exerciseName: string;
+  exerciseImageUrl: string | null;
+  completedSets: number;
+}
+
+export interface FeedCommentPreview {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatarUrl: string | null;
+  text: string;
+  createdAt: string;
+}
+
+export interface FeedItem {
+  workoutId: string;
+  user: { id: string; name: string; avatarUrl: string | null };
+  postedAt: string;
+  name: string;
+  durationSec: number | null;
+  totalVolume: number;
+  totalSets: number;
+  hasPr: boolean;
+  photoUrl: string | null;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  log: FeedWorkoutLogLine[];
+  commentPreviews: FeedCommentPreview[];
+}
+
+export interface UserSearchHit {
+  id: string;
+  name: string;
+  avatarUrl: string | null;
+  isFollowing: boolean;
+  isSelf: boolean;
+}
+
+export interface PublicProfileWorkout {
+  id: string;
+  name: string;
+  endedAt: string;
+  durationSec: number | null;
+  totalVolume: number;
+  totalSets: number;
+  photoUrl: string | null;
+}
+
+export interface PublicProfileData {
+  user: { id: string; name: string; avatarUrl: string | null };
+  followerCount: number;
+  followingCount: number;
+  isFollowing: boolean;
+  isSelf: boolean;
+  totalWorkouts: number;
+  totalVolume: number;
+  publicWorkouts: PublicProfileWorkout[];
+}
+
+export interface WorkoutCommentRow {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatarUrl: string | null;
+  text: string;
+  createdAt: string;
 }

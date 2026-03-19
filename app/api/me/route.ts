@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
         username: users.username,
         firstName: users.firstName,
         lastName: users.lastName,
+        avatarUrl: users.avatarUrl,
         isLinked: users.isLinked,
         telegramUserId: users.telegramUserId,
       })

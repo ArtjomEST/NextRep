@@ -26,6 +26,15 @@ const HistoryIcon = ({ color }: { color: string }) => (
   </svg>
 );
 
+const CommunityIcon = ({ color }: { color: string }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
 const ExercisesIcon = ({ color }: { color: string }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M6.5 6.5h11" />
@@ -48,6 +57,7 @@ const AccountIcon = ({ color }: { color: string }) => (
 const tabs: Tab[] = [
   { id: 'home', label: 'Home', path: '/', icon: <HomeIcon color="currentColor" /> },
   { id: 'history', label: 'History', path: '/history', icon: <HistoryIcon color="currentColor" /> },
+  { id: 'community', label: 'Community', path: '/community', icon: <CommunityIcon color="currentColor" /> },
   { id: 'exercises', label: 'Exercises', path: '/exercises', icon: <ExercisesIcon color="currentColor" /> },
   { id: 'account', label: 'Account', path: '/account', icon: <AccountIcon color="currentColor" /> },
 ];
@@ -64,7 +74,9 @@ export default function TabBar() {
   const getActiveTab = (): TabId => {
     if (pathname === '/') return 'home';
     const segment = pathname.split('/')[1];
-    if (['history', 'exercises', 'account'].includes(segment)) return segment as TabId;
+    if (['history', 'community', 'exercises', 'account'].includes(segment)) {
+      return segment as TabId;
+    }
     return 'home';
   };
 
@@ -102,7 +114,7 @@ export default function TabBar() {
               border: 'none',
               cursor: 'pointer',
               color: isActive ? theme.colors.primary : theme.colors.textMuted,
-              padding: '6px 20px',
+              padding: '6px 10px',
               minWidth: '60px',
               transition: 'color 0.15s ease',
               position: 'relative',

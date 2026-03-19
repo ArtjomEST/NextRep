@@ -80,4 +80,4 @@ export interface OverviewStats {
 
 export type TimePeriod = 'This Week' | 'This Month' | 'All Time';
 
-export type TabId = 'home' | 'history' | 'exercises' | 'account';
+export type TabId = 'home' | 'history' | 'community' | 'exercises' | 'account';

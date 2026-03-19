@@ -55,5 +55,17 @@ export function validateSaveWorkout(
     }
   }
 
+  if (b.isPublic !== undefined && typeof b.isPublic !== 'boolean') {
+    return { data: null, error: 'isPublic must be a boolean when provided' };
+  }
+  if (b.photoUrl !== undefined && b.photoUrl !== null) {
+    if (typeof b.photoUrl !== 'string') {
+      return { data: null, error: 'photoUrl must be a string or null' };
+    }
+    if (b.photoUrl.length > 2048) {
+      return { data: null, error: 'photoUrl is too long' };
+    }
+  }
+
   return { data: b as unknown as SaveWorkoutRequest, error: null };
 }

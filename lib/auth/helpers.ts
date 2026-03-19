@@ -56,6 +56,7 @@ export async function authenticateRequest(
             username: tgUser.username ?? null,
             firstName: tgUser.first_name,
             lastName: tgUser.last_name ?? null,
+            avatarUrl: tgUser.photo_url ?? null,
           })
           .where(eq(users.id, existing[0].id));
 
@@ -70,6 +71,7 @@ export async function authenticateRequest(
           username: tgUser.username ?? null,
           firstName: tgUser.first_name,
           lastName: tgUser.last_name ?? null,
+          avatarUrl: tgUser.photo_url ?? null,
         })
         .returning({ id: users.id });
 

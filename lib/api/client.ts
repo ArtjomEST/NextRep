@@ -6,6 +6,10 @@ import type {
   WorkoutDetail,
   ExerciseDetail,
   Preset,
+  FeedItem,
+  UserSearchHit,
+  PublicProfileData,
+  WorkoutCommentRow,
 } from './types';
 import { getAuthHeaders } from '@/lib/auth/client';
 
@@ -247,6 +251,7 @@ export interface MeResponse {
   username: string | null;
   firstName: string | null;
   lastName: string | null;
+  avatarUrl: string | null;
   isLinked: boolean;
   telegramUserId: string | null;
 }
@@ -259,6 +264,148 @@ export async function fetchMe(): Promise<MeResponse | null> {
   }
   const json = await res.json();
   return json.data as MeResponse;
+}
+
+export async function uploadWorkoutPhotoApi(file: File): Promise<string> {
+  const form = new FormData();
+  form.append('file', file);
+  const res = await fetch('/api/upload/workout-photo', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: form,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Upload failed (${res.status})`);
+  }
+  return json.url as string;
+}
+
+export async function fetchFeedApi(
+  limit = 20,
+  offset = 0,
+): Promise<{ data: FeedItem[]; total: number }> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(`/api/feed?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to load feed (${res.status})`);
+  }
+  const json = await res.json();
+  return {
+    data: json.data as FeedItem[],
+    total: json.total as number,
+  };
+}
+
+export async function followUserApi(userId: string): Promise<void> {
+  const res = await fetch(`/api/users/${userId}/follow`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Follow failed (${res.status})`);
+  }
+}
+
+export async function unfollowUserApi(userId: string): Promise<void> {
+  const res = await fetch(`/api/users/${userId}/follow`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Unfollow failed (${res.status})`);
+  }
+}
+
+export async function searchUsersApi(query: string): Promise<UserSearchHit[]> {
+  const params = new URLSearchParams({ q: query });
+  const res = await fetch(`/api/users/search?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Search failed (${res.status})`);
+  }
+  const json = await res.json();
+  return (json.data ?? []) as UserSearchHit[];
+}
+
+export async function fetchPublicProfileApi(
+  userId: string,
+): Promise<PublicProfileData> {
+  const res = await fetch(`/api/users/${userId}/profile`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Profile failed (${res.status})`);
+  }
+  const json = await res.json();
+  return json.data as PublicProfileData;
+}
+
+export async function toggleWorkoutLikeApi(
+  workoutId: string,
+): Promise<{ liked: boolean; likeCount: number }> {
+  const res = await fetch(`/api/workouts/${workoutId}/like`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Like failed (${res.status})`);
+  }
+  return res.json() as Promise<{ liked: boolean; likeCount: number }>;
+}
+
+export async function fetchWorkoutCommentsApi(
+  workoutId: string,
+  limit = 50,
+  offset = 0,
+): Promise<{ data: WorkoutCommentRow[]; total: number }> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(`/api/workouts/${workoutId}/comments?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Comments failed (${res.status})`);
+  }
+  const json = await res.json();
+  return {
+    data: json.data as WorkoutCommentRow[],
+    total: json.total as number,
+  };
+}
+
+export async function postWorkoutCommentApi(
+  workoutId: string,
+  text: string,
+): Promise<WorkoutCommentRow> {
+  const res = await fetch(`/api/workouts/${workoutId}/comments`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Comment failed (${res.status})`);
+  }
+  return json.data as WorkoutCommentRow;
 }
 
 export async function linkAccount(): Promise<boolean> {

@@ -2,6 +2,7 @@ import {
   pgTable,
   uuid,
   varchar,
+  text,
   boolean,
   timestamp,
   integer,
@@ -21,6 +22,8 @@ export const users = pgTable('users', {
   username: varchar('username', { length: 128 }),
   firstName: varchar('first_name', { length: 128 }),
   lastName: varchar('last_name', { length: 128 }),
+  /** Telegram WebApp user photo_url when available */
+  avatarUrl: text('avatar_url'),
   isLinked: boolean('is_linked').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

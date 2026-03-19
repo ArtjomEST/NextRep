@@ -209,6 +209,11 @@ export async function POST(req: NextRequest) {
         totalVolume: String(totalVolume),
         totalSets,
         notes: data.notes ?? null,
+        isPublic: data.isPublic !== false,
+        photoUrl:
+          typeof data.photoUrl === 'string' && data.photoUrl.trim().length > 0
+            ? data.photoUrl.trim()
+            : null,
       });
     } catch (err) {
       console.error('[POST /api/workouts] INSERT workouts failed:', err);

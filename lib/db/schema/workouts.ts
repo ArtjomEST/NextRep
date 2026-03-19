@@ -26,9 +26,12 @@ export const workouts = pgTable('workouts', {
   totalVolume: numeric('total_volume', { precision: 10, scale: 1 }),
   totalSets: integer('total_sets'),
   notes: text('notes'),
+  isPublic: boolean('is_public').notNull().default(true),
+  photoUrl: text('photo_url'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index('workouts_user_id_idx').on(t.userId),
+  index('workouts_user_public_ended_idx').on(t.userId, t.isPublic),
 ]);
 
 export const workoutExercises = pgTable('workout_exercises', {

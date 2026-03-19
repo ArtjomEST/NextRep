@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { useWorkout } from '@/lib/workout/state';
@@ -10,7 +10,7 @@ import {
   computeDuration,
   computePRsPlaceholder,
 } from '@/lib/workout/metrics';
-import { saveWorkoutApi } from '@/lib/api/client';
+import { saveWorkoutApi, uploadWorkoutPhotoApi } from '@/lib/api/client';
 import type { SaveWorkoutRequest } from '@/lib/api/types';
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
@@ -22,6 +22,9 @@ export default function WorkoutSummaryPage() {
   const [saving, setSaving] = useState(false);
   const [savedWorkoutId, setSavedWorkoutId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(true);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
 
   const stats = useMemo(
     () => ({
@@ -33,17 +36,55 @@ export default function WorkoutSummaryPage() {
     [draft],
   );
 
+  useEffect(() => {
+    return () => {
+      if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    };
+  }, [photoPreviewUrl]);
+
+  function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f || !f.type.startsWith('image/')) return;
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    setPhotoFile(f);
+    setPhotoPreviewUrl(URL.createObjectURL(f));
+  }
+
+  function clearPhoto() {
+    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
+    setPhotoFile(null);
+    setPhotoPreviewUrl(null);
+  }
+
   async function handleSave() {
     if (saving || savedWorkoutId) return;
     setSaving(true);
     setError(null);
 
     try {
+      let photoUrl: string | null = null;
+      if (photoFile) {
+        try {
+          photoUrl = await uploadWorkoutPhotoApi(photoFile);
+        } catch (uploadErr) {
+          setError(
+            uploadErr instanceof Error
+              ? uploadErr.message
+              : 'Photo upload failed',
+          );
+          setSaving(false);
+          return;
+        }
+      }
+
       const request: SaveWorkoutRequest = {
         name: draft.name,
         startedAt: draft.startedAt ?? undefined,
         endedAt: draft.endedAt ?? undefined,
         durationSec: stats.duration > 0 ? stats.duration * 60 : undefined,
+        isPublic,
+        photoUrl,
         exercises: draft.exercises.map((ex) => ({
           exerciseId: ex.exerciseId,
           order: ex.order,
@@ -217,6 +258,79 @@ export default function WorkoutSummaryPage() {
         >
           {draft.name}
         </p>
+        <div
+          style={{
+            marginTop: '16px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'stretch',
+            gap: '8px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: '12px',
+              fontWeight: 600,
+              color: theme.colors.textMuted,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+          >
+            Visibility
+          </span>
+          <div
+            role="group"
+            aria-label="Workout visibility"
+            style={{
+              display: 'flex',
+              borderRadius: theme.radius.md,
+              overflow: 'hidden',
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setIsPublic(true)}
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                border: 'none',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '14px',
+                backgroundColor: isPublic
+                  ? theme.colors.primary
+                  : theme.colors.surface,
+                color: isPublic
+                  ? theme.colors.textPrimary
+                  : theme.colors.textMuted,
+              }}
+            >
+              Public
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsPublic(false)}
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                border: 'none',
+                borderLeft: `1px solid ${theme.colors.border}`,
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '14px',
+                backgroundColor: !isPublic
+                  ? theme.colors.primary
+                  : theme.colors.surface,
+                color: !isPublic
+                  ? theme.colors.textPrimary
+                  : theme.colors.textMuted,
+              }}
+            >
+              Private
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Stats grid */}
@@ -274,6 +388,87 @@ export default function WorkoutSummaryPage() {
             text={`${stats.sets} total sets`}
           />
         </div>
+      </Card>
+
+      {/* Optional photo */}
+      <Card>
+        <h3
+          style={{
+            color: theme.colors.textPrimary,
+            fontSize: '15px',
+            fontWeight: 600,
+            margin: '0 0 10px',
+          }}
+        >
+          Workout photo
+        </h3>
+        <p
+          style={{
+            color: theme.colors.textMuted,
+            fontSize: '13px',
+            margin: '0 0 12px',
+            lineHeight: 1.45,
+          }}
+        >
+          Optional — add a picture to your saved workout. Requires upload storage
+          (Vercel Blob) to be configured.
+        </p>
+        {photoPreviewUrl && (
+          <div style={{ marginBottom: '12px', position: 'relative' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photoPreviewUrl}
+              alt="Preview"
+              style={{
+                width: '100%',
+                maxHeight: '200px',
+                objectFit: 'cover',
+                borderRadius: theme.radius.md,
+                display: 'block',
+              }}
+            />
+            <button
+              type="button"
+              onClick={clearPhoto}
+              style={{
+                marginTop: '8px',
+                background: 'none',
+                border: 'none',
+                color: theme.colors.error,
+                fontSize: '14px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              Remove photo
+            </button>
+          </div>
+        )}
+        <label
+          style={{
+            display: 'block',
+            width: '100%',
+            textAlign: 'center',
+            padding: '12px 16px',
+            borderRadius: theme.radius.md,
+            border: `1px dashed ${theme.colors.border}`,
+            color: theme.colors.textSecondary,
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: saving ? 'default' : 'pointer',
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
+          {photoFile ? 'Change photo' : 'Choose photo'}
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={onPickPhoto}
+            disabled={saving}
+            style={{ display: 'none' }}
+          />
+        </label>
       </Card>
 
       {/* Error */}

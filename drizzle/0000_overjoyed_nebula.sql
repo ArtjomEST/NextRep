@@ -1,10 +1,10 @@
-CREATE TYPE "public"."experience_level" AS ENUM('beginner', 'intermediate', 'advanced');--> statement-breakpoint
-CREATE TYPE "public"."goal" AS ENUM('muscle_growth', 'strength', 'endurance', 'weight_loss', 'general_fitness');--> statement-breakpoint
-CREATE TYPE "public"."units" AS ENUM('kg', 'lb');--> statement-breakpoint
-CREATE TYPE "public"."exercise_source" AS ENUM('wger', 'custom');--> statement-breakpoint
-CREATE TYPE "public"."measurement_type" AS ENUM('weight_reps', 'reps_only', 'time');--> statement-breakpoint
-CREATE TYPE "public"."exercise_status" AS ENUM('pending', 'completed');--> statement-breakpoint
-CREATE TABLE "user_profiles" (
+DO $$ BEGIN CREATE TYPE "public"."experience_level" AS ENUM('beginner', 'intermediate', 'advanced'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."goal" AS ENUM('muscle_growth', 'strength', 'endurance', 'weight_loss', 'general_fitness'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."units" AS ENUM('kg', 'lb'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."exercise_source" AS ENUM('wger', 'custom'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."measurement_type" AS ENUM('weight_reps', 'reps_only', 'time'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+DO $$ BEGIN CREATE TYPE "public"."exercise_status" AS ENUM('pending', 'completed'); EXCEPTION WHEN duplicate_object THEN NULL; END $$;--> statement-breakpoint
+CREATE TABLE IF NOT EXISTS "user_profiles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"height_cm" integer,
@@ -17,7 +17,7 @@ CREATE TABLE "user_profiles" (
 	CONSTRAINT "user_profiles_user_id_unique" UNIQUE("user_id")
 );
 --> statement-breakpoint
-CREATE TABLE "users" (
+CREATE TABLE IF NOT EXISTS "users" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"telegram_user_id" varchar(64),
 	"username" varchar(128),
@@ -28,7 +28,7 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_telegram_user_id_unique" UNIQUE("telegram_user_id")
 );
 --> statement-breakpoint
-CREATE TABLE "exercises" (
+CREATE TABLE IF NOT EXISTS "exercises" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"source" "exercise_source" DEFAULT 'wger' NOT NULL,
 	"source_id" integer,
@@ -46,7 +46,7 @@ CREATE TABLE "exercises" (
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "workout_exercises" (
+CREATE TABLE IF NOT EXISTS "workout_exercises" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"workout_id" uuid NOT NULL,
 	"exercise_id" uuid NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE "workout_exercises" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "workout_sets" (
+CREATE TABLE IF NOT EXISTS "workout_sets" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"workout_exercise_id" uuid NOT NULL,
 	"set_index" integer NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE "workout_sets" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "workouts" (
+CREATE TABLE IF NOT EXISTS "workouts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" uuid NOT NULL,
 	"name" varchar(256) NOT NULL,
@@ -79,16 +79,36 @@ CREATE TABLE "workouts" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workout_exercises" ADD CONSTRAINT "workout_exercises_workout_id_workouts_id_fk" FOREIGN KEY ("workout_id") REFERENCES "public"."workouts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workout_exercises" ADD CONSTRAINT "workout_exercises_exercise_id_exercises_id_fk" FOREIGN KEY ("exercise_id") REFERENCES "public"."exercises"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workout_sets" ADD CONSTRAINT "workout_sets_workout_exercise_id_workout_exercises_id_fk" FOREIGN KEY ("workout_exercise_id") REFERENCES "public"."workout_exercises"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "workouts" ADD CONSTRAINT "workouts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "users_telegram_user_id_idx" ON "users" USING btree ("telegram_user_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "exercises_source_source_id_idx" ON "exercises" USING btree ("source","source_id");--> statement-breakpoint
-CREATE INDEX "exercises_name_idx" ON "exercises" USING btree ("name");--> statement-breakpoint
-CREATE INDEX "workout_exercises_workout_id_idx" ON "workout_exercises" USING btree ("workout_id");--> statement-breakpoint
-CREATE INDEX "workout_exercises_exercise_id_idx" ON "workout_exercises" USING btree ("exercise_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "workout_exercises_workout_order_idx" ON "workout_exercises" USING btree ("workout_id","order");--> statement-breakpoint
-CREATE INDEX "workout_sets_workout_exercise_id_idx" ON "workout_sets" USING btree ("workout_exercise_id");--> statement-breakpoint
-CREATE INDEX "workouts_user_id_idx" ON "workouts" USING btree ("user_id");
+DO $$ BEGIN
+  ALTER TABLE "user_profiles" ADD CONSTRAINT "user_profiles_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "workout_exercises" ADD CONSTRAINT "workout_exercises_workout_id_workouts_id_fk" FOREIGN KEY ("workout_id") REFERENCES "public"."workouts"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "workout_exercises" ADD CONSTRAINT "workout_exercises_exercise_id_exercises_id_fk" FOREIGN KEY ("exercise_id") REFERENCES "public"."exercises"("id") ON DELETE restrict ON UPDATE no action;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "workout_sets" ADD CONSTRAINT "workout_sets_workout_exercise_id_workout_exercises_id_fk" FOREIGN KEY ("workout_exercise_id") REFERENCES "public"."workout_exercises"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+DO $$ BEGIN
+  ALTER TABLE "workouts" ADD CONSTRAINT "workouts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "users_telegram_user_id_idx" ON "users" USING btree ("telegram_user_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "exercises_source_source_id_idx" ON "exercises" USING btree ("source","source_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "exercises_name_idx" ON "exercises" USING btree ("name");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "workout_exercises_workout_id_idx" ON "workout_exercises" USING btree ("workout_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "workout_exercises_exercise_id_idx" ON "workout_exercises" USING btree ("exercise_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "workout_exercises_workout_order_idx" ON "workout_exercises" USING btree ("workout_id","order");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "workout_sets_workout_exercise_id_idx" ON "workout_sets" USING btree ("workout_exercise_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "workouts_user_id_idx" ON "workouts" USING btree ("user_id");

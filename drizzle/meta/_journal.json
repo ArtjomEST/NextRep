@@ -15,6 +15,13 @@
       "when": 1772454426232,
       "tag": "0001_careless_goblin_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773954392917,
+      "tag": "0002_community_phase1",
+      "breakpoints": true
     }
   ]
 }
