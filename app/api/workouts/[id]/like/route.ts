@@ -3,8 +3,7 @@ import { getDb } from '@/lib/db';
 import { workouts, workoutLikes, users } from '@/lib/db/schema';
 import { eq, and, count as drizzleCount } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
-import { notifyTelegramUser } from '@/lib/telegram/notify';
-import { displayUserName } from '@/lib/users/display';
+import { notifyWorkoutLiked } from '@/lib/telegram/notify';
 
 export async function POST(
   req: NextRequest,
@@ -28,6 +27,7 @@ export async function POST(
         userId: workouts.userId,
         isPublic: workouts.isPublic,
         endedAt: workouts.endedAt,
+        name: workouts.name,
       })
       .from(workouts)
       .where(eq(workouts.id, workoutId))
@@ -75,21 +75,20 @@ export async function POST(
             .limit(1)
             .then((r) => r[0]),
           db
-            .select({
-              firstName: users.firstName,
-              lastName: users.lastName,
-              username: users.username,
-            })
+            .select({ firstName: users.firstName })
             .from(users)
             .where(eq(users.id, auth.userId))
             .limit(1)
             .then((r) => r[0]),
         ]);
         if (owner && liker) {
-          notifyTelegramUser(
-            owner.telegramUserId,
-            `💪 ${displayUserName(liker)} liked your workout`,
-          );
+          notifyWorkoutLiked({
+            actorId: auth.userId,
+            recipientId: w.userId,
+            recipientTelegramUserId: owner.telegramUserId,
+            firstName: liker.firstName,
+            workoutName: w.name,
+          });
         }
       }
     }

@@ -7,7 +7,7 @@ import {
 } from '@/lib/db/schema';
 import { eq, and, asc, isNotNull, count as drizzleCount } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
-import { notifyTelegramUser } from '@/lib/telegram/notify';
+import { notifyWorkoutCommented } from '@/lib/telegram/notify';
 import { displayUserName } from '@/lib/users/display';
 
 export async function GET(
@@ -126,6 +126,7 @@ export async function POST(
         userId: workouts.userId,
         isPublic: workouts.isPublic,
         endedAt: workouts.endedAt,
+        name: workouts.name,
       })
       .from(workouts)
       .where(eq(workouts.id, workoutId))
@@ -186,23 +187,21 @@ export async function POST(
           .limit(1)
           .then((r) => r[0]),
         db
-          .select({
-            firstName: users.firstName,
-            lastName: users.lastName,
-            username: users.username,
-          })
+          .select({ firstName: users.firstName })
           .from(users)
           .where(eq(users.id, auth.userId))
           .limit(1)
           .then((r) => r[0]),
       ]);
       if (owner && commenter) {
-        const preview =
-          text.length <= 60 ? text : `${text.slice(0, 60)}…`;
-        notifyTelegramUser(
-          owner.telegramUserId,
-          `💬 ${displayUserName(commenter)}: ${preview}`,
-        );
+        notifyWorkoutCommented({
+          actorId: auth.userId,
+          recipientId: w.userId,
+          recipientTelegramUserId: owner.telegramUserId,
+          firstName: commenter.firstName,
+          workoutName: w.name,
+          commentText: text,
+        });
       }
     }
 

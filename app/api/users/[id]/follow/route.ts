@@ -3,8 +3,7 @@ import { getDb } from '@/lib/db';
 import { users, follows } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
-import { notifyTelegramUser } from '@/lib/telegram/notify';
-import { displayUserName } from '@/lib/users/display';
+import { notifyNewFollower } from '@/lib/telegram/notify';
 
 export async function POST(
   req: NextRequest,
@@ -42,11 +41,7 @@ export async function POST(
     }
 
     const [actor] = await db
-      .select({
-        firstName: users.firstName,
-        lastName: users.lastName,
-        username: users.username,
-      })
+      .select({ firstName: users.firstName })
       .from(users)
       .where(eq(users.id, auth.userId))
       .limit(1);
@@ -63,11 +58,12 @@ export async function POST(
       .returning({ id: follows.id });
 
     if (inserted.length > 0 && actor) {
-      const name = displayUserName(actor);
-      notifyTelegramUser(
-        target.telegramUserId,
-        `➕ ${name} started following you`,
-      );
+      notifyNewFollower({
+        actorId: auth.userId,
+        recipientId: followingId,
+        recipientTelegramUserId: target.telegramUserId,
+        firstName: actor.firstName,
+      });
     }
 
     return NextResponse.json({ ok: true, following: true });
