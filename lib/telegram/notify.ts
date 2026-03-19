@@ -75,3 +75,33 @@ export function notifyNewFollower(args: {
     `➕ ${firstName} started following you`,
   );
 }
+
+export function notifyPostLiked(args: {
+  actorId: string;
+  recipientId: string;
+  recipientTelegramUserId: string | null | undefined;
+  firstName: string | null | undefined;
+}): void {
+  if (args.actorId === args.recipientId) return;
+  const firstName = args.firstName?.trim() ?? '';
+  sendTelegramMessage(
+    args.recipientTelegramUserId,
+    `💪 ${firstName} liked your post`,
+  );
+}
+
+export function notifyPostCommented(args: {
+  actorId: string;
+  recipientId: string;
+  recipientTelegramUserId: string | null | undefined;
+  firstName: string | null | undefined;
+  commentText: string;
+}): void {
+  if (args.actorId === args.recipientId) return;
+  const firstName = args.firstName?.trim() ?? '';
+  const preview = truncateCommentPreview(args.commentText);
+  sendTelegramMessage(
+    args.recipientTelegramUserId,
+    `💬 ${firstName} commented: ${preview}`,
+  );
+}

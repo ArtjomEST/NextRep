@@ -140,7 +140,9 @@ export interface FeedCommentPreview {
   createdAt: string;
 }
 
-export interface FeedItem {
+/** Global / Following feed: completed public workout card. */
+export interface FeedWorkoutItem {
+  type: 'workout';
   workoutId: string;
   user: { id: string; name: string; avatarUrl: string | null };
   postedAt: string;
@@ -156,6 +158,30 @@ export interface FeedItem {
   log: FeedWorkoutLogLine[];
   commentPreviews: FeedCommentPreview[];
 }
+
+export interface FeedPostPresetSummary {
+  id: string;
+  name: string;
+  exerciseCount: number;
+  exerciseNames: string[];
+}
+
+/** Community post in the merged feed. */
+export interface FeedPostItem {
+  type: 'post';
+  postId: string;
+  user: { id: string; name: string; avatarUrl: string | null };
+  postedAt: string;
+  text: string | null;
+  photoUrl: string | null;
+  preset: FeedPostPresetSummary | null;
+  likeCount: number;
+  commentCount: number;
+  likedByMe: boolean;
+  commentPreviews: FeedCommentPreview[];
+}
+
+export type FeedItem = FeedWorkoutItem | FeedPostItem;
 
 export interface UserSearchHit {
   id: string;

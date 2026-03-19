@@ -307,17 +307,20 @@ export async function uploadWorkoutPhotoApi(file: File): Promise<string> {
 }
 
 export type FeedFilter = 'all' | 'following';
+export type FeedContentType = 'all' | 'workout' | 'post';
 
 export async function fetchFeedApi(
   limit = 20,
   offset = 0,
   filter: FeedFilter = 'all',
+  contentType: FeedContentType = 'all',
 ): Promise<{ data: FeedItem[]; total: number }> {
   const params = new URLSearchParams({
     limit: String(limit),
     offset: String(offset),
   });
   if (filter === 'following') params.set('filter', 'following');
+  if (contentType !== 'all') params.set('type', contentType);
   const res = await fetch(`/api/feed?${params}`, {
     headers: getAuthHeaders(),
   });
@@ -393,6 +396,94 @@ export async function toggleWorkoutLikeApi(
     throw new Error(json.error ?? `Like failed (${res.status})`);
   }
   return res.json() as Promise<{ liked: boolean; likeCount: number }>;
+}
+
+export async function createCommunityPostApi(body: {
+  text?: string;
+  photoUrl?: string | null;
+  presetId?: string | null;
+}): Promise<{ id: string; createdAt: string }> {
+  const res = await fetch('/api/community/posts', {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Failed to create post (${res.status})`);
+  }
+  return json.data as { id: string; createdAt: string };
+}
+
+export async function togglePostLikeApi(
+  postId: string,
+): Promise<{ liked: boolean; likeCount: number }> {
+  const res = await fetch(`/api/community/posts/${postId}/like`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Like failed (${res.status})`);
+  }
+  return res.json() as Promise<{ liked: boolean; likeCount: number }>;
+}
+
+export async function fetchPostCommentsApi(
+  postId: string,
+  limit = 50,
+  offset = 0,
+): Promise<{ data: WorkoutCommentRow[]; total: number }> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  const res = await fetch(`/api/community/posts/${postId}/comments?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Comments failed (${res.status})`);
+  }
+  const json = await res.json();
+  return {
+    data: json.data as WorkoutCommentRow[],
+    total: json.total as number,
+  };
+}
+
+export async function postPostCommentApi(
+  postId: string,
+  text: string,
+): Promise<WorkoutCommentRow> {
+  const res = await fetch(`/api/community/posts/${postId}/comments`, {
+    method: 'POST',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Comment failed (${res.status})`);
+  }
+  return json.data as WorkoutCommentRow;
+}
+
+export async function savePresetCopyApi(presetId: string): Promise<string> {
+  const res = await fetch(`/api/presets/${presetId}/save`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Save failed (${res.status})`);
+  }
+  return (json.data as { id: string }).id;
 }
 
 export async function fetchWorkoutCommentsApi(

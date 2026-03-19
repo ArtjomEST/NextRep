@@ -3,3 +3,4 @@ export * from './exercises';
 export * from './workouts';
 export * from './presets';
 export * from './social';
+export * from './community';

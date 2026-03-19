@@ -5,10 +5,16 @@ import { theme } from '@/lib/theme';
 import {
   fetchWorkoutCommentsApi,
   postWorkoutCommentApi,
+  fetchPostCommentsApi,
+  postPostCommentApi,
 } from '@/lib/api/client';
 import type { WorkoutCommentRow } from '@/lib/api/types';
 import { formatTimeAgo } from '@/lib/community/time';
 import Button from '@/components/Button';
+
+export type CommentsTarget =
+  | { kind: 'workout'; id: string }
+  | { kind: 'post'; id: string };
 
 function Avatar({
   url,
@@ -60,15 +66,15 @@ function Avatar({
 }
 
 export default function CommunityCommentsSheet({
-  workoutId,
+  target,
   open,
   onClose,
   onCommentPosted,
 }: {
-  workoutId: string | null;
+  target: CommentsTarget | null;
   open: boolean;
   onClose: () => void;
-  onCommentPosted: (row: WorkoutCommentRow) => void;
+  onCommentPosted: (row: WorkoutCommentRow, ctx: CommentsTarget) => void;
 }) {
   const [rows, setRows] = useState<WorkoutCommentRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -77,37 +83,45 @@ export default function CommunityCommentsSheet({
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!workoutId) return;
+    if (!target) return;
     setLoading(true);
     setError(null);
     try {
-      const { data } = await fetchWorkoutCommentsApi(workoutId, 80, 0);
-      setRows(data);
+      if (target.kind === 'workout') {
+        const { data } = await fetchWorkoutCommentsApi(target.id, 80, 0);
+        setRows(data);
+      } else {
+        const { data } = await fetchPostCommentsApi(target.id, 80, 0);
+        setRows(data);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load comments');
     } finally {
       setLoading(false);
     }
-  }, [workoutId]);
+  }, [target]);
 
   useEffect(() => {
-    if (open && workoutId) {
+    if (open && target) {
       void load();
       setText('');
     }
-  }, [open, workoutId, load]);
+  }, [open, target, load]);
 
   async function handlePost() {
-    if (!workoutId || posting) return;
+    if (!target || posting) return;
     const t = text.trim();
     if (!t) return;
     setPosting(true);
     setError(null);
     try {
-      const row = await postWorkoutCommentApi(workoutId, t);
+      const row =
+        target.kind === 'workout'
+          ? await postWorkoutCommentApi(target.id, t)
+          : await postPostCommentApi(target.id, t);
       setRows((prev) => [...prev, row]);
       setText('');
-      onCommentPosted(row);
+      onCommentPosted(row, target);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to post');
     } finally {
@@ -115,7 +129,7 @@ export default function CommunityCommentsSheet({
     }
   }
 
-  if (!open) return null;
+  if (!open || !target) return null;
 
   return (
     <div
