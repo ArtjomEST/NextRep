@@ -669,7 +669,11 @@ export default function OnboardingWizard() {
       // Clear draft from localStorage after successful save
       try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
     } catch (err) {
-      setError('Failed to save profile. Please try again.');
+      const msg =
+        err instanceof Error && err.message
+          ? err.message
+          : 'Failed to save profile. Please try again.';
+      setError(msg);
       console.error('[OnboardingWizard] save error:', err);
       setSaving(false);
     }

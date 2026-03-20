@@ -828,8 +828,15 @@ export async function saveProfileApi(data: OnboardingData): Promise<UserProfile>
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
-    throw new Error(json.error ?? `Failed to save profile (${res.status})`);
+    const json = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      message?: string;
+    };
+    const detail =
+      typeof json.message === 'string' && json.message.length > 0
+        ? json.message
+        : json.error;
+    throw new Error(detail ?? `Failed to save profile (${res.status})`);
   }
   const json = await res.json();
   return json.data as UserProfile;
@@ -844,8 +851,15 @@ export async function updateProfileApi(
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
-    throw new Error(json.error ?? `Failed to update profile (${res.status})`);
+    const json = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      message?: string;
+    };
+    const detail =
+      typeof json.message === 'string' && json.message.length > 0
+        ? json.message
+        : json.error;
+    throw new Error(detail ?? `Failed to update profile (${res.status})`);
   }
   const json = await res.json();
   return json.data as UserProfile;

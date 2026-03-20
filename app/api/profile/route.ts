@@ -4,6 +4,12 @@ import { userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
+type UserProfileInsert = typeof userProfiles.$inferInsert;
+type ProfileUpsertFields = Omit<
+  Partial<UserProfileInsert>,
+  'id' | 'userId'
+>;
+
 const GOAL_VALUES = ['muscle_growth', 'strength', 'endurance', 'weight_loss', 'general_fitness'] as const;
 const EXPERIENCE_VALUES = ['beginner', 'intermediate', 'advanced'] as const;
 type GoalValue = typeof GOAL_VALUES[number];
@@ -48,58 +54,59 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const body = await req.json();
+    const raw = await req.json();
+    const body =
+      raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {};
     const db = getDb();
 
-    const values = buildProfileValues(body);
-    values.onboardingCompleted = true;
+    const patch = buildProfilePatch(body);
+    const upsertFields: ProfileUpsertFields = {
+      ...patch,
+      onboardingCompleted: true,
+    };
 
-    const [existing] = await db
-      .select({ id: userProfiles.id })
-      .from(userProfiles)
-      .where(eq(userProfiles.userId, auth.userId))
-      .limit(1);
+    const [profileRow] = await db
+      .insert(userProfiles)
+      .values({
+        userId: auth.userId,
+        ...upsertFields,
+      })
+      .onConflictDoUpdate({
+        target: userProfiles.userId,
+        set: upsertFields,
+      })
+      .returning();
 
-    let profileRow: typeof userProfiles.$inferSelect | undefined;
-
-    if (existing) {
-      const [row] = await db
-        .update(userProfiles)
-        .set(values)
-        .where(eq(userProfiles.userId, auth.userId))
-        .returning();
-      profileRow = row;
-    } else {
-      const [row] = await db
-        .insert(userProfiles)
-        .values({ userId: auth.userId, ...values })
-        .returning();
-      profileRow = row;
-    }
-
-    if (!profileRow) {
+    let row = profileRow;
+    if (!row) {
       const [fallback] = await db
         .select()
         .from(userProfiles)
         .where(eq(userProfiles.userId, auth.userId))
         .limit(1);
-      profileRow = fallback;
+      row = fallback;
     }
 
-    if (!profileRow) {
+    if (!row) {
       return NextResponse.json(
-        { error: 'Failed to save profile' },
+        {
+          error: 'Failed to save profile',
+          message: 'No row returned after upsert',
+        },
         { status: 500 },
       );
     }
 
-    return NextResponse.json(
-      { data: serializeProfile(profileRow) },
-      { status: 201 },
-    );
+    return NextResponse.json({ data: serializeProfile(row) }, { status: 201 });
   } catch (err) {
     console.error('POST /api/profile error:', err);
-    return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      { error: 'Failed to save profile', message },
+      { status: 500 },
+    );
   }
 }
 
@@ -110,10 +117,14 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
-    const body = await req.json();
+    const raw = await req.json();
+    const body =
+      raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {};
     const db = getDb();
 
-    const values = buildProfileValues(body);
+    const patch = buildProfilePatch(body);
 
     const [existing] = await db
       .select({ id: userProfiles.id })
@@ -124,16 +135,32 @@ export async function PUT(req: NextRequest) {
     let profileRow: typeof userProfiles.$inferSelect | undefined;
 
     if (existing) {
-      const [row] = await db
-        .update(userProfiles)
-        .set(values)
-        .where(eq(userProfiles.userId, auth.userId))
-        .returning();
-      profileRow = row;
+      if (Object.keys(patch).length > 0) {
+        const [row] = await db
+          .update(userProfiles)
+          .set(patch)
+          .where(eq(userProfiles.userId, auth.userId))
+          .returning();
+        profileRow = row;
+      } else {
+        const [row] = await db
+          .select()
+          .from(userProfiles)
+          .where(eq(userProfiles.userId, auth.userId))
+          .limit(1);
+        profileRow = row;
+      }
     } else {
+      const insertFields: ProfileUpsertFields = {
+        ...patch,
+        onboardingCompleted: true,
+      };
       const [row] = await db
         .insert(userProfiles)
-        .values({ userId: auth.userId, ...values, onboardingCompleted: true })
+        .values({
+          userId: auth.userId,
+          ...insertFields,
+        })
         .returning();
       profileRow = row;
     }
@@ -149,7 +176,7 @@ export async function PUT(req: NextRequest) {
 
     if (!profileRow) {
       return NextResponse.json(
-        { error: 'Failed to update profile' },
+        { error: 'Failed to update profile', message: 'No row returned' },
         { status: 500 },
       );
     }
@@ -157,16 +184,21 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ data: serializeProfile(profileRow) });
   } catch (err) {
     console.error('PUT /api/profile error:', err);
-    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json(
+      { error: 'Failed to update profile', message },
+      { status: 500 },
+    );
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function buildProfileValues(body: Record<string, any>) {
-  const values: Record<string, unknown> = {};
+function buildProfilePatch(body: Record<string, unknown>): ProfileUpsertFields {
+  const values: ProfileUpsertFields = {};
 
   if ('goal' in body && isGoal(body.goal)) values.goal = body.goal;
-  if ('experienceLevel' in body && isExperience(body.experienceLevel)) values.experienceLevel = body.experienceLevel;
+  if ('experienceLevel' in body && isExperience(body.experienceLevel)) {
+    values.experienceLevel = body.experienceLevel;
+  }
 
   if ('splitPreference' in body && typeof body.splitPreference === 'string') {
     values.splitPreference = body.splitPreference.slice(0, 32);
