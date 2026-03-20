@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { userProfiles } from '@/lib/db/schema';
+import { userProfiles, users } from '@/lib/db/schema';
 import { eq, sql } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
@@ -50,6 +50,16 @@ function isExperience(v: unknown): v is ExperienceValue {
   return typeof v === 'string' && (EXPERIENCE_VALUES as readonly string[]).includes(v);
 }
 
+function isPostgresUniqueViolation(err: unknown): boolean {
+  const o = err as { code?: string; cause?: { code?: string } };
+  if (o?.code === '23505' || o?.cause?.code === '23505') return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes('23505') ||
+    /duplicate key|unique constraint/i.test(msg)
+  );
+}
+
 export async function GET(req: NextRequest) {
   try {
     const auth = await authenticateRequest(req);
@@ -92,24 +102,54 @@ export async function POST(req: NextRequest) {
     const patch = buildProfilePatch(body);
     const upsertFields = withProfileWriteDefaults(patch, true);
     const literals = forcedNotNullLiterals(upsertFields);
+    const rowValues = { ...upsertFields, ...literals };
 
-    const [profileRow] = await db
-      .insert(userProfiles)
-      .values({
-        userId: auth.userId,
-        ...upsertFields,
-        ...literals,
-      })
-      .onConflictDoUpdate({
-        target: userProfiles.userId,
-        set: {
-          ...upsertFields,
-          ...literals,
+    const [existsUser] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.id, auth.userId))
+      .limit(1);
+
+    if (!existsUser) {
+      return NextResponse.json(
+        {
+          error: 'Failed to save profile',
+          message:
+            'Your account was not found in the database. Close the mini app and open it again.',
         },
-      })
+        { status: 400 },
+      );
+    }
+
+    const [updated] = await db
+      .update(userProfiles)
+      .set({ ...rowValues, updatedAt: new Date() })
+      .where(eq(userProfiles.userId, auth.userId))
       .returning();
 
-    let row = profileRow;
+    let row = updated;
+
+    if (!row) {
+      try {
+        const [inserted] = await db
+          .insert(userProfiles)
+          .values({ userId: auth.userId, ...rowValues })
+          .returning();
+        row = inserted;
+      } catch (insErr) {
+        if (isPostgresUniqueViolation(insErr)) {
+          const [again] = await db
+            .update(userProfiles)
+            .set({ ...rowValues, updatedAt: new Date() })
+            .where(eq(userProfiles.userId, auth.userId))
+            .returning();
+          row = again;
+        } else {
+          throw insErr;
+        }
+      }
+    }
+
     if (!row) {
       const [fallback] = await db
         .select()
@@ -123,7 +163,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: 'Failed to save profile',
-          message: 'No row returned after upsert',
+          message: 'No row returned after save',
         },
         { status: 500 },
       );
