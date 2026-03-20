@@ -95,6 +95,18 @@ export default function WorkoutDetailPage() {
     load();
   }, [load]);
 
+  const muscleSummary = useMemo(() => {
+    if (!workout?.exercises) {
+      return { primaryMuscles: [] as string[], secondaryMuscles: [] as string[] };
+    }
+    return aggregateMusclesFromExercises(
+      workout.exercises.map((ex) => ({
+        primaryMuscles: ex.primaryMuscles ?? [],
+        secondaryMuscles: ex.secondaryMuscles ?? [],
+      })),
+    );
+  }, [workout]);
+
   const handleDelete = async () => {
     if (!id) return;
     setDeleting(true);
@@ -192,17 +204,6 @@ export default function WorkoutDetailPage() {
     units === 'lb'
       ? Math.round(workout.totalVolume * KG_TO_LB)
       : workout.totalVolume;
-
-  const muscleSummary = useMemo(
-    () =>
-      aggregateMusclesFromExercises(
-        workout.exercises.map((ex) => ({
-          primaryMuscles: ex.primaryMuscles ?? [],
-          secondaryMuscles: ex.secondaryMuscles ?? [],
-        })),
-      ),
-    [workout.exercises],
-  );
 
   return (
     <div
