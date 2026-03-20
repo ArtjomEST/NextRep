@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { userProfiles } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -95,9 +95,17 @@ export async function PATCH(req: NextRequest) {
         .set(updates)
         .where(eq(userProfiles.userId, auth.userId));
     } else {
-      await db
-        .insert(userProfiles)
-        .values({ userId: auth.userId, ...updates });
+      const u =
+        updates.units === 'lb' || updates.units === 'kg'
+          ? updates.units
+          : 'kg';
+      await db.insert(userProfiles).values({
+        userId: auth.userId,
+        ...updates,
+        isPro: sql`false`,
+        onboardingCompleted: false,
+        units: u === 'lb' ? sql.raw(`'lb'::units`) : sql.raw(`'kg'::units`),
+      });
     }
 
     const [profile] = await db

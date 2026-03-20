@@ -37,17 +37,30 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProfile = useCallback(async () => {
     setIsLoading(true);
-    try {
-      const data = await fetchProfileApi();
-      setProfile(data);
-      fetchedRef.current = true;
-    } catch (err) {
-      console.error('[ProfileContext] Failed to fetch profile:', err);
+    const maxAttempts = 3;
+    let lastError: unknown;
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const data = await fetchProfileApi();
+        setProfile(data);
+        fetchedRef.current = true;
+        lastError = undefined;
+        break;
+      } catch (err) {
+        lastError = err;
+        console.error('[ProfileContext] Failed to fetch profile:', err);
+        if (attempt < maxAttempts - 1) {
+          await new Promise((r) =>
+            setTimeout(r, 350 * (attempt + 1)),
+          );
+        }
+      }
+    }
+    if (lastError !== undefined) {
       setProfile(null);
       fetchedRef.current = false;
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   }, []);
 
   useEffect(() => {
@@ -63,11 +76,13 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const saveProfile = useCallback(async (data: OnboardingData) => {
     const saved = await saveProfileApi(data);
     setProfile(saved);
+    fetchedRef.current = true;
   }, []);
 
   const updateProfile = useCallback(async (data: Partial<OnboardingData>) => {
     const updated = await updateProfileApi(data);
     setProfile(updated);
+    fetchedRef.current = true;
   }, []);
 
   const hasCompletedOnboarding = profile?.onboardingCompleted === true;

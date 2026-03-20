@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { userProfiles } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
 type UserProfileInsert = typeof userProfiles.$inferInsert;
@@ -9,6 +9,34 @@ type ProfileUpsertFields = Omit<
   Partial<UserProfileInsert>,
   'id' | 'userId'
 >;
+
+/**
+ * Fills NOT NULL columns with literals so INSERT/UPSERT never relies on SQL DEFAULT.
+ * (Some DBs had is_pro NOT NULL without a server default.)
+ */
+function withProfileWriteDefaults(
+  patch: ProfileUpsertFields,
+  onboardingCompleted: boolean,
+): ProfileUpsertFields {
+  return {
+    ...patch,
+    onboardingCompleted,
+    isPro: false,
+    units: patch.units ?? 'kg',
+  };
+}
+
+/**
+ * Drizzle skips insert values that match schema `.default()` and emits SQL `DEFAULT`,
+ * which fails when the DB column has no server default. Force real literals.
+ */
+function forcedNotNullLiterals(upsertFields: ProfileUpsertFields) {
+  const u = upsertFields.units ?? 'kg';
+  return {
+    isPro: sql`false`,
+    units: u === 'lb' ? sql.raw(`'lb'::units`) : sql.raw(`'kg'::units`),
+  };
+}
 
 const GOAL_VALUES = ['muscle_growth', 'strength', 'endurance', 'weight_loss', 'general_fitness'] as const;
 const EXPERIENCE_VALUES = ['beginner', 'intermediate', 'advanced'] as const;
@@ -62,20 +90,22 @@ export async function POST(req: NextRequest) {
     const db = getDb();
 
     const patch = buildProfilePatch(body);
-    const upsertFields: ProfileUpsertFields = {
-      ...patch,
-      onboardingCompleted: true,
-    };
+    const upsertFields = withProfileWriteDefaults(patch, true);
+    const literals = forcedNotNullLiterals(upsertFields);
 
     const [profileRow] = await db
       .insert(userProfiles)
       .values({
         userId: auth.userId,
         ...upsertFields,
+        ...literals,
       })
       .onConflictDoUpdate({
         target: userProfiles.userId,
-        set: upsertFields,
+        set: {
+          ...upsertFields,
+          ...literals,
+        },
       })
       .returning();
 
@@ -151,15 +181,14 @@ export async function PUT(req: NextRequest) {
         profileRow = row;
       }
     } else {
-      const insertFields: ProfileUpsertFields = {
-        ...patch,
-        onboardingCompleted: true,
-      };
+      const insertFields = withProfileWriteDefaults(patch, true);
+      const lit = forcedNotNullLiterals(insertFields);
       const [row] = await db
         .insert(userProfiles)
         .values({
           userId: auth.userId,
           ...insertFields,
+          ...lit,
         })
         .returning();
       profileRow = row;
