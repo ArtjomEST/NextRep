@@ -27,10 +27,9 @@ function withProfileWriteDefaults(
 }
 
 /**
- * Drizzle skips insert values that match schema `.default()` and emits SQL `DEFAULT`,
- * which fails when the DB column has no server default. Force real literals.
+ * INSERT-only: avoid SQL DEFAULT for is_pro/units. Do not use in UPDATE — breaks param order with Neon.
  */
-function forcedNotNullLiterals(upsertFields: ProfileUpsertFields) {
+function forcedNotNullLiteralsForInsert(upsertFields: ProfileUpsertFields) {
   const u = upsertFields.units ?? 'kg';
   return {
     isPro: sql`false`,
@@ -101,8 +100,18 @@ export async function POST(req: NextRequest) {
 
     const patch = buildProfilePatch(body);
     const upsertFields = withProfileWriteDefaults(patch, true);
-    const literals = forcedNotNullLiterals(upsertFields);
-    const rowValues = { ...upsertFields, ...literals };
+    const insertOnlyLiterals = forcedNotNullLiteralsForInsert(upsertFields);
+    const valuesForInsert = {
+      userId: auth.userId,
+      ...upsertFields,
+      ...insertOnlyLiterals,
+    };
+    // UPDATE: omit is_pro and units so Drizzle emits only bound params (mixed literals break Neon).
+    const { isPro: _ip, units: _un, ...updateRest } = upsertFields;
+    const valuesForUpdate = {
+      ...updateRest,
+      updatedAt: new Date(),
+    };
 
     const [existsUser] = await db
       .select({ id: users.id })
@@ -123,7 +132,7 @@ export async function POST(req: NextRequest) {
 
     const [updated] = await db
       .update(userProfiles)
-      .set({ ...rowValues, updatedAt: new Date() })
+      .set(valuesForUpdate)
       .where(eq(userProfiles.userId, auth.userId))
       .returning();
 
@@ -133,14 +142,14 @@ export async function POST(req: NextRequest) {
       try {
         const [inserted] = await db
           .insert(userProfiles)
-          .values({ userId: auth.userId, ...rowValues })
+          .values(valuesForInsert)
           .returning();
         row = inserted;
       } catch (insErr) {
         if (isPostgresUniqueViolation(insErr)) {
           const [again] = await db
             .update(userProfiles)
-            .set({ ...rowValues, updatedAt: new Date() })
+            .set(valuesForUpdate)
             .where(eq(userProfiles.userId, auth.userId))
             .returning();
           row = again;
@@ -222,7 +231,7 @@ export async function PUT(req: NextRequest) {
       }
     } else {
       const insertFields = withProfileWriteDefaults(patch, true);
-      const lit = forcedNotNullLiterals(insertFields);
+      const lit = forcedNotNullLiteralsForInsert(insertFields);
       const [row] = await db
         .insert(userProfiles)
         .values({
