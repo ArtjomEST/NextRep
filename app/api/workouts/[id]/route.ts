@@ -215,6 +215,8 @@ export async function GET(
         category: exercises.category,
         imageUrl: exercises.imageUrl,
         measurementType: exercises.measurementType,
+        primaryMuscles: exercises.primaryMuscles,
+        secondaryMuscles: exercises.secondaryMuscles,
       })
       .from(workoutExercises)
       .innerJoin(exercises, eq(workoutExercises.exerciseId, exercises.id))
@@ -311,6 +313,12 @@ export async function GET(
       measurementType: r.measurementType,
       order: r.order,
       status: r.status,
+      primaryMuscles: Array.isArray(r.primaryMuscles)
+        ? r.primaryMuscles
+        : [],
+      secondaryMuscles: Array.isArray(r.secondaryMuscles)
+        ? r.secondaryMuscles
+        : [],
       sets: setsMap.get(r.weId) ?? [],
       lastSets: lastSetsMap.get(r.exerciseId) ?? [],
     }));

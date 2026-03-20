@@ -82,6 +82,8 @@ function reducer(state: WorkoutDraft, action: Action): WorkoutDraft {
         exerciseId: ex.id,
         exerciseName: ex.name,
         muscleGroups: ex.muscleGroups,
+        primaryMuscles: ex.primaryMuscles,
+        secondaryMuscles: ex.secondaryMuscles,
         equipment: ex.equipment,
         order: state.exercises.length,
         sets: [createEmptySet()],

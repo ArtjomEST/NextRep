@@ -24,6 +24,10 @@ import {
 } from '@/lib/db/schema';
 import { displayUserName } from '@/lib/users/display';
 import { workoutHasPersonalRecord } from '@/lib/community/workoutPr';
+import {
+  aggregateMusclesFromExercises,
+  type ExerciseMuscleInput,
+} from '@/lib/utils/muscleAggregator';
 
 export type MergeTimelineRow = { kind: 'workout' | 'post'; id: string };
 
@@ -109,6 +113,26 @@ function exerciseNamesFromIds(
   return out;
 }
 
+/** Preset card: single highlight tier — all muscles in `secondary`, `primary` empty. */
+function musclesForPresetPost(
+  orderedIds: string[],
+  meta: Map<string, { primaryMuscles: string[]; secondaryMuscles: string[] }>,
+): { primary: string[]; secondary: string[] } {
+  const seen = new Set<string>();
+  const secondary: string[] = [];
+  for (const id of orderedIds) {
+    const ex = meta.get(id);
+    if (!ex) continue;
+    for (const m of [...ex.primaryMuscles, ...ex.secondaryMuscles]) {
+      if (m && !seen.has(m)) {
+        seen.add(m);
+        secondary.push(m);
+      }
+    }
+  }
+  return { primary: [], secondary };
+}
+
 export async function buildWorkoutFeedItems(
   db: Database,
   authUserId: string,
@@ -180,11 +204,25 @@ export async function buildWorkoutFeedItems(
       order: workoutExercises.order,
       exerciseName: exercises.name,
       imageUrl: exercises.imageUrl,
+      primaryMuscles: exercises.primaryMuscles,
+      secondaryMuscles: exercises.secondaryMuscles,
     })
     .from(workoutExercises)
     .innerJoin(exercises, eq(workoutExercises.exerciseId, exercises.id))
     .where(inArray(workoutExercises.workoutId, workoutIds))
     .orderBy(workoutExercises.workoutId, asc(workoutExercises.order));
+
+  const muscleInputsByWorkout = new Map<string, ExerciseMuscleInput[]>();
+  for (const r of weRows) {
+    const arr = muscleInputsByWorkout.get(r.workoutId) ?? [];
+    arr.push({
+      primaryMuscles: Array.isArray(r.primaryMuscles) ? r.primaryMuscles : [],
+      secondaryMuscles: Array.isArray(r.secondaryMuscles)
+        ? r.secondaryMuscles
+        : [],
+    });
+    muscleInputsByWorkout.set(r.workoutId, arr);
+  }
 
   const weIds = weRows.map((r) => r.weId);
   const setRows =
@@ -283,6 +321,9 @@ export async function buildWorkoutFeedItems(
   for (const id of workoutIds) {
     const r = rowById.get(id);
     if (!r) continue;
+    const agg = aggregateMusclesFromExercises(
+      muscleInputsByWorkout.get(r.workoutId) ?? [],
+    );
     out.set(id, {
       type: 'workout',
       workoutId: r.workoutId,
@@ -302,6 +343,10 @@ export async function buildWorkoutFeedItems(
       totalSets: r.totalSets ?? 0,
       hasPr: hasPrByWorkout[r.workoutId] ?? false,
       photoUrl: r.photoUrl,
+      muscleSummary: {
+        primary: agg.primaryMuscles,
+        secondary: agg.secondaryMuscles,
+      },
       likeCount: likeCountMap.get(r.workoutId) ?? 0,
       commentCount: commentCountMap.get(r.workoutId) ?? 0,
       likedByMe: likedSet.has(r.workoutId),
@@ -435,11 +480,27 @@ export async function buildPostFeedItems(
   const exRows =
     exerciseIdList.length > 0
       ? await db
-          .select({ id: exercises.id, name: exercises.name })
+          .select({
+            id: exercises.id,
+            name: exercises.name,
+            primaryMuscles: exercises.primaryMuscles,
+            secondaryMuscles: exercises.secondaryMuscles,
+          })
           .from(exercises)
           .where(inArray(exercises.id, exerciseIdList))
       : [];
   const nameById = new Map(exRows.map((e) => [e.id, e.name]));
+  const exerciseMetaById = new Map(
+    exRows.map((e) => [
+      e.id,
+      {
+        primaryMuscles: Array.isArray(e.primaryMuscles) ? e.primaryMuscles : [],
+        secondaryMuscles: Array.isArray(e.secondaryMuscles)
+          ? e.secondaryMuscles
+          : [],
+      },
+    ]),
+  );
 
   const sourcePresetIds = [
     ...new Set(
@@ -482,6 +543,7 @@ export async function buildPostFeedItems(
             name: r.presetName,
             exerciseCount: ids.length,
             exerciseNames: exerciseNamesFromIds(ids, nameById, 3),
+            muscleSummary: musclesForPresetPost(ids, exerciseMetaById),
           }
         : null;
 

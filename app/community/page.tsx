@@ -33,12 +33,13 @@ import CommunityCommentsSheet, {
 } from '@/components/CommunityCommentsSheet';
 import CreatePostSheet from '@/components/CreatePostSheet';
 import Card from '@/components/Card';
+import MuscleMapLazy from '@/components/MuscleMapLazy';
 
 const FEED_CACHE_KEY = 'feed_cache';
 const FEED_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type FeedCacheStore = {
-  v: 2;
+  v: 3;
   entries: Record<
     string,
     {
@@ -61,7 +62,7 @@ function readValidCachedFeed(
     const raw = localStorage.getItem(FEED_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as FeedCacheStore;
-    if (parsed.v !== 2 || !parsed.entries) return null;
+    if (parsed.v !== 3 || !parsed.entries) return null;
     const ent = parsed.entries[feedCacheEntryKey(filter, type)];
     if (!ent || !Array.isArray(ent.items)) return null;
     if (Date.now() - ent.at > FEED_CACHE_TTL_MS) return null;
@@ -78,7 +79,7 @@ function writeFeedCache(
 ): void {
   if (typeof window === 'undefined') return;
   try {
-    let store: FeedCacheStore = { v: 2, entries: {} };
+    let store: FeedCacheStore = { v: 3, entries: {} };
     const raw = localStorage.getItem(FEED_CACHE_KEY);
     if (raw) {
       const p = JSON.parse(raw) as unknown;
@@ -86,7 +87,7 @@ function writeFeedCache(
         p &&
         typeof p === 'object' &&
         'v' in p &&
-        (p as FeedCacheStore).v === 2 &&
+        (p as FeedCacheStore).v === 3 &&
         'entries' in p &&
         typeof (p as FeedCacheStore).entries === 'object'
       ) {
@@ -455,6 +456,44 @@ function FeedConfirmModal({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+function FeedWorkoutMuscleMap({ item }: { item: FeedWorkoutItem }) {
+  const ms = item.muscleSummary ?? {
+    primary: [] as string[],
+    secondary: [] as string[],
+  };
+  if (ms.primary.length === 0 && ms.secondary.length === 0) return null;
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <MuscleMapLazy
+        primaryMuscles={ms.primary}
+        secondaryMuscles={ms.secondary}
+        compact
+      />
+    </div>
+  );
+}
+
+function PresetPostMuscleMap({
+  preset,
+}: {
+  preset: NonNullable<FeedPostItem['preset']>;
+}) {
+  const ms = preset.muscleSummary ?? {
+    primary: [] as string[],
+    secondary: [] as string[],
+  };
+  if (ms.primary.length === 0 && ms.secondary.length === 0) return null;
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <MuscleMapLazy
+        primaryMuscles={ms.primary}
+        secondaryMuscles={ms.secondary}
+        compact
+      />
     </div>
   );
 }
@@ -1155,6 +1194,8 @@ export default function CommunityPage() {
                 {item.totalVolume.toLocaleString('en-US')} kg vol.
               </p>
 
+              <FeedWorkoutMuscleMap item={item} />
+
               {item.log.length > 0 && (
                 <div style={{ marginBottom: '12px' }}>
                   <div
@@ -1735,6 +1776,8 @@ function PostFeedCard({
           ) : null}
         </div>
       ) : null}
+
+      {item.preset ? <PresetPostMuscleMap preset={item.preset} /> : null}
 
       <div
         style={{

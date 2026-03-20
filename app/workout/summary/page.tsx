@@ -20,6 +20,8 @@ import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { compressImage } from '@/lib/utils/compressImage';
+import { aggregateMusclesFromExercises } from '@/lib/utils/muscleAggregator';
+import MuscleMapLazy from '@/components/MuscleMapLazy';
 
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
@@ -43,6 +45,17 @@ export default function WorkoutSummaryPage() {
       prs: computePRsPlaceholder(draft.exercises),
     }),
     [draft],
+  );
+
+  const muscleSummary = useMemo(
+    () =>
+      aggregateMusclesFromExercises(
+        draft.exercises.map((ex) => ({
+          primaryMuscles: ex.primaryMuscles ?? [],
+          secondaryMuscles: ex.secondaryMuscles ?? [],
+        })),
+      ),
+    [draft.exercises],
   );
 
   useEffect(() => {
@@ -412,6 +425,15 @@ export default function WorkoutSummaryPage() {
         <StatCard label="Sets" value={stats.sets} />
         <StatCard label="PRs" value={stats.prs} />
       </div>
+
+      {(muscleSummary.primaryMuscles.length > 0 ||
+        muscleSummary.secondaryMuscles.length > 0) && (
+        <MuscleMapLazy
+          primaryMuscles={muscleSummary.primaryMuscles}
+          secondaryMuscles={muscleSummary.secondaryMuscles}
+          compact={false}
+        />
+      )}
 
       {/* Highlights */}
       <Card>

@@ -1,12 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { fetchWorkoutDetailApi, deleteWorkoutApi, fetchSettings } from '@/lib/api/client';
 import type { WorkoutDetail, WorkoutDetailExercise, WorkoutDetailSet } from '@/lib/api/types';
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
+import { aggregateMusclesFromExercises } from '@/lib/utils/muscleAggregator';
+import MuscleMapLazy from '@/components/MuscleMapLazy';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -191,6 +193,17 @@ export default function WorkoutDetailPage() {
       ? Math.round(workout.totalVolume * KG_TO_LB)
       : workout.totalVolume;
 
+  const muscleSummary = useMemo(
+    () =>
+      aggregateMusclesFromExercises(
+        workout.exercises.map((ex) => ({
+          primaryMuscles: ex.primaryMuscles ?? [],
+          secondaryMuscles: ex.secondaryMuscles ?? [],
+        })),
+      ),
+    [workout.exercises],
+  );
+
   return (
     <div
       style={{
@@ -359,6 +372,15 @@ export default function WorkoutDetailPage() {
         <StatCard label="Sets" value={workout.totalSets} />
         <StatCard label="Exercises" value={workout.exercises.length} />
       </div>
+
+      {(muscleSummary.primaryMuscles.length > 0 ||
+        muscleSummary.secondaryMuscles.length > 0) && (
+        <MuscleMapLazy
+          primaryMuscles={muscleSummary.primaryMuscles}
+          secondaryMuscles={muscleSummary.secondaryMuscles}
+          compact={false}
+        />
+      )}
 
       {/* Exercise sections */}
       <section

@@ -32,6 +32,7 @@ interface DbExercise {
   name: string;
   category: string | null;
   primaryMuscles: string[] | null;
+  secondaryMuscles: string[] | null;
   equipment: string[] | null;
   description: string | null;
   howTo: string | null;
@@ -48,6 +49,8 @@ function mapDbExercise(e: DbExercise): Exercise {
     id: e.id,
     name: e.name,
     muscleGroups,
+    primaryMuscles: e.primaryMuscles ?? undefined,
+    secondaryMuscles: e.secondaryMuscles ?? undefined,
     equipment: e.equipment?.join(', ') ?? 'Bodyweight',
     description: e.description ?? undefined,
     howTo: e.howTo ?? undefined,
@@ -126,6 +129,8 @@ export function exerciseDetailToExercise(d: ExerciseDetail): Exercise {
     id: d.id,
     name: d.name,
     muscleGroups,
+    primaryMuscles: d.primaryMuscles,
+    secondaryMuscles: d.secondaryMuscles,
     equipment: d.equipment?.join(', ') ?? 'Bodyweight',
     description: d.description ?? undefined,
     howTo: d.howTo ?? undefined,

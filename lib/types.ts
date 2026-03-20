@@ -14,6 +14,10 @@ export interface Exercise {
   id: string;
   name: string;
   muscleGroups: MuscleGroup[];
+  /** From DB `exercises.primary_muscles` when available (exercise picker). */
+  primaryMuscles?: string[];
+  /** From DB `exercises.secondary_muscles` when available. */
+  secondaryMuscles?: string[];
   equipment: string;
   description?: string;
   howTo?: string;
@@ -37,6 +41,8 @@ export interface WorkoutExercise {
   exerciseId: string;
   exerciseName: string;
   muscleGroups: MuscleGroup[];
+  primaryMuscles?: string[];
+  secondaryMuscles?: string[];
   equipment: string;
   order: number;
   sets: WorkoutSet[];

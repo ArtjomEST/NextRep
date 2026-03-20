@@ -75,6 +75,8 @@ export interface WorkoutDetailExercise {
   measurementType: string;
   order: number;
   status: string;
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
   sets: WorkoutDetailSet[];
   lastSets: LastSet[];
 }
@@ -152,6 +154,7 @@ export interface FeedWorkoutItem {
   totalSets: number;
   hasPr: boolean;
   photoUrl: string | null;
+  muscleSummary: { primary: string[]; secondary: string[] };
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;
@@ -164,6 +167,8 @@ export interface FeedPostPresetSummary {
   name: string;
   exerciseCount: number;
   exerciseNames: string[];
+  /** Muscles from preset exercises; UI uses secondary-only for uniform highlight. */
+  muscleSummary: { primary: string[]; secondary: string[] };
 }
 
 /** Community post in the merged feed. */
