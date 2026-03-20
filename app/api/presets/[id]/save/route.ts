@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { workoutPresets } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
 export async function POST(
@@ -43,6 +43,21 @@ export async function POST(
       );
     }
 
+    const [already] = await db
+      .select({ id: workoutPresets.id })
+      .from(workoutPresets)
+      .where(
+        and(
+          eq(workoutPresets.userId, auth.userId),
+          eq(workoutPresets.savedFromPresetId, sourcePresetId),
+        ),
+      )
+      .limit(1);
+
+    if (already) {
+      return NextResponse.json({ error: 'Already saved' }, { status: 400 });
+    }
+
     const exerciseIds = Array.isArray(source.exerciseIds)
       ? (source.exerciseIds as string[])
       : [];
@@ -53,6 +68,7 @@ export async function POST(
         userId: auth.userId,
         name: source.name,
         exerciseIds,
+        savedFromPresetId: sourcePresetId,
       })
       .returning({ id: workoutPresets.id });
 

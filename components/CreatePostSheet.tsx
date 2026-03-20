@@ -10,6 +10,7 @@ import {
 } from '@/lib/api/client';
 import type { Preset } from '@/lib/api/types';
 import Button from '@/components/Button';
+import { compressImage } from '@/lib/utils/compressImage';
 
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
@@ -30,6 +31,7 @@ export default function CreatePostSheet({
   const [presets, setPresets] = useState<Preset[]>([]);
   const [loadingPresets, setLoadingPresets] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export default function CreatePostSheet({
     setPresetPicker(false);
     setError(null);
     setSubmitting(false);
+    setCompressing(false);
   }, [open]);
 
   useEffect(() => {
@@ -107,8 +110,12 @@ export default function CreatePostSheet({
           return;
         }
         try {
-          photoUrl = await uploadWorkoutPhotoApi(photoFile);
+          setCompressing(true);
+          const compressed = await compressImage(photoFile);
+          setCompressing(false);
+          photoUrl = await uploadWorkoutPhotoApi(compressed);
         } catch (uploadErr) {
+          setCompressing(false);
           if (uploadErr instanceof UploadPhotoError) {
             setError(uploadErr.message);
             setSubmitting(false);
@@ -433,7 +440,11 @@ export default function CreatePostSheet({
               onClick={() => void handleSubmit()}
               disabled={!canPost || submitting}
             >
-              {submitting ? 'Posting…' : 'Post'}
+              {compressing
+                ? 'Compressing...'
+                : submitting
+                  ? 'Posting…'
+                  : 'Post'}
             </Button>
           </div>
         )}

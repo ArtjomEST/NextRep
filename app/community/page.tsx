@@ -30,7 +30,7 @@ const FEED_CACHE_KEY = 'feed_cache';
 const FEED_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type FeedCacheStore = {
-  v: 1;
+  v: 2;
   entries: Record<
     string,
     {
@@ -53,7 +53,7 @@ function readValidCachedFeed(
     const raw = localStorage.getItem(FEED_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as FeedCacheStore;
-    if (parsed.v !== 1 || !parsed.entries) return null;
+    if (parsed.v !== 2 || !parsed.entries) return null;
     const ent = parsed.entries[feedCacheEntryKey(filter, type)];
     if (!ent || !Array.isArray(ent.items)) return null;
     if (Date.now() - ent.at > FEED_CACHE_TTL_MS) return null;
@@ -70,7 +70,7 @@ function writeFeedCache(
 ): void {
   if (typeof window === 'undefined') return;
   try {
-    let store: FeedCacheStore = { v: 1, entries: {} };
+    let store: FeedCacheStore = { v: 2, entries: {} };
     const raw = localStorage.getItem(FEED_CACHE_KEY);
     if (raw) {
       const p = JSON.parse(raw) as unknown;
@@ -78,7 +78,7 @@ function writeFeedCache(
         p &&
         typeof p === 'object' &&
         'v' in p &&
-        (p as FeedCacheStore).v === 1 &&
+        (p as FeedCacheStore).v === 2 &&
         'entries' in p &&
         typeof (p as FeedCacheStore).entries === 'object'
       ) {
@@ -203,8 +203,6 @@ export default function CommunityPage() {
   );
   const [sheetOpen, setSheetOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [savedPresetIds, setSavedPresetIds] = useState<Set<string>>(new Set());
-
   const load = useCallback(
     async (
       filter: FeedFilter,
@@ -375,7 +373,13 @@ export default function CommunityPage() {
     hapticImpactLight();
     try {
       await savePresetCopyApi(presetId);
-      setSavedPresetIds((s) => new Set(s).add(presetId));
+      setItems((prev) =>
+        prev.map((it) =>
+          it.type === 'post' && it.preset?.id === presetId
+            ? { ...it, savedByMe: true }
+            : it,
+        ),
+      );
     } catch {
       /* keep UI stable */
     }
@@ -917,7 +921,6 @@ export default function CommunityPage() {
               key={`p-${item.postId}`}
               item={item}
               meId={me?.id}
-              savedPresetIds={savedPresetIds}
               onSavePreset={handleSavePreset}
               onLike={() => void handlePostLike(item.postId)}
               onOpenComments={() =>
@@ -950,7 +953,6 @@ export default function CommunityPage() {
 function PostFeedCard({
   item,
   meId,
-  savedPresetIds,
   onSavePreset,
   onLike,
   onOpenComments,
@@ -958,7 +960,6 @@ function PostFeedCard({
 }: {
   item: FeedPostItem;
   meId: string | undefined;
-  savedPresetIds: Set<string>;
   onSavePreset: (presetId: string) => void;
   onLike: () => void;
   onOpenComments: () => void;
@@ -967,7 +968,7 @@ function PostFeedCard({
   const showSavePreset =
     item.preset &&
     item.user.id !== meId &&
-    !savedPresetIds.has(item.preset.id);
+    !item.savedByMe;
 
   return (
     <Card style={{ marginBottom: '14px' }}>
@@ -1109,7 +1110,7 @@ function PostFeedCard({
             >
               Save Preset
             </button>
-          ) : item.preset && savedPresetIds.has(item.preset.id) ? (
+          ) : item.preset && item.savedByMe ? (
             <span
               style={{
                 fontSize: '13px',

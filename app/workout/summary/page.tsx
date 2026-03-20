@@ -19,6 +19,7 @@ import type { SaveWorkoutRequest } from '@/lib/api/types';
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
 import Button from '@/components/Button';
+import { compressImage } from '@/lib/utils/compressImage';
 
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
@@ -26,6 +27,7 @@ export default function WorkoutSummaryPage() {
   const router = useRouter();
   const { draft, dispatch } = useWorkout();
   const [saving, setSaving] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [savedWorkoutId, setSavedWorkoutId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(true);
@@ -89,8 +91,12 @@ export default function WorkoutSummaryPage() {
           return;
         }
         try {
-          photoUrl = await uploadWorkoutPhotoApi(photoFile);
+          setCompressing(true);
+          const compressed = await compressImage(photoFile);
+          setCompressing(false);
+          photoUrl = await uploadWorkoutPhotoApi(compressed);
         } catch (uploadErr) {
+          setCompressing(false);
           if (uploadErr instanceof UploadPhotoError) {
             if (uploadErr.status === 413) {
               setError(
@@ -542,7 +548,7 @@ export default function WorkoutSummaryPage() {
         }}
       >
         <Button fullWidth size="lg" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : 'Save Workout'}
+          {compressing ? 'Compressing...' : saving ? 'Saving...' : 'Save Workout'}
         </Button>
         <div style={{ display: 'flex', gap: '10px' }}>
           <Button

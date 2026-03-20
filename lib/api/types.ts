@@ -175,6 +175,8 @@ export interface FeedPostItem {
   text: string | null;
   photoUrl: string | null;
   preset: FeedPostPresetSummary | null;
+  /** True when this post has a preset and the viewer has saved a copy (see workout_presets.saved_from_preset_id). */
+  savedByMe: boolean;
   likeCount: number;
   commentCount: number;
   likedByMe: boolean;

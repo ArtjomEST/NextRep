@@ -441,6 +441,32 @@ export async function buildPostFeedItems(
       : [];
   const nameById = new Map(exRows.map((e) => [e.id, e.name]));
 
+  const sourcePresetIds = [
+    ...new Set(
+      postRows
+        .map((r) => r.presetId)
+        .filter((id): id is string => typeof id === 'string' && id.length > 0),
+    ),
+  ];
+
+  let savedPresetSources = new Set<string>();
+  if (sourcePresetIds.length > 0) {
+    const savedRows = await db
+      .select({ sourceId: workoutPresets.savedFromPresetId })
+      .from(workoutPresets)
+      .where(
+        and(
+          eq(workoutPresets.userId, authUserId),
+          inArray(workoutPresets.savedFromPresetId, sourcePresetIds),
+        ),
+      );
+    savedPresetSources = new Set(
+      savedRows
+        .map((row) => row.sourceId)
+        .filter((id): id is string => id != null),
+    );
+  }
+
   for (const id of postIds) {
     const r = rowById.get(id);
     if (!r) continue;
@@ -475,6 +501,9 @@ export async function buildPostFeedItems(
       text: r.text,
       photoUrl: r.photoUrl,
       preset: presetPayload,
+      savedByMe: Boolean(
+        r.presetId && savedPresetSources.has(r.presetId),
+      ),
       likeCount: likeCountMap.get(r.postId) ?? 0,
       commentCount: commentCountMap.get(r.postId) ?? 0,
       likedByMe: likedSet.has(r.postId),
