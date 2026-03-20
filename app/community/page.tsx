@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
@@ -10,16 +10,24 @@ import {
   toggleWorkoutLikeApi,
   togglePostLikeApi,
   savePresetCopyApi,
+  deleteCommunityPostApi,
+  patchWorkoutForFeedApi,
+  uploadWorkoutPhotoApi,
   type FeedFilter,
   type FeedContentType,
 } from '@/lib/api/client';
 import type {
   FeedItem,
   FeedPostItem,
+  FeedWorkoutItem,
   WorkoutCommentRow,
 } from '@/lib/api/types';
 import { formatTimeAgo, formatFeedDuration } from '@/lib/community/time';
-import { hapticImpactLight } from '@/lib/telegram/haptic';
+import { compressImage } from '@/lib/utils/compressImage';
+import {
+  hapticImpactLight,
+  hapticNotificationWarning,
+} from '@/lib/telegram/haptic';
 import CommunityCommentsSheet, {
   type CommentsTarget,
 } from '@/components/CommunityCommentsSheet';
@@ -190,6 +198,267 @@ function Avatar({
   );
 }
 
+const MAX_FEED_PHOTO_BYTES = 4 * 1024 * 1024;
+
+const FEED_OVERFLOW_BTN: React.CSSProperties = {
+  position: 'absolute',
+  top: 14,
+  right: 14,
+  background: 'none',
+  border: 'none',
+  color: 'rgba(255,255,255,0.3)',
+  fontSize: 18,
+  cursor: 'pointer',
+  padding: '4px 8px',
+  lineHeight: 1,
+  zIndex: 2,
+};
+
+function FeedOverflowMenuButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.color = 'rgba(255,255,255,0.6)';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.color = 'rgba(255,255,255,0.3)';
+      }}
+      style={FEED_OVERFLOW_BTN}
+    >
+      ⋯
+    </button>
+  );
+}
+
+type FeedSheetAction = {
+  key: string;
+  label: string;
+  danger?: boolean;
+  onClick: () => void;
+};
+
+function FeedActionBottomSheet({
+  open,
+  title,
+  actions,
+  onClose,
+}: {
+  open: boolean;
+  title?: string;
+  actions: FeedSheetAction[];
+  onClose: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 212,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+      }}
+      role="presentation"
+      onClick={onClose}
+    >
+      <div
+        style={{
+          backgroundColor: theme.colors.surface,
+          borderTopLeftRadius: theme.radius.lg,
+          borderTopRightRadius: theme.radius.lg,
+          borderTop: `1px solid ${theme.colors.border}`,
+          paddingBottom: 'max(12px, env(safe-area-inset-bottom, 12px))',
+        }}
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title ?? 'Actions'}
+      >
+        {title ? (
+          <div
+            style={{
+              padding: '14px 16px',
+              borderBottom: `1px solid ${theme.colors.border}`,
+              color: theme.colors.textMuted,
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+          >
+            {title}
+          </div>
+        ) : null}
+        {actions.map((a) => (
+          <button
+            key={a.key}
+            type="button"
+            onClick={() => {
+              a.onClick();
+            }}
+            style={{
+              display: 'block',
+              width: '100%',
+              textAlign: 'left',
+              padding: '16px 18px',
+              border: 'none',
+              borderBottom: `1px solid ${theme.colors.border}`,
+              background: 'none',
+              color: a.danger ? theme.colors.error : theme.colors.textPrimary,
+              fontSize: 16,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            {a.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={onClose}
+          style={{
+            display: 'block',
+            width: '100%',
+            textAlign: 'center',
+            padding: '16px 18px',
+            border: 'none',
+            background: 'none',
+            color: theme.colors.textMuted,
+            fontSize: 15,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function FeedConfirmModal({
+  open,
+  title,
+  message,
+  confirmLabel,
+  destructive,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  destructive?: boolean;
+  busy?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  if (!open) return null;
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 215,
+        padding: 24,
+      }}
+      role="presentation"
+      onClick={busy ? undefined : onCancel}
+    >
+      <div
+        style={{
+          backgroundColor: theme.colors.card,
+          borderRadius: theme.radius.md,
+          border: `1px solid ${theme.colors.border}`,
+          padding: 24,
+          maxWidth: 320,
+          width: '100%',
+        }}
+        onClick={(e) => e.stopPropagation()}
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="feed-confirm-title"
+      >
+        <h3
+          id="feed-confirm-title"
+          style={{
+            color: theme.colors.textPrimary,
+            fontSize: 18,
+            fontWeight: 600,
+            margin: message ? '0 0 8px' : '0 0 20px',
+          }}
+        >
+          {title}
+        </h3>
+        {message ? (
+          <p
+            style={{
+              color: theme.colors.textSecondary,
+              fontSize: 14,
+              margin: '0 0 20px',
+              lineHeight: 1.5,
+            }}
+          >
+            {message}
+          </p>
+        ) : null}
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={busy}
+            style={{
+              padding: '10px 18px',
+              borderRadius: 8,
+              border: `1px solid ${theme.colors.border}`,
+              background: 'transparent',
+              color: theme.colors.textSecondary,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: busy ? 'not-allowed' : 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={busy}
+            style={{
+              padding: '10px 18px',
+              borderRadius: 8,
+              border: 'none',
+              background: destructive ? theme.colors.error : theme.colors.primary,
+              color: '#fff',
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: busy ? 'not-allowed' : 'pointer',
+              opacity: busy ? 0.7 : 1,
+            }}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CommunityPage() {
   const router = useRouter();
   const { user: me } = useAuth();
@@ -203,6 +472,34 @@ export default function CommunityPage() {
   );
   const [sheetOpen, setSheetOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editPostDraft, setEditPostDraft] = useState<{
+    postId: string;
+    text: string | null;
+    photoUrl: string | null;
+    preset: FeedPostItem['preset'];
+  } | null>(null);
+  const [postMenuPostId, setPostMenuPostId] = useState<string | null>(null);
+  const [workoutMenuWorkoutId, setWorkoutMenuWorkoutId] = useState<
+    string | null
+  >(null);
+  const [confirmDeletePostId, setConfirmDeletePostId] = useState<
+    string | null
+  >(null);
+  const [confirmRemoveWorkoutPhotoId, setConfirmRemoveWorkoutPhotoId] =
+    useState<string | null>(null);
+  const [confirmHideWorkoutId, setConfirmHideWorkoutId] = useState<
+    string | null
+  >(null);
+  const [feedExitKeys, setFeedExitKeys] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [deletingPost, setDeletingPost] = useState(false);
+  const [workoutActionBusy, setWorkoutActionBusy] = useState<string | null>(
+    null,
+  );
+  const workoutPhotoInputRef = useRef<HTMLInputElement>(null);
+  const workoutPhotoTargetIdRef = useRef<string | null>(null);
+
   const load = useCallback(
     async (
       filter: FeedFilter,
@@ -384,6 +681,117 @@ export default function CommunityPage() {
       /* keep UI stable */
     }
   }
+
+  function animateOutFeedKey(key: string, remove: () => void) {
+    setFeedExitKeys((m) => ({ ...m, [key]: true }));
+    window.setTimeout(() => {
+      remove();
+      setFeedExitKeys((m) => {
+        const n = { ...m };
+        delete n[key];
+        return n;
+      });
+    }, 300);
+  }
+
+  async function runDeletePost() {
+    if (!confirmDeletePostId || deletingPost) return;
+    const id = confirmDeletePostId;
+    setDeletingPost(true);
+    hapticNotificationWarning();
+    try {
+      await deleteCommunityPostApi(id);
+      setConfirmDeletePostId(null);
+      animateOutFeedKey(`p-${id}`, () =>
+        setItems((prev) =>
+          prev.filter((it) => !(it.type === 'post' && it.postId === id)),
+        ),
+      );
+    } catch {
+      /* card stays */
+    } finally {
+      setDeletingPost(false);
+    }
+  }
+
+  async function runRemoveWorkoutPhoto() {
+    if (!confirmRemoveWorkoutPhotoId || workoutActionBusy) return;
+    const id = confirmRemoveWorkoutPhotoId;
+    setWorkoutActionBusy(id);
+    hapticNotificationWarning();
+    try {
+      await patchWorkoutForFeedApi(id, { photoUrl: null });
+      setConfirmRemoveWorkoutPhotoId(null);
+      setItems((prev) =>
+        prev.map((it) =>
+          it.type === 'workout' && it.workoutId === id
+            ? { ...it, photoUrl: null }
+            : it,
+        ),
+      );
+    } catch {
+      /* unchanged */
+    } finally {
+      setWorkoutActionBusy(null);
+    }
+  }
+
+  async function runHideWorkoutFromFeed() {
+    if (!confirmHideWorkoutId || workoutActionBusy) return;
+    const id = confirmHideWorkoutId;
+    setWorkoutActionBusy(id);
+    hapticNotificationWarning();
+    try {
+      await patchWorkoutForFeedApi(id, { isPublic: false });
+      setConfirmHideWorkoutId(null);
+      animateOutFeedKey(`w-${id}`, () =>
+        setItems((prev) =>
+          prev.filter((it) => !(it.type === 'workout' && it.workoutId === id)),
+        ),
+      );
+    } catch {
+      /* stays visible */
+    } finally {
+      setWorkoutActionBusy(null);
+    }
+  }
+
+  async function onWorkoutPhotoPicked(file: File, workoutId: string) {
+    if (!file.type.startsWith('image/') || file.size > MAX_FEED_PHOTO_BYTES) {
+      return;
+    }
+    setWorkoutActionBusy(workoutId);
+    try {
+      const compressed = await compressImage(file);
+      const url = await uploadWorkoutPhotoApi(compressed);
+      const data = await patchWorkoutForFeedApi(workoutId, { photoUrl: url });
+      setItems((prev) =>
+        prev.map((it) =>
+          it.type === 'workout' && it.workoutId === workoutId
+            ? { ...it, photoUrl: data.photoUrl }
+            : it,
+        ),
+      );
+    } catch {
+      /* keep previous photo */
+    } finally {
+      setWorkoutActionBusy(null);
+    }
+  }
+
+  const postMenuItem = postMenuPostId
+    ? items.find(
+        (i): i is FeedPostItem =>
+          i.type === 'post' && i.postId === postMenuPostId,
+      )
+    : undefined;
+
+  const workoutMenuItem = workoutMenuWorkoutId
+    ? items.find(
+        (i): i is FeedWorkoutItem =>
+          i.type === 'workout' && i.workoutId === workoutMenuWorkoutId,
+      )
+    : undefined;
 
   const emptyFollowingCopy =
     'Your Following feed is empty. Follow people to see their public workouts and posts here.';
@@ -610,18 +1018,37 @@ export default function CommunityPage() {
       {!loading &&
         items.map((item) =>
           item.type === 'workout' ? (
-            <Card
+            <div
               key={`w-${item.workoutId}`}
-              style={{ marginBottom: '14px' }}
+              style={{
+                marginBottom: '14px',
+                opacity: feedExitKeys[`w-${item.workoutId}`] ? 0 : 1,
+                transform: feedExitKeys[`w-${item.workoutId}`]
+                  ? 'scale(0.96)'
+                  : undefined,
+                transition: 'opacity 0.28s ease, transform 0.28s ease',
+              }}
             >
-              <div
+              <Card
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  marginBottom: item.photoUrl ? '12px' : '8px',
+                  position: 'relative',
+                  marginBottom: 0,
                 }}
               >
+                {me?.id === item.user.id ? (
+                  <FeedOverflowMenuButton
+                    label="Workout actions"
+                    onClick={() => setWorkoutMenuWorkoutId(item.workoutId)}
+                  />
+                ) : null}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    marginBottom: item.photoUrl ? '12px' : '8px',
+                  }}
+                >
                 <Avatar
                   url={item.user.avatarUrl}
                   name={item.user.name}
@@ -915,19 +1342,32 @@ export default function CommunityPage() {
                   )}
                 </div>
               )}
-            </Card>
+              </Card>
+            </div>
           ) : (
-            <PostFeedCard
+            <div
               key={`p-${item.postId}`}
-              item={item}
-              meId={me?.id}
-              onSavePreset={handleSavePreset}
-              onLike={() => void handlePostLike(item.postId)}
-              onOpenComments={() =>
-                openComments({ kind: 'post', id: item.postId })
-              }
-              router={router}
-            />
+              style={{
+                marginBottom: '14px',
+                opacity: feedExitKeys[`p-${item.postId}`] ? 0 : 1,
+                transform: feedExitKeys[`p-${item.postId}`]
+                  ? 'scale(0.96)'
+                  : undefined,
+                transition: 'opacity 0.28s ease, transform 0.28s ease',
+              }}
+            >
+              <PostFeedCard
+                item={item}
+                meId={me?.id}
+                onSavePreset={handleSavePreset}
+                onLike={() => void handlePostLike(item.postId)}
+                onOpenComments={() =>
+                  openComments({ kind: 'post', id: item.postId })
+                }
+                onOpenPostMenu={() => setPostMenuPostId(item.postId)}
+                router={router}
+              />
+            </div>
           ),
         )}
 
@@ -941,10 +1381,172 @@ export default function CommunityPage() {
         onCommentPosted={onCommentPosted}
       />
 
+      <input
+        ref={workoutPhotoInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = '';
+          const wid = workoutPhotoTargetIdRef.current;
+          workoutPhotoTargetIdRef.current = null;
+          if (!f || !wid) return;
+          void onWorkoutPhotoPicked(f, wid);
+        }}
+      />
+
+      <FeedActionBottomSheet
+        open={postMenuPostId !== null}
+        onClose={() => setPostMenuPostId(null)}
+        actions={
+          postMenuItem
+            ? [
+                {
+                  key: 'edit',
+                  label: 'Edit Post',
+                  onClick: () => {
+                    setPostMenuPostId(null);
+                    setEditPostDraft({
+                      postId: postMenuItem.postId,
+                      text: postMenuItem.text,
+                      photoUrl: postMenuItem.photoUrl,
+                      preset: postMenuItem.preset,
+                    });
+                  },
+                },
+                {
+                  key: 'delete',
+                  label: 'Delete Post',
+                  danger: true,
+                  onClick: () => {
+                    setPostMenuPostId(null);
+                    setConfirmDeletePostId(postMenuItem.postId);
+                  },
+                },
+              ]
+            : []
+        }
+      />
+
+      <FeedActionBottomSheet
+        open={workoutMenuWorkoutId !== null}
+        onClose={() => setWorkoutMenuWorkoutId(null)}
+        actions={
+          workoutMenuItem
+            ? [
+                {
+                  key: 'photo',
+                  label: 'Change Photo',
+                  onClick: () => {
+                    setWorkoutMenuWorkoutId(null);
+                    workoutPhotoTargetIdRef.current =
+                      workoutMenuItem.workoutId;
+                    requestAnimationFrame(() =>
+                      workoutPhotoInputRef.current?.click(),
+                    );
+                  },
+                },
+                ...(workoutMenuItem.photoUrl
+                  ? [
+                      {
+                        key: 'remove-photo',
+                        label: 'Remove Photo',
+                        danger: true as const,
+                        onClick: () => {
+                          setWorkoutMenuWorkoutId(null);
+                          setConfirmRemoveWorkoutPhotoId(
+                            workoutMenuItem.workoutId,
+                          );
+                        },
+                      },
+                    ]
+                  : []),
+                {
+                  key: 'hide',
+                  label: 'Delete from feed',
+                  danger: true,
+                  onClick: () => {
+                    setWorkoutMenuWorkoutId(null);
+                    setConfirmHideWorkoutId(workoutMenuItem.workoutId);
+                  },
+                },
+              ]
+            : []
+        }
+      />
+
+      <FeedConfirmModal
+        open={confirmDeletePostId !== null}
+        title="Delete this post?"
+        message="This cannot be undone."
+        confirmLabel={deletingPost ? 'Deleting…' : 'Delete'}
+        destructive
+        busy={deletingPost}
+        onCancel={() => !deletingPost && setConfirmDeletePostId(null)}
+        onConfirm={() => void runDeletePost()}
+      />
+
+      <FeedConfirmModal
+        open={confirmRemoveWorkoutPhotoId !== null}
+        title="Remove photo from this workout?"
+        message=""
+        confirmLabel={
+          workoutActionBusy ? 'Removing…' : 'Remove'
+        }
+        destructive
+        busy={Boolean(
+          confirmRemoveWorkoutPhotoId &&
+            workoutActionBusy === confirmRemoveWorkoutPhotoId,
+        )}
+        onCancel={() =>
+          workoutActionBusy === null && setConfirmRemoveWorkoutPhotoId(null)
+        }
+        onConfirm={() => void runRemoveWorkoutPhoto()}
+      />
+
+      <FeedConfirmModal
+        open={confirmHideWorkoutId !== null}
+        title="Hide this workout from Community?"
+        message="It will stay in your History."
+        confirmLabel={
+          workoutActionBusy ? 'Hiding…' : 'Hide'
+        }
+        destructive
+        busy={Boolean(
+          confirmHideWorkoutId &&
+            workoutActionBusy === confirmHideWorkoutId,
+        )}
+        onCancel={() =>
+          workoutActionBusy === null && setConfirmHideWorkoutId(null)
+        }
+        onConfirm={() => void runHideWorkoutFromFeed()}
+      />
+
       <CreatePostSheet
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        open={createOpen || editPostDraft !== null}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditPostDraft(null);
+        }}
+        editInitial={editPostDraft}
         onPosted={() => void load(feedTab, contentTab)}
+        onSavedEdit={(payload) => {
+          setItems((prev) =>
+            prev.map((it) =>
+              it.type === 'post' && it.postId === payload.postId
+                ? {
+                    ...it,
+                    text: payload.text,
+                    photoUrl: payload.photoUrl,
+                    preset: payload.preset,
+                    savedByMe: payload.savedByMe,
+                  }
+                : it,
+            ),
+          );
+          setEditPostDraft(null);
+        }}
       />
     </div>
   );
@@ -956,6 +1558,7 @@ function PostFeedCard({
   onSavePreset,
   onLike,
   onOpenComments,
+  onOpenPostMenu,
   router,
 }: {
   item: FeedPostItem;
@@ -963,6 +1566,7 @@ function PostFeedCard({
   onSavePreset: (presetId: string) => void;
   onLike: () => void;
   onOpenComments: () => void;
+  onOpenPostMenu: () => void;
   router: ReturnType<typeof useRouter>;
 }) {
   const showSavePreset =
@@ -970,8 +1574,16 @@ function PostFeedCard({
     item.user.id !== meId &&
     !item.savedByMe;
 
+  const isOwner = meId != null && item.user.id === meId;
+
   return (
-    <Card style={{ marginBottom: '14px' }}>
+    <Card style={{ position: 'relative', marginBottom: 0 }}>
+      {isOwner ? (
+        <FeedOverflowMenuButton
+          label="Post actions"
+          onClick={onOpenPostMenu}
+        />
+      ) : null}
       <div
         style={{
           display: 'flex',

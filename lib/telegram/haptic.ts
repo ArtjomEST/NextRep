@@ -9,3 +9,18 @@ export function hapticImpactLight(): void {
     /* ignore */
   }
 }
+
+export function hapticNotificationWarning(): void {
+  try {
+    const w = window as Window & {
+      Telegram?: {
+        WebApp?: {
+          HapticFeedback?: { notificationOccurred?: (s: string) => void };
+        };
+      };
+    };
+    w.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.('warning');
+  } catch {
+    /* ignore */
+  }
+}

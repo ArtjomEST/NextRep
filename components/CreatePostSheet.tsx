@@ -5,23 +5,51 @@ import { theme } from '@/lib/theme';
 import {
   createCommunityPostApi,
   fetchPresetsApi,
+  patchCommunityPostApi,
   uploadWorkoutPhotoApi,
   UploadPhotoError,
 } from '@/lib/api/client';
-import type { Preset } from '@/lib/api/types';
+import type { FeedPostPresetSummary, Preset } from '@/lib/api/types';
 import Button from '@/components/Button';
 import { compressImage } from '@/lib/utils/compressImage';
 
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
+function presetSummaryToStubPreset(p: FeedPostPresetSummary): Preset {
+  return {
+    id: p.id,
+    userId: '',
+    name: p.name,
+    exerciseIds: Array.from({ length: p.exerciseCount }, () => ''),
+    createdAt: '',
+    updatedAt: '',
+  };
+}
+
 export default function CreatePostSheet({
   open,
   onClose,
   onPosted,
+  editInitial,
+  onSavedEdit,
 }: {
   open: boolean;
   onClose: () => void;
   onPosted?: () => void;
+  /** When set, sheet is in edit mode for this post. */
+  editInitial?: {
+    postId: string;
+    text: string | null;
+    photoUrl: string | null;
+    preset: FeedPostPresetSummary | null;
+  } | null;
+  onSavedEdit?: (payload: {
+    postId: string;
+    text: string | null;
+    photoUrl: string | null;
+    preset: FeedPostPresetSummary | null;
+    savedByMe: boolean;
+  }) => void;
 }) {
   const [text, setText] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -33,6 +61,9 @@ export default function CreatePostSheet({
   const [submitting, setSubmitting] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Server photo URL when editing (not a blob). */
+  const [remotePhotoUrl, setRemotePhotoUrl] = useState<string | null>(null);
+  const [removedRemotePhoto, setRemovedRemotePhoto] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -40,20 +71,41 @@ export default function CreatePostSheet({
     };
   }, [photoPreviewUrl]);
 
+  const editPostId = editInitial?.postId;
+
   useEffect(() => {
     if (!open) return;
-    setText('');
-    setPhotoFile(null);
-    setPhotoPreviewUrl((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-    setPreset(null);
     setPresetPicker(false);
     setError(null);
     setSubmitting(false);
     setCompressing(false);
-  }, [open]);
+
+    const init = editInitial;
+    if (init) {
+      setText(init.text ?? '');
+      setPhotoFile(null);
+      setPhotoPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setRemotePhotoUrl(init.photoUrl);
+      setRemovedRemotePhoto(false);
+      setPreset(
+        init.preset ? presetSummaryToStubPreset(init.preset) : null,
+      );
+    } else {
+      setText('');
+      setPhotoFile(null);
+      setPhotoPreviewUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setRemotePhotoUrl(null);
+      setRemovedRemotePhoto(false);
+      setPreset(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset when sheet opens or target post changes
+  }, [open, editPostId]);
 
   useEffect(() => {
     if (!open || !presetPicker) return;
@@ -86,23 +138,35 @@ export default function CreatePostSheet({
     if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
     setPhotoFile(f);
     setPhotoPreviewUrl(URL.createObjectURL(f));
+    setRemovedRemotePhoto(false);
   }
 
   function clearPhoto() {
-    if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
-    setPhotoFile(null);
-    setPhotoPreviewUrl(null);
+    if (photoPreviewUrl) {
+      URL.revokeObjectURL(photoPreviewUrl);
+      setPhotoFile(null);
+      setPhotoPreviewUrl(null);
+      return;
+    }
+    if (remotePhotoUrl && !removedRemotePhoto) {
+      setRemovedRemotePhoto(true);
+    }
   }
 
+  const showingRemotePhoto = !!remotePhotoUrl && !removedRemotePhoto;
   const canPost =
-    text.trim().length > 0 || !!photoFile || !!preset;
+    text.trim().length > 0 ||
+    !!photoFile ||
+    showingRemotePhoto ||
+    !!preset;
 
   async function handleSubmit() {
     if (!canPost || submitting) return;
     setSubmitting(true);
     setError(null);
     try {
-      let photoUrl: string | undefined;
+      let uploadedPhotoUrl: string | undefined;
+
       if (photoFile) {
         if (photoFile.size > MAX_PHOTO_BYTES) {
           setError('Photo is too large. Please choose an image under 4MB.');
@@ -113,7 +177,7 @@ export default function CreatePostSheet({
           setCompressing(true);
           const compressed = await compressImage(photoFile);
           setCompressing(false);
-          photoUrl = await uploadWorkoutPhotoApi(compressed);
+          uploadedPhotoUrl = await uploadWorkoutPhotoApi(compressed);
         } catch (uploadErr) {
           setCompressing(false);
           if (uploadErr instanceof UploadPhotoError) {
@@ -125,16 +189,45 @@ export default function CreatePostSheet({
         }
       }
 
+      if (editInitial) {
+        const body: {
+          text?: string | null;
+          photoUrl?: string | null;
+          presetId?: string | null;
+        } = {
+          text: text.trim() || null,
+          presetId: preset?.id ?? null,
+        };
+        if (uploadedPhotoUrl !== undefined) {
+          body.photoUrl = uploadedPhotoUrl;
+        } else if (removedRemotePhoto) {
+          body.photoUrl = null;
+        }
+
+        const data = await patchCommunityPostApi(editInitial.postId, body);
+        onSavedEdit?.({
+          postId: editInitial.postId,
+          text: data.text,
+          photoUrl: data.photoUrl,
+          preset: data.preset,
+          savedByMe: data.savedByMe,
+        });
+        onClose();
+        return;
+      }
+
       await createCommunityPostApi({
         text: text.trim() || undefined,
-        photoUrl: photoUrl ?? undefined,
+        photoUrl: uploadedPhotoUrl ?? undefined,
         presetId: preset?.id ?? undefined,
       });
 
       onPosted?.();
       onClose();
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to post');
+      setError(
+        e instanceof Error ? e.message : editInitial ? 'Failed to save' : 'Failed to post',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -169,7 +262,7 @@ export default function CreatePostSheet({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="New post"
+        aria-label={editInitial ? 'Edit post' : 'New post'}
       >
         <div
           style={{
@@ -187,7 +280,7 @@ export default function CreatePostSheet({
               fontSize: '16px',
             }}
           >
-            New post
+            {editInitial ? 'Edit post' : 'New post'}
           </span>
           <button
             type="button"
@@ -307,11 +400,11 @@ export default function CreatePostSheet({
               }}
             />
 
-            {photoPreviewUrl && (
+            {(photoPreviewUrl || showingRemotePhoto) && (
               <div style={{ position: 'relative' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={photoPreviewUrl}
+                  src={photoPreviewUrl ?? remotePhotoUrl ?? ''}
                   alt=""
                   style={{
                     width: '100%',
@@ -390,12 +483,12 @@ export default function CreatePostSheet({
               <input
                 type="file"
                 accept="image/*"
-                id="create-post-photo"
+                id="post-sheet-photo-input"
                 style={{ display: 'none' }}
                 onChange={onPickPhoto}
               />
               <label
-                htmlFor="create-post-photo"
+                htmlFor="post-sheet-photo-input"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -443,8 +536,12 @@ export default function CreatePostSheet({
               {compressing
                 ? 'Compressing...'
                 : submitting
-                  ? 'Posting…'
-                  : 'Post'}
+                  ? editInitial
+                    ? 'Saving…'
+                    : 'Posting…'
+                  : editInitial
+                    ? 'Save'
+                    : 'Post'}
             </Button>
           </div>
         )}

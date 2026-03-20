@@ -10,6 +10,7 @@ import type {
   UserSearchHit,
   PublicProfileData,
   WorkoutCommentRow,
+  FeedPostPresetSummary,
 } from './types';
 import { getAuthHeaders, getTelegramInitData } from '@/lib/auth/client';
 
@@ -416,6 +417,69 @@ export async function createCommunityPostApi(body: {
     throw new Error(json.error ?? `Failed to create post (${res.status})`);
   }
   return json.data as { id: string; createdAt: string };
+}
+
+export async function patchCommunityPostApi(
+  postId: string,
+  body: {
+    text?: string | null;
+    photoUrl?: string | null;
+    presetId?: string | null;
+  },
+): Promise<{
+  text: string | null;
+  photoUrl: string | null;
+  preset: FeedPostPresetSummary | null;
+  savedByMe: boolean;
+}> {
+  const res = await fetch(`/api/community/posts/${postId}`, {
+    method: 'PATCH',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Failed to update post (${res.status})`);
+  }
+  return json.data as {
+    text: string | null;
+    photoUrl: string | null;
+    preset: FeedPostPresetSummary | null;
+    savedByMe: boolean;
+  };
+}
+
+export async function deleteCommunityPostApi(postId: string): Promise<void> {
+  const res = await fetch(`/api/community/posts/${postId}`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to delete post (${res.status})`);
+  }
+}
+
+export async function patchWorkoutForFeedApi(
+  workoutId: string,
+  body: { isPublic?: boolean; photoUrl?: string | null },
+): Promise<{ photoUrl: string | null; isPublic: boolean }> {
+  const res = await fetch(`/api/workouts/${workoutId}`, {
+    method: 'PATCH',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Failed to update workout (${res.status})`);
+  }
+  return json.data as { photoUrl: string | null; isPublic: boolean };
 }
 
 export async function togglePostLikeApi(

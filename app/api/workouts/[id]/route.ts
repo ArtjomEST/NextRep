@@ -14,6 +14,106 @@ import type {
   WorkoutDetailSet,
 } from '@/lib/api/types';
 
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  try {
+    const db = getDb();
+    const auth = await authenticateRequest(req);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 },
+      );
+    }
+
+    const { id } = await params;
+
+    const [workout] = await db
+      .select({ id: workouts.id, userId: workouts.userId })
+      .from(workouts)
+      .where(eq(workouts.id, id))
+      .limit(1);
+
+    if (!workout || workout.userId !== auth.userId) {
+      return NextResponse.json(
+        { error: 'Workout not found' },
+        { status: 404 },
+      );
+    }
+
+    let body: unknown;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const o =
+      body && typeof body === 'object'
+        ? (body as Record<string, unknown>)
+        : {};
+
+    const patch: { isPublic?: boolean; photoUrl?: string | null } = {};
+
+    if ('isPublic' in o) {
+      if (typeof o.isPublic !== 'boolean') {
+        return NextResponse.json(
+          { error: 'Invalid isPublic' },
+          { status: 400 },
+        );
+      }
+      patch.isPublic = o.isPublic;
+    }
+
+    if ('photoUrl' in o) {
+      if (o.photoUrl === null) {
+        patch.photoUrl = null;
+      } else if (typeof o.photoUrl === 'string') {
+        const u = o.photoUrl.trim();
+        patch.photoUrl = u.length > 0 ? u : null;
+      } else {
+        return NextResponse.json(
+          { error: 'Invalid photoUrl' },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (Object.keys(patch).length === 0) {
+      return NextResponse.json(
+        { error: 'No valid fields to update (use isPublic and/or photoUrl)' },
+        { status: 400 },
+      );
+    }
+
+    await db
+      .update(workouts)
+      .set(patch)
+      .where(and(eq(workouts.id, id), eq(workouts.userId, auth.userId)));
+
+    const [row] = await db
+      .select({ photoUrl: workouts.photoUrl, isPublic: workouts.isPublic })
+      .from(workouts)
+      .where(eq(workouts.id, id))
+      .limit(1);
+
+    return NextResponse.json({
+      data: {
+        photoUrl: row?.photoUrl ?? null,
+        isPublic: row?.isPublic ?? true,
+      },
+    });
+  } catch (err) {
+    console.error('PATCH /api/workouts/[id] error:', err);
+    return NextResponse.json(
+      { error: 'Failed to update workout', message: String(err) },
+      { status: 500 },
+    );
+  }
+}
+
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
