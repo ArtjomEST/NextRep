@@ -109,7 +109,6 @@ export default function ExerciseDetailPage() {
       <div
         style={{
           width: '100%',
-          aspectRatio: '16/10',
           borderRadius: ui.cardRadius,
           overflow: 'hidden',
           background: ui.cardBg,
@@ -117,10 +116,18 @@ export default function ExerciseDetailPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          ...(exercise.imageUrl
+            ? {}
+            : { minHeight: 200 }),
         }}
       >
         {exercise.imageUrl ? (
-          <img src={exercise.imageUrl} alt={exercise.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={exercise.imageUrl}
+            alt={exercise.name}
+            style={{ width: '100%', height: 'auto', display: 'block' }}
+          />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, color: ui.textMuted }}>
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

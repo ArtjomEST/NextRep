@@ -850,3 +850,80 @@ export async function updateProfileApi(
   const json = await res.json();
   return json.data as UserProfile;
 }
+
+// ─── AI Coach ───────────────────────────────────────────────
+
+export interface AiChatMessageRow {
+  id: string;
+  role: string;
+  content: string;
+  createdAt: string;
+}
+
+export async function fetchAiChatHistoryApi(): Promise<AiChatMessageRow[]> {
+  const res = await fetch('/api/ai/chat/history', {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to load chat (${res.status})`);
+  }
+  const json = await res.json();
+  return (json.data?.messages ?? []) as AiChatMessageRow[];
+}
+
+export async function postAiChatApi(message: string): Promise<{ reply: string }> {
+  const res = await fetch('/api/ai/chat', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ message }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Chat failed (${res.status})`);
+  }
+  return { reply: json.reply as string };
+}
+
+export interface AiWorkoutReportScores {
+  total: number;
+  volume: number;
+  intensity: number;
+  consistency: number;
+  duration: number;
+  prBonus: number;
+}
+
+export async function fetchAiWorkoutReportApi(
+  workoutId: string,
+): Promise<{ report: string; scores: AiWorkoutReportScores } | null> {
+  const params = new URLSearchParams({ workoutId });
+  const res = await fetch(`/api/ai/workout-report?${params}`, {
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Report failed (${res.status})`);
+  }
+  const json = await res.json();
+  if (!json.data) return null;
+  return json.data as { report: string; scores: AiWorkoutReportScores };
+}
+
+export async function postAiWorkoutReportApi(
+  workoutId: string,
+): Promise<{ report: string; scores: AiWorkoutReportScores }> {
+  const res = await fetch('/api/ai/workout-report', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ workoutId }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(json.error ?? `Report failed (${res.status})`);
+  }
+  return {
+    report: json.report as string,
+    scores: json.scores as AiWorkoutReportScores,
+  };
+}

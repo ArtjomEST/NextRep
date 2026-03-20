@@ -45,6 +45,7 @@ export const userProfiles = pgTable('user_profiles', {
   bestLifts: jsonb('best_lifts').$type<{ benchPress?: number; squat?: number; deadlift?: number }>(),
   injuries: jsonb('injuries').$type<string[]>(),
   onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
+  isPro: boolean('is_pro').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

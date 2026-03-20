@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import TabBar from '@/components/TabBar';
+import AIChatWidget from '@/components/AIChatWidget';
 import { Providers } from './providers';
 import { LayoutShell } from './layout-shell';
 import { AppErrorBoundary } from './AppErrorBoundary';
@@ -37,6 +38,7 @@ export default function RootLayout({
           <Providers>
             <LayoutShell>{children}</LayoutShell>
             <TabBar />
+            <AIChatWidget />
           </Providers>
         </AppErrorBoundary>
       </body>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { useWorkout } from '@/lib/workout/state';
@@ -14,7 +14,11 @@ import {
   saveWorkoutApi,
   uploadWorkoutPhotoApi,
   UploadPhotoError,
+  fetchAiWorkoutReportApi,
+  postAiWorkoutReportApi,
+  type AiWorkoutReportScores,
 } from '@/lib/api/client';
+import AIWorkoutReportCard from '@/components/AIWorkoutReportCard';
 import type { SaveWorkoutRequest } from '@/lib/api/types';
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
@@ -36,6 +40,13 @@ export default function WorkoutSummaryPage() {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [saveNotice, setSaveNotice] = useState<string | null>(null);
+  const aiWorkoutProcessedRef = useRef<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiPayload, setAiPayload] = useState<{
+    report: string;
+    scores: AiWorkoutReportScores;
+  } | null>(null);
 
   const stats = useMemo(
     () => ({
@@ -63,6 +74,39 @@ export default function WorkoutSummaryPage() {
       if (photoPreviewUrl) URL.revokeObjectURL(photoPreviewUrl);
     };
   }, [photoPreviewUrl]);
+
+  useEffect(() => {
+    if (!savedWorkoutId) return;
+    if (aiWorkoutProcessedRef.current === savedWorkoutId) return;
+    aiWorkoutProcessedRef.current = savedWorkoutId;
+    let cancelled = false;
+    (async () => {
+      setAiLoading(true);
+      setAiError(null);
+      setAiPayload(null);
+      try {
+        const existing = await fetchAiWorkoutReportApi(savedWorkoutId);
+        if (cancelled) return;
+        if (existing) {
+          setAiPayload(existing);
+          return;
+        }
+        const gen = await postAiWorkoutReportApi(savedWorkoutId);
+        if (!cancelled) setAiPayload(gen);
+      } catch (e) {
+        if (!cancelled) {
+          setAiError(
+            e instanceof Error ? e.message : 'AI report unavailable',
+          );
+        }
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [savedWorkoutId]);
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
@@ -257,6 +301,14 @@ export default function WorkoutSummaryPage() {
             {saveNotice}
           </p>
         )}
+        <div style={{ width: '100%', marginTop: 16 }}>
+          <AIWorkoutReportCard
+            loading={aiLoading}
+            error={aiError}
+            report={aiPayload?.report ?? null}
+            scores={aiPayload?.scores ?? null}
+          />
+        </div>
         <div
           style={{
             display: 'flex',
@@ -434,6 +486,18 @@ export default function WorkoutSummaryPage() {
           compact={false}
         />
       )}
+
+      <p
+        style={{
+          margin: 0,
+          color: theme.colors.textMuted,
+          fontSize: 13,
+          textAlign: 'center',
+          lineHeight: 1.45,
+        }}
+      >
+        Save your workout to get an AI Coach analysis with session score.
+      </p>
 
       {/* Highlights */}
       <Card>

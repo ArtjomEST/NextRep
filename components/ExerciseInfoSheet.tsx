@@ -130,29 +130,34 @@ export default function ExerciseInfoSheet({
                 {exercise.name}
               </h2>
 
-              {/* Image */}
+              {/* Image — natural aspect ratio so nothing is cropped */}
               <div
                 style={{
                   width: '100%',
-                  height: '160px',
                   backgroundColor: theme.colors.surface,
                   borderRadius: theme.radius.md,
                   border: `1px solid ${theme.colors.border}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
                   marginBottom: '20px',
                   overflow: 'hidden',
+                  ...(exercise.imageUrl
+                    ? {}
+                    : {
+                        minHeight: '120px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }),
                 }}
               >
                 {exercise.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={exercise.imageUrl}
                     alt={exercise.name}
                     style={{
                       width: '100%',
-                      height: '100%',
-                      objectFit: 'cover',
+                      height: 'auto',
+                      display: 'block',
                     }}
                   />
                 ) : (
