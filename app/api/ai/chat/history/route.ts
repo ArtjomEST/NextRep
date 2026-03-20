@@ -35,7 +35,10 @@ export async function GET(req: NextRequest) {
           id: m.id,
           role: m.role,
           content: m.content,
-          createdAt: m.createdAt.toISOString(),
+          createdAt:
+            m.createdAt instanceof Date
+              ? m.createdAt.toISOString()
+              : String(m.createdAt),
         })),
       },
     });

@@ -75,9 +75,11 @@ export async function buildCoachContextBlock(
   }
 
   const last10Lines = last10.map((w) => {
-    const date = (w.endedAt ?? w.startedAt ?? w.createdAt)
-      .toISOString()
-      .slice(0, 10);
+    const raw = w.endedAt ?? w.startedAt ?? w.createdAt;
+    const date =
+      raw instanceof Date
+        ? raw.toISOString().slice(0, 10)
+        : String(raw).slice(0, 10);
     const vol = Number(w.totalVolume ?? 0);
     const exNames = namesByWorkout.get(w.id) ?? [];
     const exPart =
