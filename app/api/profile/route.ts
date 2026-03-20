@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { userProfiles, users } from '@/lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
 type UserProfileInsert = typeof userProfiles.$inferInsert;
@@ -11,8 +11,8 @@ type ProfileUpsertFields = Omit<
 >;
 
 /**
- * Fills NOT NULL columns with literals so INSERT/UPSERT never relies on SQL DEFAULT.
- * (Some DBs had is_pro NOT NULL without a server default.)
+ * Ensures NOT NULL columns always have a value for INSERT and UPDATE.
+ * All values are plain JS (bound params) — no sql.raw() literals that break Neon HTTP driver.
  */
 function withProfileWriteDefaults(
   patch: ProfileUpsertFields,
@@ -23,17 +23,6 @@ function withProfileWriteDefaults(
     onboardingCompleted,
     isPro: false,
     units: patch.units ?? 'kg',
-  };
-}
-
-/**
- * INSERT-only: avoid SQL DEFAULT for is_pro/units. Do not use in UPDATE — breaks param order with Neon.
- */
-function forcedNotNullLiteralsForInsert(upsertFields: ProfileUpsertFields) {
-  const u = upsertFields.units ?? 'kg';
-  return {
-    isPro: sql`false`,
-    units: u === 'lb' ? sql.raw(`'lb'::units`) : sql.raw(`'kg'::units`),
   };
 }
 
@@ -100,16 +89,12 @@ export async function POST(req: NextRequest) {
 
     const patch = buildProfilePatch(body);
     const upsertFields = withProfileWriteDefaults(patch, true);
-    const insertOnlyLiterals = forcedNotNullLiteralsForInsert(upsertFields);
     const valuesForInsert = {
       userId: auth.userId,
       ...upsertFields,
-      ...insertOnlyLiterals,
     };
-    // UPDATE: omit is_pro and units so Drizzle emits only bound params (mixed literals break Neon).
-    const { isPro: _ip, units: _un, ...updateRest } = upsertFields;
     const valuesForUpdate = {
-      ...updateRest,
+      ...upsertFields,
       updatedAt: new Date(),
     };
 
@@ -231,13 +216,11 @@ export async function PUT(req: NextRequest) {
       }
     } else {
       const insertFields = withProfileWriteDefaults(patch, true);
-      const lit = forcedNotNullLiteralsForInsert(insertFields);
       const [row] = await db
         .insert(userProfiles)
         .values({
           userId: auth.userId,
           ...insertFields,
-          ...lit,
         })
         .returning();
       profileRow = row;
