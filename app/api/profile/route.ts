@@ -60,19 +60,43 @@ export async function POST(req: NextRequest) {
       .where(eq(userProfiles.userId, auth.userId))
       .limit(1);
 
+    let profileRow: typeof userProfiles.$inferSelect | undefined;
+
     if (existing) {
-      await db.update(userProfiles).set(values).where(eq(userProfiles.userId, auth.userId));
+      const [row] = await db
+        .update(userProfiles)
+        .set(values)
+        .where(eq(userProfiles.userId, auth.userId))
+        .returning();
+      profileRow = row;
     } else {
-      await db.insert(userProfiles).values({ userId: auth.userId, ...values });
+      const [row] = await db
+        .insert(userProfiles)
+        .values({ userId: auth.userId, ...values })
+        .returning();
+      profileRow = row;
     }
 
-    const [profile] = await db
-      .select()
-      .from(userProfiles)
-      .where(eq(userProfiles.userId, auth.userId))
-      .limit(1);
+    if (!profileRow) {
+      const [fallback] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, auth.userId))
+        .limit(1);
+      profileRow = fallback;
+    }
 
-    return NextResponse.json({ data: serializeProfile(profile) }, { status: 201 });
+    if (!profileRow) {
+      return NextResponse.json(
+        { error: 'Failed to save profile' },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json(
+      { data: serializeProfile(profileRow) },
+      { status: 201 },
+    );
   } catch (err) {
     console.error('POST /api/profile error:', err);
     return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
@@ -97,19 +121,40 @@ export async function PUT(req: NextRequest) {
       .where(eq(userProfiles.userId, auth.userId))
       .limit(1);
 
+    let profileRow: typeof userProfiles.$inferSelect | undefined;
+
     if (existing) {
-      await db.update(userProfiles).set(values).where(eq(userProfiles.userId, auth.userId));
+      const [row] = await db
+        .update(userProfiles)
+        .set(values)
+        .where(eq(userProfiles.userId, auth.userId))
+        .returning();
+      profileRow = row;
     } else {
-      await db.insert(userProfiles).values({ userId: auth.userId, ...values, onboardingCompleted: true });
+      const [row] = await db
+        .insert(userProfiles)
+        .values({ userId: auth.userId, ...values, onboardingCompleted: true })
+        .returning();
+      profileRow = row;
     }
 
-    const [profile] = await db
-      .select()
-      .from(userProfiles)
-      .where(eq(userProfiles.userId, auth.userId))
-      .limit(1);
+    if (!profileRow) {
+      const [fallback] = await db
+        .select()
+        .from(userProfiles)
+        .where(eq(userProfiles.userId, auth.userId))
+        .limit(1);
+      profileRow = fallback;
+    }
 
-    return NextResponse.json({ data: serializeProfile(profile) });
+    if (!profileRow) {
+      return NextResponse.json(
+        { error: 'Failed to update profile' },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ data: serializeProfile(profileRow) });
   } catch (err) {
     console.error('PUT /api/profile error:', err);
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });

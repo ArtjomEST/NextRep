@@ -40,9 +40,11 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await fetchProfileApi();
       setProfile(data);
+      fetchedRef.current = true;
     } catch (err) {
       console.error('[ProfileContext] Failed to fetch profile:', err);
       setProfile(null);
+      fetchedRef.current = false;
     } finally {
       setIsLoading(false);
     }
@@ -50,8 +52,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === 'authenticated' && !fetchedRef.current) {
-      fetchedRef.current = true;
-      fetchProfile();
+      void fetchProfile();
     } else if (status === 'unauthenticated') {
       setProfile(null);
       setIsLoading(false);
