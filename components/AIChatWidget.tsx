@@ -6,6 +6,8 @@ import { theme } from '@/lib/theme';
 import {
   createPresetApi,
   fetchAiChatHistoryApi,
+  fetchPresetsApi,
+  patchPresetAddExerciseNamesApi,
   postAiChatApi,
   type AiChatMessageRow,
   type AiGeneratedPreset,
@@ -58,7 +60,24 @@ function formatMessageTime(iso: string): string {
   }
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatMessage(text: string): string {
+  const safe = escapeHtml(text);
+  return safe
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/\n/g, '<br/>');
+}
+
 type SaveUiState = 'idle' | 'saving' | 'saved' | 'error';
+type SuggestAddUiState = 'idle' | 'adding' | 'done' | 'error';
 
 export default function AIChatWidget() {
   const pathname = usePathname();
@@ -78,6 +97,17 @@ export default function AIChatWidget() {
   const [saveUiByMessageId, setSaveUiByMessageId] = useState<
     Record<string, SaveUiState>
   >({});
+  const [suggestAddUiByMessageId, setSuggestAddUiByMessageId] = useState<
+    Record<string, SuggestAddUiState>
+  >({});
+  const [presetPicker, setPresetPicker] = useState<{
+    messageId: string;
+    names: string[];
+  } | null>(null);
+  const [presetPickerList, setPresetPickerList] = useState<
+    Awaited<ReturnType<typeof fetchPresetsApi>>
+  >([]);
+  const [presetPickerLoading, setPresetPickerLoading] = useState(false);
 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -231,6 +261,33 @@ export default function AIChatWidget() {
     setRecording(true);
   }
 
+  async function openAddToPresetPicker(messageId: string, names: string[]) {
+    setPresetPicker({ messageId, names });
+    setPresetPickerLoading(true);
+    try {
+      const list = await fetchPresetsApi();
+      setPresetPickerList(list);
+    } catch {
+      setPresetPickerList([]);
+    } finally {
+      setPresetPickerLoading(false);
+    }
+  }
+
+  async function handleAddSuggestionsToPreset(presetId: string) {
+    if (!presetPicker) return;
+    const { messageId, names } = presetPicker;
+    setSuggestAddUiByMessageId((s) => ({ ...s, [messageId]: 'adding' }));
+    try {
+      await patchPresetAddExerciseNamesApi(presetId, names);
+      setSuggestAddUiByMessageId((s) => ({ ...s, [messageId]: 'done' }));
+      setPresetPicker(null);
+    } catch {
+      setSuggestAddUiByMessageId((s) => ({ ...s, [messageId]: 'error' }));
+      setPresetPicker(null);
+    }
+  }
+
   async function handleSavePreset(messageId: string, preset: AiGeneratedPreset) {
     const exerciseIds = preset.exercises
       .map((e) => e.exerciseId)
@@ -265,13 +322,16 @@ export default function AIChatWidget() {
     try {
       const response = await postAiChatApi(text);
       console.log('[Chat] Response preset:', response.preset);
-      const { reply, preset } = response;
+      const { reply, preset, suggestedExercises } = response;
       const assistant: AiChatMessageRow = {
         id: `local-a-${Date.now()}`,
         role: 'assistant',
         content: reply,
         createdAt: new Date().toISOString(),
         ...(preset != null ? { preset } : {}),
+        ...(suggestedExercises && suggestedExercises.length > 0
+          ? { suggestedExercises }
+          : {}),
       };
       setMessages((m) => {
         const withoutLast =
@@ -500,11 +560,19 @@ export default function AIChatWidget() {
                         color: theme.colors.textPrimary,
                         fontSize: 14,
                         lineHeight: 1.45,
-                        whiteSpace: 'pre-wrap',
+                        whiteSpace: isUser ? 'pre-wrap' : 'normal',
                         wordBreak: 'break-word',
                       }}
                     >
-                      {m.content}
+                      {isUser ? (
+                        m.content
+                      ) : (
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: formatMessage(m.content),
+                          }}
+                        />
+                      )}
                     </div>
                     {m.role === 'assistant' && m.preset && (
                       <AiPresetResultCard
@@ -514,6 +582,19 @@ export default function AIChatWidget() {
                         onSave={() => void handleSavePreset(m.id, m.preset!)}
                       />
                     )}
+                    {m.role === 'assistant' &&
+                      m.suggestedExercises &&
+                      m.suggestedExercises.length > 0 && (
+                        <AiSuggestedExercisesCard
+                          names={m.suggestedExercises}
+                          addState={
+                            suggestAddUiByMessageId[m.id] ?? 'idle'
+                          }
+                          onAddToPreset={() =>
+                            void openAddToPresetPicker(m.id, m.suggestedExercises!)
+                          }
+                        />
+                      )}
                     <div
                       style={{
                         fontSize: 11,
@@ -662,9 +743,225 @@ export default function AIChatWidget() {
               onClose={() => setPreviewPreset(null)}
             />
           )}
+
+          {presetPicker && (
+            <PresetPickerSheet
+              loading={presetPickerLoading}
+              presets={presetPickerList}
+              onClose={() => setPresetPicker(null)}
+              onSelect={(id) => void handleAddSuggestionsToPreset(id)}
+            />
+          )}
         </div>
       )}
     </>
+  );
+}
+
+function AiSuggestedExercisesCard({
+  names,
+  addState,
+  onAddToPreset,
+}: {
+  names: string[];
+  addState: SuggestAddUiState;
+  onAddToPreset: () => void;
+}) {
+  const busy = addState === 'adding';
+  const done = addState === 'done';
+  const failed = addState === 'error';
+
+  return (
+    <div
+      style={{
+        marginTop: 10,
+        padding: '12px 14px',
+        borderRadius: 14,
+        border: `1px solid ${theme.colors.border}`,
+        backgroundColor: theme.colors.surface,
+        maxWidth: '100%',
+      }}
+    >
+      <div
+        style={{
+          fontWeight: 700,
+          fontSize: 15,
+          color: theme.colors.textPrimary,
+          marginBottom: 10,
+        }}
+      >
+        💡 Suggested exercises
+      </div>
+      <ul
+        style={{
+          margin: '0 0 12px',
+          paddingLeft: 16,
+          color: theme.colors.textSecondary,
+          fontSize: 13,
+          lineHeight: 1.5,
+        }}
+      >
+        {names.map((n, i) => (
+          <li key={`${n}-${i}`} style={{ marginBottom: 4 }}>
+            • {n}
+          </li>
+        ))}
+      </ul>
+      <button
+        type="button"
+        onClick={onAddToPreset}
+        disabled={busy || done}
+        style={{
+          padding: '8px 14px',
+          borderRadius: 10,
+          border: `1px solid ${theme.colors.primary}`,
+          backgroundColor: theme.colors.surface,
+          color: theme.colors.primary,
+          fontWeight: 700,
+          fontSize: 13,
+          cursor: busy || done ? 'default' : 'pointer',
+          opacity: busy ? 0.75 : 1,
+        }}
+      >
+        {done ? 'Added ✓' : busy ? 'Adding…' : '+ Add to my preset'}
+      </button>
+      {failed && (
+        <div
+          style={{
+            marginTop: 8,
+            fontSize: 12,
+            color: theme.colors.error,
+            fontWeight: 600,
+          }}
+        >
+          Could not add exercises. Try again.
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PresetPickerSheet({
+  loading,
+  presets,
+  onClose,
+  onSelect,
+}: {
+  loading: boolean;
+  presets: Awaited<ReturnType<typeof fetchPresetsApi>>;
+  onClose: () => void;
+  onSelect: (presetId: string) => void;
+}) {
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 600,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+      }}
+    >
+      <div
+        role="presentation"
+        onClick={onClose}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: 'rgba(0,0,0,0.55)',
+        }}
+      />
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          maxHeight: '70vh',
+          overflowY: 'auto',
+          backgroundColor: theme.colors.card,
+          borderTop: `1px solid ${theme.colors.border}`,
+          borderRadius: '16px 16px 0 0',
+          padding:
+            '16px 16px max(20px, env(safe-area-inset-bottom, 20px))',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 12,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: 17,
+              color: theme.colors.textPrimary,
+            }}
+          >
+            Choose a preset
+          </div>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: theme.colors.textSecondary,
+              fontSize: 22,
+              cursor: 'pointer',
+              padding: 4,
+            }}
+          >
+            ✕
+          </button>
+        </div>
+        {loading && (
+          <p style={{ color: theme.colors.textMuted, fontSize: 14 }}>
+            Loading presets…
+          </p>
+        )}
+        {!loading && presets.length === 0 && (
+          <p style={{ color: theme.colors.textMuted, fontSize: 14 }}>
+            No presets yet. Create one from your account.
+          </p>
+        )}
+        {!loading &&
+          presets.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onSelect(p.id)}
+              style={{
+                display: 'block',
+                width: '100%',
+                textAlign: 'left',
+                padding: '12px 14px',
+                marginBottom: 8,
+                borderRadius: 12,
+                border: `1px solid ${theme.colors.border}`,
+                backgroundColor: theme.colors.surface,
+                color: theme.colors.textPrimary,
+                fontWeight: 600,
+                fontSize: 15,
+                cursor: 'pointer',
+              }}
+            >
+              {p.name}
+            </button>
+          ))}
+      </div>
+    </div>
   );
 }
 

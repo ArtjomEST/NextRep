@@ -40,12 +40,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       messages: chronological.map((m) => {
         if (m.role === 'assistant') {
-          const { content, preset } = parseStoredAssistantMessage(m.content);
+          const { content, preset, suggestedExercises } =
+            parseStoredAssistantMessage(m.content);
           return {
             id: m.id,
             role: m.role,
             content,
             ...(preset ? { preset } : {}),
+            ...(suggestedExercises && suggestedExercises.length > 0
+              ? { suggestedExercises }
+              : {}),
             createdAt:
               m.createdAt instanceof Date
                 ? m.createdAt.toISOString()

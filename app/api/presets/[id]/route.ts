@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { workoutPresets } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
+import { resolveExerciseIdsByNames } from '@/lib/ai/presetGeneration';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -50,6 +51,104 @@ export async function GET(req: NextRequest, { params }: RouteContext) {
   } catch (err) {
     console.error('GET /api/presets/[id] error:', err);
     return NextResponse.json({ error: 'Failed to fetch preset' }, { status: 500 });
+  }
+}
+
+// ─── PATCH /api/presets/[id] — append exercises by name (AI chat, etc.) ─
+
+export async function PATCH(req: NextRequest, { params }: RouteContext) {
+  try {
+    const auth = await authenticateRequest(req);
+    if (!auth) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 },
+      );
+    }
+
+    const { id } = await params;
+    if (!id) {
+      return NextResponse.json({ error: 'Preset ID required' }, { status: 400 });
+    }
+
+    const body = await req.json();
+    const addExerciseNames = Array.isArray(body.addExerciseNames)
+      ? (body.addExerciseNames as unknown[]).filter(
+          (n): n is string => typeof n === 'string' && n.trim().length > 0,
+        )
+      : [];
+
+    if (addExerciseNames.length === 0) {
+      return NextResponse.json(
+        { error: 'addExerciseNames must be a non-empty array of strings' },
+        { status: 400 },
+      );
+    }
+
+    const db = getDb();
+    const [row] = await db
+      .select()
+      .from(workoutPresets)
+      .where(and(eq(workoutPresets.id, id), eq(workoutPresets.userId, auth.userId)))
+      .limit(1);
+
+    if (!row) {
+      return NextResponse.json(
+        { error: 'Preset not found or access denied' },
+        { status: 404 },
+      );
+    }
+
+    const existing = Array.isArray(row.exerciseIds)
+      ? (row.exerciseIds as string[])
+      : [];
+    const newIds = await resolveExerciseIdsByNames(db, addExerciseNames);
+    const seen = new Set(existing);
+    const merged = [...existing];
+    for (const nid of newIds) {
+      if (!seen.has(nid)) {
+        merged.push(nid);
+        seen.add(nid);
+      }
+    }
+
+    const [updated] = await db
+      .update(workoutPresets)
+      .set({
+        exerciseIds: merged,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(workoutPresets.id, id), eq(workoutPresets.userId, auth.userId)))
+      .returning();
+
+    if (!updated) {
+      return NextResponse.json(
+        { error: 'Preset not found or access denied' },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({
+      data: {
+        id: updated.id,
+        userId: updated.userId,
+        name: updated.name,
+        exerciseIds: Array.isArray(updated.exerciseIds)
+          ? (updated.exerciseIds as string[])
+          : [],
+        createdAt:
+          updated.createdAt instanceof Date
+            ? updated.createdAt.toISOString()
+            : String(updated.createdAt),
+        updatedAt:
+          updated.updatedAt instanceof Date
+            ? updated.updatedAt.toISOString()
+            : String(updated.updatedAt),
+      },
+    });
+  } catch (err) {
+    console.error('PATCH /api/presets/[id] error:', err);
+    return NextResponse.json({ error: 'Failed to update preset' }, { status: 500 });
   }
 }
 

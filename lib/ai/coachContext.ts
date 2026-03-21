@@ -34,6 +34,10 @@ export type CoachContextData = {
   volumeSummary: string;
 };
 
+/** Used by POST /api/ai/chat (regular coach system prompt). */
+export const COACH_LANGUAGE_RULE =
+  'Always respond in the same language the user writes in. If the user writes in Russian, respond in Russian. If in English, respond in English. If in another language, respond in that language.';
+
 export async function buildCoachContextData(
   db: Database,
   userId: string,

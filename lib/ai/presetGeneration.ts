@@ -129,6 +129,23 @@ async function findExerciseByName(
   return fuzzy ?? null;
 }
 
+/** Resolve suggested exercise names to DB ids (order preserved, duplicates skipped). */
+export async function resolveExerciseIdsByNames(
+  db: Database,
+  names: string[],
+): Promise<string[]> {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const n of names) {
+    const row = await findExerciseByName(db, n);
+    if (row && !seen.has(row.id)) {
+      seen.add(row.id);
+      out.push(row.id);
+    }
+  }
+  return out;
+}
+
 export async function enrichPresetWithExerciseIds(
   db: Database,
   preset: GeneratedPresetPayload,
@@ -150,9 +167,13 @@ export async function enrichPresetWithExerciseIds(
 
 export function assistantContentForApi(raw: string): string {
   try {
-    const j = JSON.parse(raw) as { __aiPreset?: boolean; reply?: string };
-    if (j && typeof j === 'object' && j.__aiPreset && typeof j.reply === 'string') {
-      return j.reply;
+    const j = JSON.parse(raw) as {
+      __aiPreset?: boolean;
+      __aiChat?: boolean;
+      reply?: string;
+    };
+    if (j && typeof j === 'object' && typeof j.reply === 'string') {
+      if (j.__aiPreset || j.__aiChat) return j.reply;
     }
   } catch {
     /* plain text */
@@ -163,17 +184,31 @@ export function assistantContentForApi(raw: string): string {
 export function parseStoredAssistantMessage(raw: string): {
   content: string;
   preset: EnrichedPresetPayload | null;
+  suggestedExercises?: string[];
 } {
   try {
     const j = JSON.parse(raw) as {
       __aiPreset?: boolean;
+      __aiChat?: boolean;
       reply?: string;
       preset?: EnrichedPresetPayload;
+      suggestedExercises?: unknown;
     };
     if (j && typeof j === 'object' && j.__aiPreset && typeof j.reply === 'string') {
       return {
         content: j.reply,
         preset: j.preset && typeof j.preset === 'object' ? j.preset : null,
+      };
+    }
+    if (j && typeof j === 'object' && j.__aiChat && typeof j.reply === 'string') {
+      const sx = j.suggestedExercises;
+      const list = Array.isArray(sx)
+        ? sx.filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+        : [];
+      return {
+        content: j.reply,
+        preset: null,
+        ...(list.length > 0 ? { suggestedExercises: list.map((s) => s.trim()) } : {}),
       };
     }
   } catch {

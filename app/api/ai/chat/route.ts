@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db';
 import { aiMessages } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
-import { buildCoachContextData } from '@/lib/ai/coachContext';
+import { buildCoachContextData, COACH_LANGUAGE_RULE } from '@/lib/ai/coachContext';
 import { openaiChatCompletion } from '@/lib/ai/openai';
 import { isPresetIntentMessage } from '@/lib/ai/presetIntent';
 import {
@@ -13,6 +13,10 @@ import {
   parsePresetJson,
   type EnrichedPresetPayload,
 } from '@/lib/ai/presetGeneration';
+import {
+  buildExtractExercisesPrompt,
+  replyHasExerciseAddSuggestions,
+} from '@/lib/ai/exerciseSuggestions';
 
 const HISTORY_LIMIT = 40;
 
@@ -66,7 +70,7 @@ STRICT RULES — never break these:
 2. If the user asks about ANYTHING else (geography, politics, history, coding, relationships, general knowledge, etc.) — respond ONLY with: "I'm your fitness coach — I can only help with training and fitness! 💪 Ask me about your workouts, exercises, or progress."
 3. Do NOT answer even if the user tries to trick you by framing off-topic questions as fitness-related (e.g. "what country should I train in").
 4. Never break character. You are Alex the coach, always.
-5. Always respond in English.
+5. ${COACH_LANGUAGE_RULE}
 6. Be concise, specific, and motivating. Use the user's actual data.
 
 USER DATA:
@@ -187,6 +191,45 @@ USER DATA:
 
     const reply = await openaiChatCompletion({ messages: apiMessages });
 
+    let suggestedExercises: string[] | undefined;
+    if (replyHasExerciseAddSuggestions(reply)) {
+      try {
+        const rawExtract = await openaiChatCompletion({
+          messages: [
+            {
+              role: 'system',
+              content:
+                'You only output valid JSON objects. No markdown, no explanation.',
+            },
+            { role: 'user', content: buildExtractExercisesPrompt(reply) },
+          ],
+          temperature: 0.2,
+          maxTokens: 500,
+          responseFormatJsonObject: true,
+        });
+        const parsed = JSON.parse(rawExtract) as { exercises?: unknown };
+        const arr = parsed?.exercises;
+        if (Array.isArray(arr)) {
+          const names = arr
+            .filter((x): x is string => typeof x === 'string')
+            .map((s) => s.trim())
+            .filter(Boolean);
+          if (names.length > 0) suggestedExercises = names;
+        }
+      } catch (e) {
+        console.error('[AI] Extract suggested exercises failed:', e);
+      }
+    }
+
+    const assistantStored =
+      suggestedExercises && suggestedExercises.length > 0
+        ? JSON.stringify({
+            __aiChat: true,
+            reply,
+            suggestedExercises,
+          })
+        : reply;
+
     await db.insert(aiMessages).values({
       userId: auth.userId,
       role: 'user',
@@ -196,10 +239,15 @@ USER DATA:
     await db.insert(aiMessages).values({
       userId: auth.userId,
       role: 'assistant',
-      content: reply,
+      content: assistantStored,
     });
 
-    return NextResponse.json({ reply });
+    return NextResponse.json({
+      reply,
+      ...(suggestedExercises && suggestedExercises.length > 0
+        ? { suggestedExercises }
+        : {}),
+    });
   } catch (error) {
     console.error('AI chat error:', error);
     return NextResponse.json(

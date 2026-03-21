@@ -887,6 +887,7 @@ export interface AiChatMessageRow {
   content: string;
   createdAt: string;
   preset?: AiGeneratedPreset | null;
+  suggestedExercises?: string[];
 }
 
 export async function fetchAiChatHistoryApi(): Promise<AiChatMessageRow[]> {
@@ -904,6 +905,7 @@ export async function fetchAiChatHistoryApi(): Promise<AiChatMessageRow[]> {
 export async function postAiChatApi(message: string): Promise<{
   reply: string;
   preset?: AiGeneratedPreset | null;
+  suggestedExercises?: string[];
 }> {
   const res = await fetch('/api/ai/chat', {
     method: 'POST',
@@ -913,6 +915,7 @@ export async function postAiChatApi(message: string): Promise<{
   const json = (await res.json().catch(() => ({}))) as {
     reply?: string;
     preset?: AiGeneratedPreset | null;
+    suggestedExercises?: string[];
     error?: string;
   };
   if (!res.ok) {
@@ -921,7 +924,29 @@ export async function postAiChatApi(message: string): Promise<{
   return {
     reply: json.reply as string,
     preset: json.preset,
+    suggestedExercises: json.suggestedExercises,
   };
+}
+
+export async function patchPresetAddExerciseNamesApi(
+  presetId: string,
+  addExerciseNames: string[],
+): Promise<Preset> {
+  const res = await fetch(`/api/presets/${presetId}`, {
+    method: 'PATCH',
+    headers: {
+      ...getAuthHeaders(),
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ addExerciseNames }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      (json as { error?: string }).error ?? `Failed to update preset (${res.status})`,
+    );
+  }
+  return (json as { data: Preset }).data;
 }
 
 export interface AiWorkoutReportScores {
