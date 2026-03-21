@@ -4,6 +4,9 @@ export async function openaiChatCompletion(options: {
   messages: { role: ChatRole; content: string }[];
   model?: string;
   temperature?: number;
+  /** Defaults to 500 for short replies; use a higher value for JSON preset payloads. */
+  maxTokens?: number;
+  responseFormatJsonObject?: boolean;
 }): Promise<string> {
   if (!process.env.OPENAI_API_KEY?.trim()) {
     throw new Error('OPENAI_API_KEY is not configured');
@@ -20,9 +23,12 @@ export async function openaiChatCompletion(options: {
     body: JSON.stringify({
       model: options.model ?? 'gpt-4o-mini',
       messages,
-      max_tokens: 500,
+      max_tokens: options.maxTokens ?? 500,
       ...(options.temperature !== undefined && {
         temperature: options.temperature,
+      }),
+      ...(options.responseFormatJsonObject && {
+        response_format: { type: 'json_object' },
       }),
     }),
   });

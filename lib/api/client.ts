@@ -867,11 +867,26 @@ export async function updateProfileApi(
 
 // ─── AI Coach ───────────────────────────────────────────────
 
+export interface AiPresetExercise {
+  name: string;
+  sets: number;
+  reps: number;
+  restSeconds: number;
+  exerciseId?: string | null;
+}
+
+export interface AiGeneratedPreset {
+  name: string;
+  exercises: AiPresetExercise[];
+  coachNote: string;
+}
+
 export interface AiChatMessageRow {
   id: string;
   role: string;
   content: string;
   createdAt: string;
+  preset?: AiGeneratedPreset | null;
 }
 
 export async function fetchAiChatHistoryApi(): Promise<AiChatMessageRow[]> {
@@ -886,7 +901,10 @@ export async function fetchAiChatHistoryApi(): Promise<AiChatMessageRow[]> {
   return (json.messages ?? []) as AiChatMessageRow[];
 }
 
-export async function postAiChatApi(message: string): Promise<{ reply: string }> {
+export async function postAiChatApi(message: string): Promise<{
+  reply: string;
+  preset?: AiGeneratedPreset;
+}> {
   const res = await fetch('/api/ai/chat', {
     method: 'POST',
     headers: getAuthHeaders(),
@@ -896,7 +914,10 @@ export async function postAiChatApi(message: string): Promise<{ reply: string }>
   if (!res.ok) {
     throw new Error(json.error ?? `Chat failed (${res.status})`);
   }
-  return { reply: json.reply as string };
+  return {
+    reply: json.reply as string,
+    preset: json.preset as AiGeneratedPreset | undefined,
+  };
 }
 
 export interface AiWorkoutReportScores {

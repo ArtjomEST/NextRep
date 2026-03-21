@@ -5,8 +5,19 @@ import { eq, desc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 import { buildCoachContextData } from '@/lib/ai/coachContext';
 import { openaiChatCompletion } from '@/lib/ai/openai';
+import { isPresetIntentMessage } from '@/lib/ai/presetIntent';
+import {
+  assistantContentForApi,
+  buildPresetSystemPrompt,
+  enrichPresetWithExerciseIds,
+  parsePresetJson,
+  type EnrichedPresetPayload,
+} from '@/lib/ai/presetGeneration';
 
 const HISTORY_LIMIT = 40;
+
+const PRESET_REPLY =
+  "I've built you a workout preset! Check it out 👇";
 
 export async function POST(req: NextRequest) {
   if (!process.env.OPENAI_API_KEY) {
@@ -24,10 +35,6 @@ export async function POST(req: NextRequest) {
         { status: 401 },
       );
     }
-
-    // TODO: Pro gate
-    // const profile = await getUserProfile(userId)
-    // if (!profile.isPro) check weekly message count, return 429 if exceeded
 
     let body: unknown;
     try {
@@ -91,10 +98,75 @@ USER DATA:
         .filter((m) => m.role === 'user' || m.role === 'assistant')
         .map((m) => ({
           role: m.role as 'user' | 'assistant',
-          content: m.content,
+          content:
+            m.role === 'assistant'
+              ? assistantContentForApi(m.content)
+              : m.content,
         })),
       { role: 'user', content: msg },
     ];
+
+    if (isPresetIntentMessage(msg)) {
+      const presetSystem = buildPresetSystemPrompt(msg);
+      const presetMessages = [
+        { role: 'system' as const, content: presetSystem },
+        { role: 'user' as const, content: msg },
+      ];
+
+      let rawJson: string;
+      try {
+        rawJson = await openaiChatCompletion({
+          messages: presetMessages,
+          temperature: 0.7,
+          maxTokens: 1200,
+          responseFormatJsonObject: true,
+        });
+      } catch (e) {
+        console.error('Preset OpenAI error:', e);
+        return NextResponse.json(
+          {
+            error:
+              e instanceof Error ? e.message : 'Failed to generate preset',
+          },
+          { status: 500 },
+        );
+      }
+
+      let presetParsed: EnrichedPresetPayload;
+      try {
+        const generated = parsePresetJson(rawJson);
+        presetParsed = await enrichPresetWithExerciseIds(db, generated);
+      } catch (e) {
+        console.error('Preset parse error:', e);
+        return NextResponse.json(
+          { error: 'Could not generate a valid workout preset. Try again.' },
+          { status: 500 },
+        );
+      }
+
+      const storedAssistant = JSON.stringify({
+        __aiPreset: true,
+        reply: PRESET_REPLY,
+        preset: presetParsed,
+      });
+
+      await db.insert(aiMessages).values({
+        userId: auth.userId,
+        role: 'user',
+        content: msg,
+      });
+
+      await db.insert(aiMessages).values({
+        userId: auth.userId,
+        role: 'assistant',
+        content: storedAssistant,
+      });
+
+      return NextResponse.json({
+        reply: PRESET_REPLY,
+        preset: presetParsed,
+      });
+    }
 
     const reply = await openaiChatCompletion({ messages: apiMessages });
 
