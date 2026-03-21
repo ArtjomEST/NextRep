@@ -1,5 +1,6 @@
 /** Shared between client (loading UI) and server (POST /api/ai/chat). */
 export const PRESET_KEYWORDS = [
+  // English
   'create preset',
   'make preset',
   'generate preset',
@@ -8,8 +9,6 @@ export const PRESET_KEYWORDS = [
   'make workout',
   'generate workout',
   'build me a workout',
-  'create a program',
-  'make me a program',
   'chest workout',
   'push day',
   'pull day',
@@ -17,9 +16,30 @@ export const PRESET_KEYWORDS = [
   'arm workout',
   'back workout',
   'shoulder workout',
-  'full body workout',
+  'full body',
   'upper body',
   'lower body',
+  'abs workout',
+  'core workout',
+  'cardio workout',
+  // Russian
+  'составь',
+  'создай',
+  'сгенерируй',
+  'придумай',
+  'сделай мне',
+  'пресет',
+  'тренировку для',
+  'план тренировки',
+  'программу тренировок',
+  'упражнения для',
+  'день ног',
+  'день груди',
+  'день спины',
+  'день плеч',
+  'день рук',
+  'на пресс',
+  'кардио тренировку',
 ] as const;
 
 export function isPresetIntentMessage(message: string): boolean {

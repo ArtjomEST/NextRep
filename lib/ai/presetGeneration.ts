@@ -26,25 +26,27 @@ export interface EnrichedPresetPayload {
 }
 
 export function buildPresetSystemPrompt(userMessage: string): string {
-  return `
-You are a fitness coach generating a workout preset for the NextRep app.
-The user asked: "${userMessage.replace(/"/g, '\\"')}"
+  const safe = userMessage.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+  return `You are a JSON generator. Return ONLY a valid JSON object with NO other text, NO markdown, NO explanation, NO code blocks.
 
-Return ONLY a valid JSON object (no markdown, no explanation) in this exact format:
+The user wants a workout preset: "${safe}"
+
+Return exactly this JSON structure:
 {
-  "name": "Chest + Triceps",
+  "name": "Workout Name",
   "exercises": [
-    { "name": "Bench Press", "sets": 4, "reps": 8, "restSeconds": 90 },
-    { "name": "Incline Dumbbell Press", "sets": 3, "reps": 10, "restSeconds": 75 },
-    { "name": "Cable Fly", "sets": 3, "reps": 12, "restSeconds": 60 },
-    { "name": "Triceps Pushdown", "sets": 3, "reps": 12, "restSeconds": 60 },
-    { "name": "Skull Crushers", "sets": 3, "reps": 10, "restSeconds": 60 }
+    { "name": "Exercise Name", "sets": 3, "reps": 10, "restSeconds": 60 }
   ],
-  "coachNote": "This is a classic chest and triceps hypertrophy workout. Start heavy on bench press when fresh."
+  "coachNote": "One sentence coaching tip."
 }
 
-Use exercise names that exist in a standard gym. 4-6 exercises. Sets 3-4. Reps 8-15.
-`.trim();
+Rules:
+- 4 to 6 exercises
+- sets between 3 and 5
+- reps between 6 and 15
+- restSeconds between 45 and 120
+- Use common gym exercise names in English
+- Return ONLY the JSON object, nothing else`.trim();
 }
 
 function stripCodeFence(text: string): string {

@@ -903,20 +903,24 @@ export async function fetchAiChatHistoryApi(): Promise<AiChatMessageRow[]> {
 
 export async function postAiChatApi(message: string): Promise<{
   reply: string;
-  preset?: AiGeneratedPreset;
+  preset?: AiGeneratedPreset | null;
 }> {
   const res = await fetch('/api/ai/chat', {
     method: 'POST',
     headers: getAuthHeaders(),
     body: JSON.stringify({ message }),
   });
-  const json = await res.json().catch(() => ({}));
+  const json = (await res.json().catch(() => ({}))) as {
+    reply?: string;
+    preset?: AiGeneratedPreset | null;
+    error?: string;
+  };
   if (!res.ok) {
     throw new Error(json.error ?? `Chat failed (${res.status})`);
   }
   return {
     reply: json.reply as string,
-    preset: json.preset as AiGeneratedPreset | undefined,
+    preset: json.preset,
   };
 }
 

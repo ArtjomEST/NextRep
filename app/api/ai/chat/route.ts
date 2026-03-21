@@ -107,6 +107,8 @@ USER DATA:
     ];
 
     if (isPresetIntentMessage(msg)) {
+      console.log('[AI] Preset intent detected, generating JSON...');
+
       const presetSystem = buildPresetSystemPrompt(msg);
       const presetMessages = [
         { role: 'system' as const, content: presetSystem },
@@ -132,16 +134,31 @@ USER DATA:
         );
       }
 
-      let presetParsed: EnrichedPresetPayload;
+      console.log('[AI] Raw preset response:', rawJson);
+
+      const fallbackReply =
+        "I couldn't generate a preset right now. Try asking like: 'Create a chest workout preset with 5 exercises'";
+
+      let presetParsed: EnrichedPresetPayload | null = null;
       try {
         const generated = parsePresetJson(rawJson);
         presetParsed = await enrichPresetWithExerciseIds(db, generated);
       } catch (e) {
         console.error('Preset parse error:', e);
-        return NextResponse.json(
-          { error: 'Could not generate a valid workout preset. Try again.' },
-          { status: 500 },
-        );
+        await db.insert(aiMessages).values({
+          userId: auth.userId,
+          role: 'user',
+          content: msg,
+        });
+        await db.insert(aiMessages).values({
+          userId: auth.userId,
+          role: 'assistant',
+          content: fallbackReply,
+        });
+        return NextResponse.json({
+          reply: fallbackReply,
+          preset: null,
+        });
       }
 
       const storedAssistant = JSON.stringify({

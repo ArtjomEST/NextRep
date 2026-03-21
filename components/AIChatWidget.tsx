@@ -263,13 +263,15 @@ export default function AIChatWidget() {
     };
     setMessages((m) => [...m, optimisticUser]);
     try {
-      const { reply, preset } = await postAiChatApi(text);
+      const response = await postAiChatApi(text);
+      console.log('[Chat] Response preset:', response.preset);
+      const { reply, preset } = response;
       const assistant: AiChatMessageRow = {
         id: `local-a-${Date.now()}`,
         role: 'assistant',
         content: reply,
         createdAt: new Date().toISOString(),
-        ...(preset ? { preset } : {}),
+        ...(preset != null ? { preset } : {}),
       };
       setMessages((m) => {
         const withoutLast =
