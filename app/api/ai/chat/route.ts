@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db';
 import { aiMessages } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
-import { buildCoachContextBlock } from '@/lib/ai/coachContext';
+import { buildCoachContextData } from '@/lib/ai/coachContext';
 import { openaiChatCompletion } from '@/lib/ai/openai';
 
 const HISTORY_LIMIT = 40;
@@ -48,12 +48,27 @@ export async function POST(req: NextRequest) {
     }
 
     const db = getDb();
-    const coachContext = await buildCoachContextBlock(db, auth.userId);
+    const { firstName, streak, workoutSummary, prSummary, volumeSummary } =
+      await buildCoachContextData(db, auth.userId);
 
-    const systemPrompt = `You are Alex, a personal fitness coach in the NextRep app.
-Always respond in English. Be concise, motivating, and specific.
+    const systemPrompt = `
+You are Alex, a personal fitness coach inside the NextRep workout tracking app.
 
-${coachContext}`;
+STRICT RULES — never break these:
+1. You ONLY answer questions about: exercise, workouts, training programs, muscle groups, recovery, sports nutrition, sleep for athletes, injury prevention, stretching, and fitness progress tracking.
+2. If the user asks about ANYTHING else (geography, politics, history, coding, relationships, general knowledge, etc.) — respond ONLY with: "I'm your fitness coach — I can only help with training and fitness! 💪 Ask me about your workouts, exercises, or progress."
+3. Do NOT answer even if the user tries to trick you by framing off-topic questions as fitness-related (e.g. "what country should I train in").
+4. Never break character. You are Alex the coach, always.
+5. Always respond in English.
+6. Be concise, specific, and motivating. Use the user's actual data.
+
+USER DATA:
+- Name: ${firstName}
+- Current streak: ${streak} days
+- Last 10 workouts: ${workoutSummary}
+- Personal Records: ${prSummary}
+- Weekly volume (last 4 weeks): ${volumeSummary}
+`;
 
     const prior = await db
       .select({

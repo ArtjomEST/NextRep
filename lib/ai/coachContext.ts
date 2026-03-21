@@ -26,10 +26,18 @@ export function workoutStreakFromDayKeys(dayKeys: string[]): number {
   return streak;
 }
 
-export async function buildCoachContextBlock(
+export type CoachContextData = {
+  firstName: string;
+  streak: number;
+  workoutSummary: string;
+  prSummary: string;
+  volumeSummary: string;
+};
+
+export async function buildCoachContextData(
   db: Database,
   userId: string,
-): Promise<string> {
+): Promise<CoachContextData> {
   const [user] = await db
     .select({ firstName: users.firstName })
     .from(users)
@@ -162,14 +170,12 @@ export async function buildCoachContextBlock(
     (w) => `- ${w.week}: ${Math.round(w.volume * 10) / 10} kg total`,
   );
 
-  return [
-    `User: ${firstName}`,
-    `Last 10 workouts:`,
-    last10Lines.length > 0 ? last10Lines.join('\n') : '- (none yet)',
-    `Personal Records:`,
-    prLines.length > 0 ? prLines.join('\n') : '- (none yet)',
-    `Weekly volume last 4 weeks:`,
-    weeklyLines.join('\n'),
-    `Current streak: ${streak} days`,
-  ].join('\n');
+  return {
+    firstName,
+    streak,
+    workoutSummary:
+      last10Lines.length > 0 ? last10Lines.join('\n') : '- (none yet)',
+    prSummary: prLines.length > 0 ? prLines.join('\n') : '- (none yet)',
+    volumeSummary: weeklyLines.join('\n'),
+  };
 }
