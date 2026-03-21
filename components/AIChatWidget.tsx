@@ -11,6 +11,16 @@ import {
 
 const LAST_READ_KEY = 'nextrep-ai-chat-last-read';
 
+function getWelcomeMessage(): AiChatMessageRow {
+  return {
+    id: 'welcome',
+    role: 'assistant',
+    content:
+      "Hey! I'm Alex, your personal AI coach. Ask me anything about your training, recovery, or progress! 💪",
+    createdAt: new Date().toISOString(),
+  };
+}
+
 function formatMessageTime(iso: string): string {
   try {
     return new Date(iso).toLocaleTimeString(undefined, {
@@ -73,11 +83,20 @@ export default function AIChatWidget() {
       try {
         const list = await fetchAiChatHistoryApi();
         if (cancelled) return;
-        setMessages(list);
-        refreshUnread(list);
-      } catch (e) {
+        // If history fails or is empty, show welcome message
+        if (list.length === 0) {
+          const w = getWelcomeMessage();
+          setMessages([w]);
+          refreshUnread([w]);
+        } else {
+          setMessages(list);
+          refreshUnread(list);
+        }
+      } catch {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : 'Could not load chat');
+          const w = getWelcomeMessage();
+          setMessages([w]);
+          refreshUnread([w]);
         }
       } finally {
         if (!cancelled) setLoadingHistory(false);

@@ -9,6 +9,13 @@ import { openaiChatCompletion } from '@/lib/ai/openai';
 const HISTORY_LIMIT = 40;
 
 export async function POST(req: NextRequest) {
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json(
+      { error: 'OPENAI_API_KEY is not configured' },
+      { status: 503 },
+    );
+  }
+
   try {
     const auth = await authenticateRequest(req);
     if (!auth) {
@@ -89,17 +96,12 @@ ${coachContext}`;
     });
 
     return NextResponse.json({ reply });
-  } catch (err) {
-    console.error('POST /api/ai/chat error:', err);
-    const message = err instanceof Error ? err.message : String(err);
-    if (message.includes('OPENAI_API_KEY')) {
-      return NextResponse.json(
-        { error: 'AI is not configured' },
-        { status: 503 },
-      );
-    }
+  } catch (error) {
+    console.error('AI chat error:', error);
     return NextResponse.json(
-      { error: 'Chat failed', message },
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 },
     );
   }

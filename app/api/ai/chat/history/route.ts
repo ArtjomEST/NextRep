@@ -5,6 +5,13 @@ import { eq, desc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 
 export async function GET(req: NextRequest) {
+  if (!process.env.OPENAI_API_KEY) {
+    return NextResponse.json(
+      { error: 'OPENAI_API_KEY is not configured' },
+      { status: 503 },
+    );
+  }
+
   try {
     const auth = await authenticateRequest(req);
     if (!auth) {
@@ -30,23 +37,18 @@ export async function GET(req: NextRequest) {
     const chronological = [...rows].reverse();
 
     return NextResponse.json({
-      data: {
-        messages: chronological.map((m) => ({
-          id: m.id,
-          role: m.role,
-          content: m.content,
-          createdAt:
-            m.createdAt instanceof Date
-              ? m.createdAt.toISOString()
-              : String(m.createdAt),
-        })),
-      },
+      messages: chronological.map((m) => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        createdAt:
+          m.createdAt instanceof Date
+            ? m.createdAt.toISOString()
+            : String(m.createdAt),
+      })),
     });
   } catch (err) {
     console.error('GET /api/ai/chat/history error:', err);
-    return NextResponse.json(
-      { error: 'Failed to load chat history', message: String(err) },
-      { status: 500 },
-    );
+    return NextResponse.json({ messages: [] });
   }
 }

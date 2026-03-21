@@ -5,33 +5,40 @@ export async function openaiChatCompletion(options: {
   model?: string;
   temperature?: number;
 }): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey?.trim()) {
+  if (!process.env.OPENAI_API_KEY?.trim()) {
     throw new Error('OPENAI_API_KEY is not configured');
   }
 
-  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+  const { messages } = options;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
       model: options.model ?? 'gpt-4o-mini',
-      messages: options.messages,
-      temperature: options.temperature ?? 0.65,
+      messages,
+      max_tokens: 500,
+      ...(options.temperature !== undefined && {
+        temperature: options.temperature,
+      }),
     }),
   });
 
-  const json = (await res.json()) as {
-    error?: { message?: string };
+  if (!response.ok) {
+    const err = (await response.json().catch(() => ({}))) as {
+      error?: { message?: string };
+    };
+    throw new Error(
+      `OpenAI error: ${err.error?.message || response.statusText}`,
+    );
+  }
+
+  const json = (await response.json()) as {
     choices?: { message?: { content?: string } }[];
   };
-
-  if (!res.ok) {
-    const msg = json.error?.message ?? `OpenAI error (${res.status})`;
-    throw new Error(msg);
-  }
 
   const text = json.choices?.[0]?.message?.content?.trim();
   if (!text) {

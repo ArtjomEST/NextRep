@@ -883,7 +883,7 @@ export async function fetchAiChatHistoryApi(): Promise<AiChatMessageRow[]> {
     throw new Error(json.error ?? `Failed to load chat (${res.status})`);
   }
   const json = await res.json();
-  return (json.data?.messages ?? []) as AiChatMessageRow[];
+  return (json.messages ?? []) as AiChatMessageRow[];
 }
 
 export async function postAiChatApi(message: string): Promise<{ reply: string }> {
