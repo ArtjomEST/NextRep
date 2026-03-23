@@ -9,7 +9,14 @@ import React, {
   useRef,
 } from 'react';
 import { useAuth } from '@/lib/auth/context';
-import { fetchProfileApi, saveProfileApi, updateProfileApi, type UserProfile, type OnboardingData } from '@/lib/api/client';
+import {
+  fetchProfileApi,
+  saveProfileApi,
+  updateProfileApi,
+  type UserProfile,
+  type OnboardingData,
+  type ProfileUpdatePayload,
+} from '@/lib/api/client';
 
 interface ProfileContextValue {
   profile: UserProfile | null;
@@ -17,7 +24,7 @@ interface ProfileContextValue {
   hasCompletedOnboarding: boolean;
   refetch: () => Promise<void>;
   saveProfile: (data: OnboardingData) => Promise<void>;
-  updateProfile: (data: Partial<OnboardingData>) => Promise<void>;
+  updateProfile: (data: ProfileUpdatePayload) => Promise<void>;
 }
 
 const ProfileContext = createContext<ProfileContextValue>({
@@ -79,7 +86,7 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     fetchedRef.current = true;
   }, []);
 
-  const updateProfile = useCallback(async (data: Partial<OnboardingData>) => {
+  const updateProfile = useCallback(async (data: ProfileUpdatePayload) => {
     const updated = await updateProfileApi(data);
     setProfile(updated);
     fetchedRef.current = true;

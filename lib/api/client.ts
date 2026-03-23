@@ -643,6 +643,10 @@ export interface OnboardingData {
   injuries: string[];
 }
 
+export type ProfileUpdatePayload = Partial<OnboardingData> & {
+  onboardingCompleted?: boolean;
+};
+
 export async function fetchSettings(): Promise<UserSettings> {
   const res = await fetch('/api/me/settings', { headers: getAuthHeaders() });
   if (!res.ok) {
@@ -843,7 +847,7 @@ export async function saveProfileApi(data: OnboardingData): Promise<UserProfile>
 }
 
 export async function updateProfileApi(
-  data: Partial<OnboardingData>,
+  data: ProfileUpdatePayload,
 ): Promise<UserProfile> {
   const res = await fetch('/api/profile', {
     method: 'PUT',

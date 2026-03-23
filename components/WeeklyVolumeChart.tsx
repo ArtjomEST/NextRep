@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { getAuthHeaders } from '@/lib/auth/client';
 import Skeleton from '@/components/Skeleton';
 
-interface DayData {
+export interface DayData {
   dayIndex: number;
   workoutId: string;
   name: string;
@@ -13,13 +13,16 @@ interface DayData {
   durationMinutes: number;
 }
 
-interface WeeklyVolumeData {
+export interface WeeklyVolumeChartData {
   days: (DayData | null)[];
   totalVolume: number;
   lastWeekVolume: number;
   sessionTarget: number;
   todayIndex: number;
 }
+
+/** @deprecated use WeeklyVolumeChartData */
+type WeeklyVolumeData = WeeklyVolumeChartData;
 
 const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 const DAY_FULL_NAMES = [
@@ -45,13 +48,25 @@ const CARD_STYLE: React.CSSProperties = {
 
 const BAR_MAX_H = 56;
 
-export default function WeeklyVolumeChart() {
-  const [data, setData] = useState<WeeklyVolumeData | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function WeeklyVolumeChart({
+  initialData,
+}: {
+  /** When set, skips API fetch and renders this data (e.g. onboarding demo). */
+  initialData?: WeeklyVolumeChartData | null;
+} = {}) {
+  const [data, setData] = useState<WeeklyVolumeData | null>(
+    initialData !== undefined ? initialData : null,
+  );
+  const [loading, setLoading] = useState(initialData === undefined);
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (initialData !== undefined) {
+      setData(initialData);
+      setLoading(false);
+      return;
+    }
     async function load() {
       try {
         const res = await fetch('/api/workouts/weekly-volume', {
@@ -68,7 +83,7 @@ export default function WeeklyVolumeChart() {
       }
     }
     load();
-  }, []);
+  }, [initialData]);
 
   useEffect(() => {
     if (activeDay === null) return;

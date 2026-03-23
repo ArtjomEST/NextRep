@@ -6,6 +6,12 @@ import { theme } from '@/lib/theme';
 interface RestTimerProps {
   visible: boolean;
   isMinimized?: boolean;
+  /** Compact in-flow layout (e.g. onboarding) — same mini-bar UI, not fixed to viewport. */
+  embedded?: boolean;
+  /** Countdown length in seconds (default 120). */
+  durationSeconds?: number;
+  /** When true, timer does not call onDismiss at 0. */
+  suppressAutoDismiss?: boolean;
   workoutName: string;
   exerciseName: string;
   setIndex: number;
@@ -17,7 +23,6 @@ interface RestTimerProps {
 }
 
 const DEFAULT_REST_SEC = 120;
-const DEFAULT_REST_MS = DEFAULT_REST_SEC * 1000;
 const TICK_MS = 500;
 const RADIUS = 88;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
@@ -25,6 +30,9 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 export default function RestTimer({
   visible,
   isMinimized = false,
+  embedded = false,
+  durationSeconds,
+  suppressAutoDismiss = false,
   workoutName,
   exerciseName,
   setIndex,
@@ -34,6 +42,7 @@ export default function RestTimer({
   onFinishExercise,
   onDismiss,
 }: RestTimerProps) {
+  const durationSec = durationSeconds ?? DEFAULT_REST_SEC;
   const [restEndsAt, setRestEndsAt] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [remainingWhenPaused, setRemainingWhenPaused] = useState(0);
@@ -55,14 +64,14 @@ export default function RestTimer({
   useEffect(() => {
     if (visible) {
       justBecameVisibleRef.current = true;
-      setRestEndsAt(Date.now() + DEFAULT_REST_MS);
+      setRestEndsAt(Date.now() + durationSec * 1000);
       setIsPaused(false);
       setRemainingWhenPaused(0);
       hasAutoClosedRef.current = false;
     } else {
       clearIntervalRef();
     }
-  }, [visible, clearIntervalRef]);
+  }, [visible, clearIntervalRef, durationSec]);
 
   // Tick interval for UI refresh (only when running, not paused)
   useEffect(() => {
@@ -90,7 +99,7 @@ export default function RestTimer({
   // Skip on first run after visible becomes true: init effect schedules setRestEndsAt
   // but auto-close runs in same cycle and would see stale restEndsAt (0 or past) → immediate dismiss
   useEffect(() => {
-    if (!visible || hasAutoClosedRef.current) return;
+    if (!visible || hasAutoClosedRef.current || suppressAutoDismiss) return;
     if (justBecameVisibleRef.current) {
       justBecameVisibleRef.current = false;
       return;
@@ -102,7 +111,7 @@ export default function RestTimer({
       hasAutoClosedRef.current = true;
       onDismiss();
     }
-  }, [visible, isPaused, restEndsAt, remainingWhenPaused, tick, onDismiss]);
+  }, [visible, isPaused, restEndsAt, remainingWhenPaused, tick, onDismiss, suppressAutoDismiss]);
 
   // Compute remaining seconds for display (timestamp-based)
   const remaining = isPaused
@@ -138,12 +147,101 @@ export default function RestTimer({
 
   if (!visible) return null;
 
-  const progress = remaining / DEFAULT_REST_SEC;
+  const progress = remaining / durationSec;
   const dashOffset = CIRCUMFERENCE * (1 - progress);
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
   const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   const isDone = remaining === 0;
+
+  // ─── Embedded (in-flow mini bar — same styles as minimized, not fixed) ───
+  if (embedded) {
+    return (
+      <div
+        style={{
+          borderRadius: 12,
+          border: `1px solid ${theme.colors.border}`,
+          backgroundColor: theme.colors.card,
+          padding: '12px 14px',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            width: '100%',
+          }}
+        >
+          <span
+            style={{
+              color: isDone ? theme.colors.success : theme.colors.textPrimary,
+              fontSize: '20px',
+              fontWeight: 800,
+              fontVariantNumeric: 'tabular-nums',
+              minWidth: 52,
+            }}
+          >
+            {timeStr}
+          </span>
+          <div
+            style={{
+              flex: 1,
+              height: 4,
+              backgroundColor: theme.colors.border,
+              borderRadius: 2,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              style={{
+                height: '100%',
+                width: `${progress * 100}%`,
+                backgroundColor: isDone ? theme.colors.success : theme.colors.primary,
+                borderRadius: 2,
+                transition: 'width 0.3s ease-out',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button
+              type="button"
+              onClick={handleMinus30}
+              style={miniBtn}
+              aria-label="Subtract 30 seconds"
+            >
+              −30
+            </button>
+            <button
+              type="button"
+              onClick={handlePauseResume}
+              style={{ ...miniBtn, width: 40, padding: '8px 0' }}
+              aria-label={isPaused ? 'Resume' : 'Pause'}
+            >
+              {isPaused ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={theme.colors.textPrimary}>
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill={theme.colors.textPrimary}>
+                  <rect x="6" y="4" width="4" height="16" rx="1" />
+                  <rect x="14" y="4" width="4" height="16" rx="1" />
+                </svg>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={handlePlus30}
+              style={miniBtn}
+              aria-label="Add 30 seconds"
+            >
+              +30
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // ─── Mini-timer bar (when minimized) ───
   if (isMinimized) {

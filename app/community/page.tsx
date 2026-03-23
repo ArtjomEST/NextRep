@@ -34,6 +34,7 @@ import CommunityCommentsSheet, {
 import CreatePostSheet from '@/components/CreatePostSheet';
 import Card from '@/components/Card';
 import MuscleMapLazy from '@/components/MuscleMapLazy';
+import { WorkoutLogExerciseRow } from '@/components/WorkoutLogExerciseRow';
 
 const FEED_CACHE_KEY = 'feed_cache';
 const FEED_CACHE_TTL_MS = 5 * 60 * 1000;
@@ -1218,59 +1219,12 @@ export default function CommunityPage() {
                     }}
                   >
                     {item.log.map((line, li) => (
-                      <div
+                      <WorkoutLogExerciseRow
                         key={`${item.workoutId}-log-${li}`}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '10px',
-                        }}
-                      >
-                        {line.exerciseImageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={line.exerciseImageUrl}
-                            alt=""
-                            width={32}
-                            height={32}
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: theme.radius.sm,
-                              objectFit: 'cover',
-                              backgroundColor: theme.colors.card,
-                            }}
-                          />
-                        ) : (
-                          <div
-                            style={{
-                              width: 32,
-                              height: 32,
-                              borderRadius: theme.radius.sm,
-                              backgroundColor: theme.colors.border,
-                            }}
-                          />
-                        )}
-                        <span
-                          style={{
-                            flex: 1,
-                            color: theme.colors.textPrimary,
-                            fontSize: '14px',
-                            minWidth: 0,
-                          }}
-                        >
-                          {line.exerciseName}
-                        </span>
-                        <span
-                          style={{
-                            color: theme.colors.textMuted,
-                            fontSize: '13px',
-                            flexShrink: 0,
-                          }}
-                        >
-                          {line.completedSets} sets
-                        </span>
-                      </div>
+                        exerciseImageUrl={line.exerciseImageUrl}
+                        exerciseName={line.exerciseName}
+                        completedSets={line.completedSets}
+                      />
                     ))}
                   </div>
                 </div>

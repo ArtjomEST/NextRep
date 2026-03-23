@@ -21,6 +21,8 @@ interface SetRowProps {
   onUpdateReps: (value: number) => void;
   onToggleComplete: () => void;
   onRemove: () => void;
+  /** Read-only display (e.g. onboarding) — same layout, no editing or remove. */
+  readOnly?: boolean;
 }
 
 export default function SetRow({
@@ -30,6 +32,7 @@ export default function SetRow({
   onUpdateReps,
   onToggleComplete,
   onRemove,
+  readOnly = false,
 }: SetRowProps) {
   const [weightInput, setWeightInput] = useState(() =>
     set.weight != null && set.weight !== 0 ? String(set.weight) : ''
@@ -77,12 +80,14 @@ export default function SetRow({
           inputMode="decimal"
           value={weightInput}
           placeholder="0"
+          readOnly={readOnly}
           onChange={(e) => {
+            if (readOnly) return;
             const raw = e.target.value;
             setWeightInput(raw);
             onUpdateWeight(parseWeight(raw));
           }}
-          style={inputStyle}
+          style={readOnly ? { ...inputStyle, cursor: 'default' } : inputStyle}
         />
         <span style={unitStyle}>kg</span>
       </div>
@@ -97,14 +102,20 @@ export default function SetRow({
           inputMode="numeric"
           value={set.reps || ''}
           placeholder="0"
-          onChange={(e) => onUpdateReps(parseInt(e.target.value) || 0)}
-          style={inputStyle}
+          readOnly={readOnly}
+          onChange={(e) => {
+            if (readOnly) return;
+            onUpdateReps(parseInt(e.target.value) || 0);
+          }}
+          style={readOnly ? { ...inputStyle, cursor: 'default' } : inputStyle}
         />
         <span style={unitStyle}>reps</span>
       </div>
 
       {/* Done toggle */}
       <button
+        type="button"
+        disabled={readOnly}
         onClick={onToggleComplete}
         style={{
           width: '40px',
@@ -113,7 +124,7 @@ export default function SetRow({
           border: set.completed ? 'none' : `1.5px solid ${theme.colors.border}`,
           backgroundColor: set.completed ? theme.colors.primary : 'transparent',
           color: set.completed ? '#fff' : theme.colors.textMuted,
-          cursor: 'pointer',
+          cursor: readOnly ? 'default' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -136,7 +147,9 @@ export default function SetRow({
       </button>
 
       {/* Remove */}
+      {!readOnly && (
       <button
+        type="button"
         onClick={onRemove}
         style={{
           background: 'none',
@@ -159,6 +172,7 @@ export default function SetRow({
       >
         ✕
       </button>
+      )}
     </div>
   );
 }

@@ -3,7 +3,11 @@ import { getDb } from '@/lib/db';
 import { aiMessages } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
-import { buildCoachContextData, COACH_LANGUAGE_RULE } from '@/lib/ai/coachContext';
+import {
+  buildCoachContextData,
+  buildCoachProfilePromptSection,
+  COACH_LANGUAGE_RULE,
+} from '@/lib/ai/coachContext';
 import { openaiChatCompletion } from '@/lib/ai/openai';
 import { isPresetIntentMessage } from '@/lib/ai/presetIntent';
 import {
@@ -61,6 +65,7 @@ export async function POST(req: NextRequest) {
     const db = getDb();
     const { firstName, streak, workoutSummary, prSummary, volumeSummary } =
       await buildCoachContextData(db, auth.userId);
+    const profileSection = await buildCoachProfilePromptSection(db, auth.userId);
 
     const systemPrompt = `
 You are Alex, a personal fitness coach inside the NextRep workout tracking app.
@@ -79,6 +84,7 @@ USER DATA:
 - Last 10 workouts: ${workoutSummary}
 - Personal Records: ${prSummary}
 - Weekly volume (last 4 weeks): ${volumeSummary}
+${profileSection ? `\n${profileSection}\n` : ''}
 `;
 
     const prior = await db
@@ -113,7 +119,9 @@ USER DATA:
     if (isPresetIntentMessage(msg)) {
       console.log('[AI] Preset intent detected, generating JSON...');
 
-      const presetSystem = buildPresetSystemPrompt(msg);
+      const presetSystem =
+        buildPresetSystemPrompt(msg) +
+        (profileSection ? `\n\n${profileSection}` : '');
       const presetMessages = [
         { role: 'system' as const, content: presetSystem },
         { role: 'user' as const, content: msg },

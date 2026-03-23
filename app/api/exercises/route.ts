@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { exercises } from '@/lib/db/schema';
 import { authenticateRequest } from '@/lib/auth/helpers';
-import { and, sql } from 'drizzle-orm';
+import { and, inArray, sql } from 'drizzle-orm';
 
 const SYNONYMS: Record<string, string> = {
   бицепс: 'bicep',
@@ -27,6 +27,31 @@ export async function GET(req: NextRequest) {
   try {
     const db = getDb();
     const { searchParams } = req.nextUrl;
+
+    const namesRaw = searchParams.get('names');
+    if (namesRaw != null && namesRaw.trim() !== '') {
+      const nameList = namesRaw
+        .split(',')
+        .map((s) => decodeURIComponent(s.trim()))
+        .filter(Boolean);
+      if (nameList.length > 0) {
+        const rows = await db
+          .select()
+          .from(exercises)
+          .where(inArray(exercises.name, nameList));
+        const byName = new Map(rows.map((r) => [r.name, r]));
+        const ordered = nameList
+          .map((n) => byName.get(n))
+          .filter((r): r is (typeof rows)[number] => r != null);
+        return NextResponse.json({
+          data: ordered,
+          total: ordered.length,
+          limit: ordered.length,
+          offset: 0,
+        });
+      }
+    }
+
     const query = normalizeQuery(searchParams.get('q') ?? '');
     const category = searchParams.get('category');
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200);

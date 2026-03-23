@@ -215,7 +215,9 @@ export async function PUT(req: NextRequest) {
         profileRow = row;
       }
     } else {
-      const insertFields = withProfileWriteDefaults(patch, true);
+      const obComplete =
+        patch.onboardingCompleted !== undefined ? patch.onboardingCompleted : true;
+      const insertFields = withProfileWriteDefaults(patch, obComplete);
       const [row] = await db
         .insert(userProfiles)
         .values({
@@ -291,6 +293,9 @@ function buildProfilePatch(body: Record<string, unknown>): ProfileUpsertFields {
   }
   if ('units' in body && (body.units === 'kg' || body.units === 'lb')) {
     values.units = body.units;
+  }
+  if ('onboardingCompleted' in body && typeof body.onboardingCompleted === 'boolean') {
+    values.onboardingCompleted = body.onboardingCompleted;
   }
 
   return values;

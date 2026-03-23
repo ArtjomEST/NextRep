@@ -1,8 +1,17 @@
 'use client';
 
 import React from 'react';
+import { useProfile } from '@/lib/profile/context';
+import OnboardingWizard from '@/components/OnboardingWizard';
 
-// Onboarding temporarily disabled — all users go straight to the app.
 export default function OnboardingGate({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  const { isLoading, hasCompletedOnboarding } = useProfile();
+  const showOnboarding = !isLoading && !hasCompletedOnboarding;
+
+  return (
+    <>
+      {children}
+      {showOnboarding ? <OnboardingWizard /> : null}
+    </>
+  );
 }

@@ -1,6 +1,7 @@
 import type { Database } from '@/lib/db';
 import {
   users,
+  userProfiles,
   workouts,
   workoutExercises,
   workoutSets,
@@ -33,6 +34,74 @@ export type CoachContextData = {
   prSummary: string;
   volumeSummary: string;
 };
+
+/** Optional user_profiles lines for the coach system prompt (skips unset fields). */
+export async function buildCoachProfilePromptSection(
+  db: Database,
+  userId: string,
+): Promise<string> {
+  const [row] = await db
+    .select()
+    .from(userProfiles)
+    .where(eq(userProfiles.userId, userId))
+    .limit(1);
+
+  if (!row) return '';
+
+  const lines: string[] = [];
+
+  if (row.goal) {
+    lines.push(`- Goal: ${row.goal}`);
+  }
+  if (row.experienceLevel) {
+    lines.push(`- Experience level: ${row.experienceLevel}`);
+  }
+  if (row.splitPreference) {
+    lines.push(`- Preferred split: ${row.splitPreference}`);
+  }
+  if (
+    row.trainingDaysPerWeek != null &&
+    !Number.isNaN(Number(row.trainingDaysPerWeek))
+  ) {
+    lines.push(`- Training days per week: ${row.trainingDaysPerWeek}`);
+  }
+  if (row.age != null) {
+    lines.push(`- Age: ${row.age}`);
+  }
+  if (row.weightKg != null && String(row.weightKg).trim() !== '') {
+    lines.push(`- Weight: ${row.weightKg} kg`);
+  }
+  if (row.heightCm != null) {
+    lines.push(`- Height: ${row.heightCm} cm`);
+  }
+
+  const inj = row.injuries;
+  if (Array.isArray(inj) && inj.length > 0) {
+    lines.push(`- Injuries: ${inj.join(', ')}`);
+  }
+
+  const bl = row.bestLifts;
+  if (bl && typeof bl === 'object') {
+    const o = bl as { benchPress?: number; squat?: number; deadlift?: number };
+    const parts: string[] = [];
+    if (o.benchPress != null && !Number.isNaN(Number(o.benchPress))) {
+      parts.push(`Bench: ${o.benchPress} kg`);
+    }
+    if (o.squat != null && !Number.isNaN(Number(o.squat))) {
+      parts.push(`Squat: ${o.squat} kg`);
+    }
+    if (o.deadlift != null && !Number.isNaN(Number(o.deadlift))) {
+      parts.push(`Deadlift: ${o.deadlift} kg`);
+    }
+    if (parts.length > 0) {
+      lines.push(`- Best lifts — ${parts.join(', ')}`);
+    }
+  }
+
+  if (lines.length === 0) return '';
+
+  return `User Profile:\n${lines.join('\n')}`;
+}
 
 /** Used by POST /api/ai/chat (regular coach system prompt). */
 export const COACH_LANGUAGE_RULE =
