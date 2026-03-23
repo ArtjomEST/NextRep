@@ -118,6 +118,7 @@ export default function AccountPage() {
 
   const [editingTraining, setEditingTraining] = useState(false);
   const [savingTraining, setSavingTraining] = useState(false);
+  const [replayingOnboarding, setReplayingOnboarding] = useState(false);
   const [editDays, setEditDays] = useState<number>(4);
   const [editBench, setEditBench] = useState('');
   const [editSquat, setEditSquat] = useState('');
@@ -290,6 +291,23 @@ export default function AccountPage() {
       window.Telegram.WebApp.close();
     } else {
       window.location.href = '/';
+    }
+  };
+
+  const replayOnboarding = async () => {
+    setReplayingOnboarding(true);
+    try {
+      try {
+        localStorage.removeItem('nextrep_onboarding_draft');
+      } catch {
+        /* ignore */
+      }
+      await updateProfile({ onboardingCompleted: false });
+      flash('Onboarding opened — finish it to save again.');
+    } catch {
+      flash('Could not replay onboarding');
+    } finally {
+      setReplayingOnboarding(false);
     }
   };
 
@@ -779,6 +797,39 @@ export default function AccountPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div
+        style={{
+          background: ui.cardBg,
+          border: ui.cardBorder,
+          borderRadius: ui.cardRadius,
+          padding: 18,
+          boxShadow: ui.cardShadow,
+        }}
+      >
+        <h3 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: '0 0 6px' }}>
+          Onboarding
+        </h3>
+        <p style={{ color: ui.textMuted, fontSize: 13, margin: '0 0 14px', lineHeight: 1.45 }}>
+          Open the setup flow again to preview it. Your profile stays until you complete the last step.
+        </p>
+        <button
+          type="button"
+          onClick={() => void replayOnboarding()}
+          disabled={replayingOnboarding}
+          style={{
+            ...btnBase,
+            width: '100%',
+            background: 'transparent',
+            color: ui.accent,
+            border: `1px solid ${ui.accent}`,
+            opacity: replayingOnboarding ? 0.6 : 1,
+            cursor: replayingOnboarding ? 'wait' : 'pointer',
+          }}
+        >
+          {replayingOnboarding ? 'Opening…' : 'Replay onboarding'}
+        </button>
       </div>
 
       <div
