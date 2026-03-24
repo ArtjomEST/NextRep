@@ -113,7 +113,6 @@ export default function CommunityPresetPreview({
   onSavePreset: () => void;
 }) {
   const narrow = useNarrowLayout(420);
-  const veryNarrow = useNarrowLayout(360);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoLoading, setInfoLoading] = useState(false);
@@ -370,7 +369,7 @@ export default function CommunityPresetPreview({
               width: '100%',
               minWidth: 0,
               gridTemplateColumns:
-                (showSavePreset || savedByMe) && !veryNarrow
+                showSavePreset || savedByMe
                   ? 'minmax(0, 1fr) minmax(0, 1fr)'
                   : 'minmax(0, 1fr)',
               justifyItems: 'stretch',
