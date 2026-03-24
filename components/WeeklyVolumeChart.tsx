@@ -4,6 +4,19 @@ import React, { useEffect, useState, useRef } from 'react';
 import { getAuthHeaders } from '@/lib/auth/client';
 import Skeleton from '@/components/Skeleton';
 
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+  return reduced;
+}
+
 export interface DayData {
   dayIndex: number;
   workoutId: string;
@@ -50,9 +63,12 @@ const BAR_MAX_H = 56;
 
 export default function WeeklyVolumeChart({
   initialData,
+  entranceAnimation = false,
 }: {
   /** When set, skips API fetch and renders this data (e.g. onboarding demo). */
   initialData?: WeeklyVolumeChartData | null;
+  /** Staggered bar grow + delayed % / footer fades (e.g. onboarding). Respects prefers-reduced-motion. */
+  entranceAnimation?: boolean;
 } = {}) {
   const [data, setData] = useState<WeeklyVolumeData | null>(
     initialData !== undefined ? initialData : null,
@@ -60,6 +76,8 @@ export default function WeeklyVolumeChart({
   const [loading, setLoading] = useState(initialData === undefined);
   const [activeDay, setActiveDay] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = usePrefersReducedMotion();
+  const animateEntrance = entranceAnimation && !reducedMotion;
 
   useEffect(() => {
     if (initialData !== undefined) {
@@ -127,7 +145,12 @@ export default function WeeklyVolumeChart({
 
   const avgPerSession = sessionsDone > 0 ? Math.round(totalVolume / sessionsDone) : 0;
 
+  const workoutDayIndices = days
+    .map((d, idx) => (d ? idx : -1))
+    .filter((idx): idx is number => idx >= 0);
+
   return (
+    <>
     <div ref={cardRef} style={CARD_STYLE}>
       {/* ── Header row ── */}
       <div
@@ -180,6 +203,10 @@ export default function WeeklyVolumeChart({
               fontSize: 11,
               fontWeight: 600,
               color: pctChange >= 0 ? '#22C55E' : '#EF4444',
+              opacity: animateEntrance ? 0 : 1,
+              animation: animateEntrance
+                ? 'nr-wvc-fade-in 0.45s ease-out 700ms forwards'
+                : undefined,
             }}
           >
             {pctChange >= 0 ? '↑' : '↓'} {pctChange >= 0 ? '+' : ''}
@@ -206,6 +233,9 @@ export default function WeeklyVolumeChart({
             const barH = hasWorkout
               ? Math.max(Math.round((day.volume / maxVol) * BAR_MAX_H), 4)
               : 0;
+
+            const wi = workoutDayIndices.indexOf(i);
+            const barDelayMs = wi >= 0 ? [0, 150, 300][wi] ?? 0 : 0;
 
             let barColor: string;
             if (isToday) barColor = 'rgba(34,197,94,0.95)';
@@ -300,18 +330,43 @@ export default function WeeklyVolumeChart({
 
                 {/* Bar or empty-day line */}
                 {hasWorkout ? (
-                  <div
-                    style={{
-                      width: '100%',
-                      height: barH,
-                      background: barColor,
-                      borderRadius: '4px 4px 0 0',
-                      opacity: isActive ? 0.7 : 1,
-                      transform: isActive ? 'scaleY(1.05)' : 'scaleY(1)',
-                      transformOrigin: 'bottom',
-                      transition: 'opacity 0.15s ease, transform 0.15s ease',
-                    }}
-                  />
+                  animateEntrance ? (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: barH,
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          height: '100%',
+                          borderRadius: '4px 4px 0 0',
+                          background: barColor,
+                          opacity: isActive ? 0.7 : 1,
+                          transformOrigin: 'bottom',
+                          animation: `nr-wvc-bar-grow 600ms ease-out ${barDelayMs}ms both`,
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: barH,
+                        background: barColor,
+                        borderRadius: '4px 4px 0 0',
+                        opacity: isActive ? 0.7 : 1,
+                        transform: isActive ? 'scaleY(1.05)' : 'scaleY(1)',
+                        transformOrigin: 'bottom',
+                        transition: 'opacity 0.15s ease, transform 0.15s ease',
+                      }}
+                    />
+                  )
                 ) : (
                   <div
                     style={{
@@ -374,6 +429,10 @@ export default function WeeklyVolumeChart({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'flex-start',
+            opacity: animateEntrance ? 0 : 1,
+            animation: animateEntrance
+              ? 'nr-wvc-fade-in 0.45s ease-out 900ms forwards'
+              : undefined,
           }}
         >
           <div>
@@ -435,5 +494,16 @@ export default function WeeklyVolumeChart({
         </p>
       )}
     </div>
+    <style>{`
+      @keyframes nr-wvc-bar-grow {
+        from { transform: scaleY(0); }
+        to { transform: scaleY(1); }
+      }
+      @keyframes nr-wvc-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+    `}</style>
+    </>
   );
 }

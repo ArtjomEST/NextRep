@@ -110,6 +110,82 @@ const TEXT_MUTED = 'rgba(255,255,255,0.42)';
 const TEXT_LABEL = 'rgba(255,255,255,0.5)';
 const CARD_RADIUS = 16;
 
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReduced(mq.matches);
+    const onChange = () => setReduced(mq.matches);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+  return reduced;
+}
+
+function mergeMusclesInOrder(lines: readonly { muscles: readonly Muscle[] }[]): Muscle[] {
+  const seen = new Set<string>();
+  const out: Muscle[] = [];
+  for (const line of lines) {
+    for (const m of line.muscles) {
+      if (!seen.has(m)) {
+        seen.add(m);
+        out.push(m);
+      }
+    }
+  }
+  return out;
+}
+
+type OnboardingExerciseSlot = {
+  label: string;
+  candidates: readonly string[];
+  sets: number;
+  muscles: readonly Muscle[];
+};
+
+async function resolveOnboardingExerciseSlots(
+  slots: readonly OnboardingExerciseSlot[],
+): Promise<Array<{ label: string; imageUrl: string | null; sets: number; muscles: Muscle[] }>> {
+  const names = [...new Set(slots.flatMap((s) => [...s.candidates]))];
+  let rows: Array<{ name: string; imageUrl: string | null }> = [];
+  try {
+    const res = await fetch(`/api/exercises?names=${encodeURIComponent(names.join(','))}`);
+    if (res.ok) {
+      const json = (await res.json()) as { data?: Array<{ name: string; imageUrl: string | null }> };
+      rows = json.data ?? [];
+    }
+  } catch {
+    /* ignore */
+  }
+  const byName = new Map(rows.map((r) => [r.name, r] as const));
+  return slots.map((slot) => {
+    let imageUrl: string | null = null;
+    for (const c of slot.candidates) {
+      const row = byName.get(c);
+      if (row?.imageUrl) {
+        imageUrl = row.imageUrl;
+        break;
+      }
+    }
+    if (imageUrl == null) {
+      for (const c of slot.candidates) {
+        const row = byName.get(c);
+        if (row) {
+          imageUrl = row.imageUrl ?? null;
+          break;
+        }
+      }
+    }
+    return {
+      label: slot.label,
+      imageUrl,
+      sets: slot.sets,
+      muscles: [...slot.muscles],
+    };
+  });
+}
+
 // ─── Helpers ─────────────────────────────────────────────────
 
 function draftToOnboardingData(d: Draft): OnboardingData {
@@ -656,82 +732,109 @@ function FeatureProgressSlide() {
         </h2>
         <p style={{ color: TEXT_MUTED, fontSize: 14, margin: 0 }}>Weekly volume trends keep you honest week to week.</p>
       </div>
-      <WeeklyVolumeChart initialData={ONBOARDING_WEEK_DEMO} />
+      <WeeklyVolumeChart initialData={ONBOARDING_WEEK_DEMO} entranceAnimation />
     </>
   );
 }
 
 // ─── Feature 3: Muscle map + workout log rows ─────────────────
 
-const DEMO_EXERCISES: readonly {
-  name: string;
-  sets: number;
-  muscles: Muscle[];
-}[] = [
-  { name: 'Bench Press', sets: 4, muscles: ['chest', 'triceps', 'front-deltoids'] },
-  { name: 'Pull-Up', sets: 3, muscles: ['upper-back', 'biceps'] },
-  { name: 'Squat', sets: 4, muscles: ['quadriceps', 'gluteal', 'hamstring'] },
+const BODY_DEMO_SLOTS: readonly OnboardingExerciseSlot[] = [
+  {
+    label: 'Bench Press',
+    candidates: ['Bench Press'],
+    sets: 4,
+    muscles: ['chest', 'triceps', 'front-deltoids'],
+  },
+  {
+    label: 'Incline Bench Press',
+    candidates: [
+      'Incline Bench Press',
+      'Incline Bench Press - Barbell',
+      'Incline Bench Press - MP',
+      'Incline Dumbbell Bench Press',
+    ],
+    sets: 4,
+    muscles: ['chest', 'triceps', 'front-deltoids'],
+  },
+  {
+    label: 'Butterfly (Chest Fly)',
+    candidates: ['Butterfly (Chest Fly)', 'Butterfly', 'Chest Fly', 'Fly With Dumbbells'],
+    sets: 3,
+    muscles: ['chest', 'front-deltoids'],
+  },
+  {
+    label: 'Deadlift',
+    candidates: ['Deadlift', 'Deadlifts', 'Sumo Deadlift'],
+    sets: 4,
+    muscles: ['gluteal', 'hamstring', 'quadriceps', 'lower-back', 'upper-back'],
+  },
 ];
 
 function FeatureMuscleSlide() {
-  const [visibleCount, setVisibleCount] = useState(0);
-  const [imageByName, setImageByName] = useState<Record<string, string | null | undefined>>({});
-
-  useEffect(() => {
-    const t1 = window.setTimeout(() => setVisibleCount(1), 200);
-    const t2 = window.setTimeout(() => setVisibleCount(2), 900);
-    const t3 = window.setTimeout(() => setVisibleCount(3), 1600);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
-  }, []);
+  const reducedMotion = usePrefersReducedMotion();
+  const [resolved, setResolved] = useState<
+    Array<{ label: string; imageUrl: string | null; sets: number; muscles: Muscle[] }> | null
+  >(null);
+  const [litIndex, setLitIndex] = useState(0);
+  const muscleAnimTimerRef = useRef<number | null>(null);
+  const muscleAnimIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const namesParam = DEMO_EXERCISES.map((e) => e.name).join(',');
-        const res = await fetch(
-          `/api/exercises?names=${encodeURIComponent(namesParam)}`,
-        );
-        const json = (await res.json()) as {
-          data?: Array<{ name: string; imageUrl: string | null }>;
-        };
-        const rows = Array.isArray(json.data) ? json.data : [];
-        if (cancelled) return;
-        const next: Record<string, string | null> = {};
-        for (const r of rows) {
-          next[r.name] = r.imageUrl ?? null;
-        }
-        setImageByName(next);
-      } catch {
-        /* ignore */
-      }
+      const rows = await resolveOnboardingExerciseSlots(BODY_DEMO_SLOTS);
+      if (!cancelled) setResolved(rows);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const mergedSlugs: Muscle[] = [];
-  const seen = new Set<string>();
-  for (let i = 0; i < visibleCount; i++) {
-    const line = DEMO_EXERCISES[i];
-    if (!line) continue;
-    for (const m of line.muscles) {
-      if (!seen.has(m)) {
-        seen.add(m);
-        mergedSlugs.push(m);
-      }
-    }
-  }
+  const mergedSlugs = useMemo(() => {
+    if (!resolved?.length) return [];
+    return mergeMusclesInOrder(resolved);
+  }, [resolved]);
 
-  const data: IExerciseData[] =
-    mergedSlugs.length > 0
-      ? [{ name: 'primary', muscles: mergedSlugs, frequency: 2 }]
-      : [];
+  useEffect(() => {
+    if (muscleAnimTimerRef.current) {
+      clearTimeout(muscleAnimTimerRef.current);
+      muscleAnimTimerRef.current = null;
+    }
+    if (muscleAnimIntervalRef.current) {
+      clearInterval(muscleAnimIntervalRef.current);
+      muscleAnimIntervalRef.current = null;
+    }
+    if (!mergedSlugs.length) return;
+    if (reducedMotion) {
+      setLitIndex(mergedSlugs.length);
+      return;
+    }
+    setLitIndex(0);
+    muscleAnimTimerRef.current = window.setTimeout(() => {
+      let i = 0;
+      muscleAnimIntervalRef.current = window.setInterval(() => {
+        i += 1;
+        setLitIndex(Math.min(i, mergedSlugs.length));
+        if (i >= mergedSlugs.length && muscleAnimIntervalRef.current) {
+          clearInterval(muscleAnimIntervalRef.current);
+          muscleAnimIntervalRef.current = null;
+        }
+      }, 100);
+    }, 400);
+    return () => {
+      if (muscleAnimTimerRef.current) clearTimeout(muscleAnimTimerRef.current);
+      if (muscleAnimIntervalRef.current) clearInterval(muscleAnimIntervalRef.current);
+    };
+  }, [mergedSlugs, reducedMotion, mergedSlugs.length]);
+
+  const modelData: IExerciseData[] | undefined =
+    mergedSlugs.length > 0 && litIndex > 0
+      ? [{ name: 'primary', muscles: mergedSlugs.slice(0, litIndex), frequency: 2 }]
+      : undefined;
+
+  const mapGlow =
+    litIndex > 0 && !reducedMotion ? 'nr-onb-muscle-glow 2.2s ease-in-out infinite' : undefined;
 
   return (
     <>
@@ -781,24 +884,80 @@ function FeatureMuscleSlide() {
         >
           Workout log
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {DEMO_EXERCISES.slice(0, visibleCount).map((line) => {
-            const img = imageByName[line.name];
-            return (
+        <div
+          className="nr-onb-hscroll"
+          style={{
+            display: 'flex',
+            gap: 12,
+            overflowX: 'auto',
+            scrollSnapType: 'x mandatory',
+            paddingBottom: 6,
+            marginLeft: -2,
+            marginRight: -2,
+            paddingLeft: 2,
+            paddingRight: 2,
+          }}
+        >
+          {(resolved ??
+            BODY_DEMO_SLOTS.map((s) => ({
+              label: s.label,
+              sets: s.sets,
+              imageUrl: null as string | null,
+              muscles: [...s.muscles],
+            }))).map((line) => (
+            <div
+              key={line.label}
+              style={{
+                flex: '0 0 148px',
+                scrollSnapAlign: 'center',
+                background: CARD_BG,
+                border: CARD_BORDER,
+                borderRadius: 14,
+                padding: 10,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'stretch',
+                gap: 8,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+              }}
+            >
               <div
-                key={line.name}
                 style={{
-                  animation: 'nr-onb-fade-up 0.35s ease-out both',
+                  width: '100%',
+                  height: 104,
+                  borderRadius: 10,
+                  overflow: 'hidden',
+                  background: 'rgba(255,255,255,0.06)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
-                <WorkoutLogExerciseRow
-                  exerciseImageUrl={img === undefined ? null : img}
-                  exerciseName={line.name}
-                  completedSets={line.sets}
-                />
+                {line.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={line.imageUrl}
+                    alt=""
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ color: TEXT_MUTED, fontSize: 11 }}>…</span>
+                )}
               </div>
-            );
-          })}
+              <div
+                style={{
+                  color: TEXT_PRIMARY,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  lineHeight: 1.25,
+                  minHeight: 36,
+                }}
+              >
+                {line.label}
+              </div>
+              <div style={{ color: TEXT_LABEL, fontSize: 12, fontWeight: 600 }}>{line.sets} sets</div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -813,23 +972,39 @@ function FeatureMuscleSlide() {
           gap: 12,
         }}
       >
-        {data.length > 0 ? (
+        {resolved && mergedSlugs.length > 0 ? (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                animation: mapGlow,
+              }}
+            >
               <Model
-                data={data}
+                data={modelData}
                 type="anterior"
                 style={{ width: 72, height: 160 }}
-                highlightedColors={['rgba(34,197,94,0.5)', 'rgba(34,197,94,0.9)']}
+                highlightedColors={['rgba(34,197,94,0.45)', 'rgba(34,197,94,0.92)']}
                 bodyColor="#1C2526"
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                animation: mapGlow,
+              }}
+            >
               <Model
-                data={data}
+                data={modelData}
                 type="posterior"
                 style={{ width: 72, height: 160 }}
-                highlightedColors={['rgba(34,197,94,0.5)', 'rgba(34,197,94,0.9)']}
+                highlightedColors={['rgba(34,197,94,0.45)', 'rgba(34,197,94,0.92)']}
                 bodyColor="#1C2526"
               />
             </div>
@@ -844,16 +1019,34 @@ function FeatureMuscleSlide() {
 
 // ─── Feature 4: AI chat mock ─────────────────────────────────
 
-const AI_COACH_EXERCISES = [
-  'Bench Press',
-  'Incline Bench Press',
-  'Chest Fly',
-  'Cable Crossover',
+const AI_COACH_SLOTS: readonly OnboardingExerciseSlot[] = [
+  { label: 'Bench Press', candidates: ['Bench Press'], sets: 3, muscles: [] },
+  {
+    label: 'Incline Bench Press',
+    candidates: ['Incline Bench Press', 'Incline Bench Press - Barbell', 'Incline Bench Press - MP'],
+    sets: 3,
+    muscles: [],
+  },
+  {
+    label: 'Chest Fly',
+    candidates: ['Butterfly', 'Chest Fly', 'Fly With Dumbbells', 'Cable Fly'],
+    sets: 3,
+    muscles: [],
+  },
+  {
+    label: 'Cable Crossover',
+    candidates: ['Cable Crossover', 'Cable Cross-over', 'Cable Fly'],
+    sets: 3,
+    muscles: [],
+  },
 ];
 
 function FeatureAiCoachSlide() {
+  const reducedMotion = usePrefersReducedMotion();
   const [phase, setPhase] = useState(0);
-  const [imageByName, setImageByName] = useState<Record<string, string | null | undefined>>({});
+  const [resolvedAi, setResolvedAi] = useState<
+    Array<{ label: string; imageUrl: string | null; sets: number }> | null
+  >(null);
 
   useEffect(() => {
     const a = window.setTimeout(() => setPhase(1), 400);
@@ -871,19 +1064,14 @@ function FeatureAiCoachSlide() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      try {
-        const namesParam = AI_COACH_EXERCISES.join(',');
-        const res = await fetch(`/api/exercises?names=${encodeURIComponent(namesParam)}`);
-        const json = (await res.json()) as { data?: Array<{ name: string; imageUrl: string | null }> };
-        if (cancelled) return;
-        const map: Record<string, string | null> = {};
-        for (const ex of json.data ?? []) map[ex.name] = ex.imageUrl;
-        setImageByName(map);
-      } catch {
-        /* ignore */
+      const rows = await resolveOnboardingExerciseSlots(AI_COACH_SLOTS);
+      if (!cancelled) {
+        setResolvedAi(rows.map((r) => ({ label: r.label, imageUrl: r.imageUrl, sets: r.sets })));
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -932,7 +1120,7 @@ function FeatureAiCoachSlide() {
               border: '1px solid rgba(34,197,94,0.35)',
               color: TEXT_PRIMARY,
               fontSize: 14,
-              animation: 'nr-onb-slide-in-right 0.35s ease-out',
+              animation: reducedMotion ? undefined : 'nr-onb-slide-in-right 0.35s ease-out',
             }}
           >
             Create me a push day workout
@@ -958,8 +1146,8 @@ function FeatureAiCoachSlide() {
                   height: 6,
                   borderRadius: '50%',
                   background: TEXT_MUTED,
-                  animation: 'nr-onb-dot 1s ease-in-out infinite',
-                  animationDelay: `${i * 0.15}s`,
+                  animation: reducedMotion ? undefined : 'nr-onb-dot 1s ease-in-out infinite',
+                  animationDelay: reducedMotion ? undefined : `${i * 0.15}s`,
                 }}
               />
             ))}
@@ -976,7 +1164,7 @@ function FeatureAiCoachSlide() {
               border: CARD_BORDER,
               color: TEXT_PRIMARY,
               fontSize: 14,
-              animation: 'nr-onb-slide-in-left 0.35s ease-out',
+              animation: reducedMotion ? undefined : 'nr-onb-slide-in-left 0.35s ease-out',
             }}
           >
             I&apos;ve built you a Push Day preset! 💪
@@ -989,7 +1177,7 @@ function FeatureAiCoachSlide() {
               borderRadius: 12,
               border: `1px solid ${ACCENT}`,
               background: 'rgba(34,197,94,0.08)',
-              animation: 'nr-onb-fade-up 0.4s ease-out',
+              animation: reducedMotion ? undefined : 'nr-onb-fade-up 0.4s ease-out',
             }}
           >
             <div
@@ -1002,15 +1190,15 @@ function FeatureAiCoachSlide() {
                 marginBottom: 10,
               }}
             >
-              Chest Day · {AI_COACH_EXERCISES.length} exercises
+              Chest Day · {AI_COACH_SLOTS.length} exercises
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {AI_COACH_EXERCISES.map((name) => (
+              {(resolvedAi ?? AI_COACH_SLOTS.map((s) => ({ label: s.label, imageUrl: null as string | null, sets: s.sets }))).map((row) => (
                 <WorkoutLogExerciseRow
-                  key={name}
-                  exerciseImageUrl={imageByName[name] ?? null}
-                  exerciseName={name}
-                  completedSets={3}
+                  key={row.label}
+                  exerciseImageUrl={row.imageUrl}
+                  exerciseName={row.label}
+                  completedSets={row.sets}
                 />
               ))}
             </div>
@@ -1866,6 +2054,15 @@ export default function OnboardingWizard() {
           0%, 100% { box-shadow: 0 0 20px rgba(34,197,94,0.25), 0 0 0 0 rgba(34,197,94,0.1); }
           50% { box-shadow: 0 0 40px rgba(34,197,94,0.5), 0 0 0 12px rgba(34,197,94,0.05); }
         }
+        @keyframes nr-onb-muscle-glow {
+          0%, 100% { filter: drop-shadow(0 0 4px rgba(34,197,94,0.38)); }
+          50% { filter: drop-shadow(0 0 14px rgba(34,197,94,0.72)); }
+        }
+        .nr-onb-hscroll {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .nr-onb-hscroll::-webkit-scrollbar { display: none; }
         @keyframes nr-onb-fade-up {
           from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
