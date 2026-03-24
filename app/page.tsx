@@ -534,7 +534,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: '#f3f4f6',
-                    fontSize: 'clamp(14px, 3.8vw, 20px)',
+                    fontSize: 20,
                     fontWeight: 800,
                     margin: '10px 0 0',
                     fontVariantNumeric: 'tabular-nums',
