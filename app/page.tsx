@@ -381,10 +381,10 @@ export default function HomePage() {
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 10,
+                    fontSize: 13,
                     fontWeight: 700,
                     margin: 0,
-                    letterSpacing: '0.07em',
+                    letterSpacing: '0.06em',
                     textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -396,7 +396,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: '#f3f4f6',
-                    fontSize: 'clamp(14px, 3.8vw, 20px)',
+                    fontSize: 20,
                     fontWeight: 800,
                     margin: '6px 0 0',
                     fontVariantNumeric: 'tabular-nums',
@@ -407,7 +407,7 @@ export default function HomePage() {
                 >
                   {formatVolume(stats.totalVolumeAllTime)} kg
                 </p>
-                <p style={{ color: textMutedSoft, fontSize: 10, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
+                <p style={{ color: textMutedSoft, fontSize: 11, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
                   All time
                 </p>
               </div>
@@ -425,10 +425,10 @@ export default function HomePage() {
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 10,
+                    fontSize: 13,
                     fontWeight: 700,
                     margin: 0,
-                    letterSpacing: '0.07em',
+                    letterSpacing: '0.06em',
                     textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -440,7 +440,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: '#f3f4f6',
-                    fontSize: 'clamp(14px, 3.8vw, 20px)',
+                    fontSize: 20,
                     fontWeight: 800,
                     margin: '6px 0 0',
                     fontVariantNumeric: 'tabular-nums',
@@ -451,7 +451,7 @@ export default function HomePage() {
                 >
                   {stats.workoutsThisMonth}
                 </p>
-                <p style={{ color: textMutedSoft, fontSize: 10, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
+                <p style={{ color: textMutedSoft, fontSize: 11, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
                   This month
                 </p>
               </div>
@@ -469,10 +469,10 @@ export default function HomePage() {
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 10,
+                    fontSize: 13,
                     fontWeight: 700,
                     margin: 0,
-                    letterSpacing: '0.07em',
+                    letterSpacing: '0.06em',
                     textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -484,7 +484,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: '#f3f4f6',
-                    fontSize: 'clamp(14px, 3.8vw, 20px)',
+                    fontSize: 20,
                     fontWeight: 800,
                     margin: '6px 0 0',
                     fontVariantNumeric: 'tabular-nums',
@@ -497,7 +497,7 @@ export default function HomePage() {
                     ? totalSetsFromApi.toLocaleString('en-US')
                     : workouts.reduce((sum, w) => sum + (w.totalSets ?? 0), 0).toLocaleString('en-US')}
                 </p>
-                <p style={{ color: textMutedSoft, fontSize: 10, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
+                <p style={{ color: textMutedSoft, fontSize: 11, margin: '5px 0 0', whiteSpace: 'nowrap' }}>
                   All time
                 </p>
               </div>
@@ -522,10 +522,10 @@ export default function HomePage() {
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 10,
+                    fontSize: 13,
                     fontWeight: 700,
                     margin: 0,
-                    letterSpacing: '0.08em',
+                    letterSpacing: '0.06em',
                     textTransform: 'uppercase',
                   }}
                 >
@@ -548,7 +548,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: stats.bestLift ? 'rgba(34,197,94,0.95)' : textMutedSoft,
-                    fontSize: 10,
+                    fontSize: 11,
                     margin: '5px 0 0',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
