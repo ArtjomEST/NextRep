@@ -19,6 +19,7 @@ import { ui } from '@/lib/ui-styles';
 import LegendsWorkoutSlider from '@/components/LegendsWorkoutSlider';
 import WeeklyVolumeChart from '@/components/WeeklyVolumeChart';
 import { SectionErrorBoundary } from './AppErrorBoundary';
+import EmptyStatsOverlay from '@/components/EmptyStatsOverlay';
 
 function formatVolume(kg: number): string {
   if (kg >= 1000) return `${(kg / 1000).toFixed(1)}k`;
@@ -36,6 +37,7 @@ export default function HomePage() {
   const [latestDetail, setLatestDetail] = useState<WorkoutDetail | null>(null);
   const [totalVolumeFromApi, setTotalVolumeFromApi] = useState<number | null>(null);
   const [totalSetsFromApi, setTotalSetsFromApi] = useState<number | null>(null);
+  const [totalWorkoutsFromApi, setTotalWorkoutsFromApi] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,6 +66,11 @@ export default function HomePage() {
       } else {
         setTotalSetsFromApi(null);
       }
+      if (statsRes?.total != null) {
+        setTotalWorkoutsFromApi(Number(statsRes.total));
+      } else {
+        setTotalWorkoutsFromApi(null);
+      }
       if (list.length >= 1) {
         const detail = await fetchWorkoutDetailApi(list[0].id);
         setLatestDetail(detail);
@@ -76,6 +83,7 @@ export default function HomePage() {
       setLatestDetail(null);
       setTotalVolumeFromApi(null);
       setTotalSetsFromApi(null);
+      setTotalWorkoutsFromApi(null);
     } finally {
       setLoading(false);
     }
@@ -87,6 +95,7 @@ export default function HomePage() {
 
   const stats = getHomeStats(workouts, latestDetail, totalVolumeFromApi, profile?.trainingDaysPerWeek);
   const latestItem = workouts[0] ?? null;
+  const totalWorkouts = totalWorkoutsFromApi ?? workouts.length;
 
   const handleDiscardDraft = () => {
     dispatch({ type: 'RESET_DRAFT' });
@@ -357,6 +366,7 @@ export default function HomePage() {
       ) : (
         <>
           {/* ─── 4) Stats: top row 3 cards (Volume, Workouts, Sets), bottom full-width Best Lift / PR ─ */}
+          <div style={{ position: 'relative' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {/* Top row — three equal-width cards, no extra horizontal padding (layout shell owns the 16px sides) */}
             <div
@@ -585,6 +595,8 @@ export default function HomePage() {
 
           {/* ─── 5) Weekly Volume Chart ──────────────────────────────────── */}
           <WeeklyVolumeChart />
+          {totalWorkouts === 0 && <EmptyStatsOverlay />}
+          </div>
 
           {/* ─── Legends Workouts: hero cards, horizontal slider ───────────── */}
           <SectionErrorBoundary>
