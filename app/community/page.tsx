@@ -40,6 +40,11 @@ import { WorkoutLogExerciseRow } from '@/components/WorkoutLogExerciseRow';
 const FEED_CACHE_KEY = 'feed_cache';
 const FEED_CACHE_TTL_MS = 5 * 60 * 1000;
 
+/** Unified spacing from post body (text, photo, preset, workout log, etc.) to like/comment row. */
+const FEED_ACTIONS_GAP_TOP = 16;
+/** Like / comment glyphs — same visual size as comment bubble. */
+const FEED_ACTION_ICON_PX = 20;
+
 type FeedCacheStore = {
   v: 5;
   entries: Record<
@@ -126,11 +131,17 @@ function PersonPlusIcon({ color }: { color: string }) {
   );
 }
 
-function CommentBubbleIcon({ color }: { color: string }) {
+function CommentBubbleIcon({
+  color,
+  size = FEED_ACTION_ICON_PX,
+}: {
+  color: string;
+  size?: number;
+}) {
   return (
     <svg
-      width="20"
-      height="20"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke={color}
@@ -138,8 +149,45 @@ function CommentBubbleIcon({ color }: { color: string }) {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
+      style={{ flexShrink: 0, display: 'block' }}
     >
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function FeedHeartIcon({
+  filled,
+  color,
+  size = FEED_ACTION_ICON_PX,
+}: {
+  filled: boolean;
+  color: string;
+  size?: number;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      aria-hidden
+      style={{ flexShrink: 0, display: 'block' }}
+    >
+      {filled ? (
+        <path
+          fill={color}
+          d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.082 3 7.5 3c1.76 0 3.004.95 3.5 2.5.496-1.55 1.74-2.5 3.5-2.5 3.418 0 5.25 2.322 5.25 5.25 0 3.924-2.438 7.11-5.741 11.257a15.25 15.25 0 01-.383.218l-.022.012-.007.003-.003-.001z"
+        />
+      ) : (
+        <path
+          fill="none"
+          stroke={color}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+        />
+      )}
     </svg>
   );
 }
@@ -1215,6 +1263,7 @@ export default function CommunityPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '16px',
+                  marginTop: FEED_ACTIONS_GAP_TOP,
                   marginBottom: item.commentPreviews.length ? '10px' : 0,
                 }}
               >
@@ -1236,7 +1285,14 @@ export default function CommunityPage() {
                     fontWeight: 600,
                   }}
                 >
-                  <span aria-hidden>{item.likedByMe ? '♥' : '♡'}</span>
+                  <FeedHeartIcon
+                    filled={item.likedByMe}
+                    color={
+                      item.likedByMe
+                        ? theme.colors.primary
+                        : theme.colors.textMuted
+                    }
+                  />
                   {item.likeCount}
                 </button>
                 <button
@@ -1650,6 +1706,7 @@ function PostFeedCard({
           display: 'flex',
           alignItems: 'center',
           gap: '16px',
+          marginTop: FEED_ACTIONS_GAP_TOP,
           marginBottom: item.commentPreviews.length ? '10px' : 0,
         }}
       >
@@ -1671,7 +1728,14 @@ function PostFeedCard({
             fontWeight: 600,
           }}
         >
-          <span aria-hidden>{item.likedByMe ? '♥' : '♡'}</span>
+          <FeedHeartIcon
+            filled={item.likedByMe}
+            color={
+              item.likedByMe
+                ? theme.colors.primary
+                : theme.colors.textMuted
+            }
+          />
           {item.likeCount}
         </button>
         <button

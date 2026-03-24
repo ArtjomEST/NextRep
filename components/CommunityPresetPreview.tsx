@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { fetchCommunityPresetExercisesApi } from '@/lib/api/client';
+import { fetchCommunityPresetExercisesApi, fetchExerciseDetailApi } from '@/lib/api/client';
 import type {
+  ExerciseDetail,
   FeedPostPresetSummary,
   FeedPresetExercisePreview,
 } from '@/lib/api/types';
 import Button from '@/components/Button';
+import ExerciseInfoSheet from '@/components/ExerciseInfoSheet';
 import MuscleMapLazy from '@/components/MuscleMapLazy';
 import { WorkoutLogExerciseRow } from '@/components/WorkoutLogExerciseRow';
 
@@ -33,10 +35,10 @@ function cacheSet(id: string, rows: FeedPresetExercisePreview[]) {
   presetExerciseCache.set(id, rows);
 }
 
-function setsLabel(ex: FeedPresetExercisePreview): string {
+function setsLabelForRow(ex: FeedPresetExercisePreview): string | undefined {
   if (ex.targetSets != null && ex.targetSets > 0) return `${ex.targetSets} sets`;
   if (ex.setsRepsLabel) return ex.setsRepsLabel;
-  return '—';
+  return undefined;
 }
 
 /** Primary: зелёная обводка. Secondary: серые. Компактные для карточки. */
@@ -112,6 +114,9 @@ export default function CommunityPresetPreview({
 }) {
   const narrow = useNarrowLayout(420);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
+  const [infoLoading, setInfoLoading] = useState(false);
+  const [infoDetail, setInfoDetail] = useState<ExerciseDetail | null>(null);
   const [resolved, setResolved] = useState<FeedPresetExercisePreview[]>(() => {
     const ex = preset.exercises ?? [];
     if (ex.length > 0) {
@@ -165,6 +170,46 @@ export default function CommunityPresetPreview({
 
   const sheetExercises = resolved.length > 0 ? resolved : (preset.exercises ?? []);
   const hasMuscles = ms.primary.length > 0 || ms.secondary.length > 0;
+
+  const handleOpenExerciseInfo = useCallback(
+    async (exerciseId: string) => {
+      setInfoOpen(true);
+      setInfoLoading(true);
+      setInfoDetail(null);
+      try {
+        const detail = await fetchExerciseDetailApi(exerciseId);
+        setInfoDetail(detail);
+      } catch {
+        const ex = sheetExercises.find((e) => e.exerciseId === exerciseId);
+        if (ex) {
+          setInfoDetail({
+            id: ex.exerciseId,
+            name: ex.name,
+            description: null,
+            howTo: null,
+            instructions: [],
+            category: null,
+            primaryMuscles: [],
+            secondaryMuscles: [],
+            equipment: [],
+            measurementType: 'weight_reps',
+            imageUrl: ex.imageUrl,
+            images: [],
+            source: 'wger',
+            sourceId: null,
+          });
+        }
+      } finally {
+        setInfoLoading(false);
+      }
+    },
+    [sheetExercises],
+  );
+
+  const handleCloseExerciseInfo = useCallback(() => {
+    setInfoOpen(false);
+    setInfoDetail(null);
+  }, []);
 
   const primaryShown = ms.primary.slice(0, MAX_PRIMARY_TAGS);
   const secondaryShown = ms.secondary.slice(0, MAX_SECONDARY_TAGS);
@@ -319,21 +364,23 @@ export default function CommunityPresetPreview({
           <div
             style={{
               display: 'flex',
+              flexWrap: 'nowrap',
               alignItems: 'stretch',
               gap: '8px',
               width: showSavePreset || savedByMe ? '100%' : 'auto',
               alignSelf: showSavePreset || savedByMe ? 'stretch' : 'flex-end',
               marginLeft: showSavePreset || savedByMe ? 0 : 'auto',
+              minWidth: 0,
             }}
           >
             <Button
               type="button"
               size="sm"
               variant="secondary"
-              fullWidth={Boolean(showSavePreset || savedByMe)}
+              fullWidth={false}
               style={
                 showSavePreset || savedByMe
-                  ? { flex: 1, minWidth: 0 }
+                  ? { flex: '1 1 0%', minWidth: 0, boxSizing: 'border-box' }
                   : undefined
               }
               onClick={() => setSheetOpen(true)}
@@ -345,8 +392,8 @@ export default function CommunityPresetPreview({
                 type="button"
                 size="sm"
                 variant="primary"
-                fullWidth
-                style={{ flex: 1, minWidth: 0 }}
+                fullWidth={false}
+                style={{ flex: '1 1 0%', minWidth: 0, boxSizing: 'border-box' }}
                 onClick={onSavePreset}
               >
                 ADD
@@ -354,7 +401,7 @@ export default function CommunityPresetPreview({
             ) : savedByMe ? (
               <span
                 style={{
-                  flex: 1,
+                  flex: '1 1 0%',
                   minWidth: 0,
                   display: 'flex',
                   alignItems: 'center',
@@ -507,7 +554,8 @@ export default function CommunityPresetPreview({
                     exerciseName={ex.name}
                     thumbSize={44}
                     nameFontWeight={500}
-                    setsLabel={setsLabel(ex)}
+                    setsLabel={setsLabelForRow(ex)}
+                    onInfoClick={() => void handleOpenExerciseInfo(ex.exerciseId)}
                   />
                 ))
               )}
@@ -549,6 +597,13 @@ export default function CommunityPresetPreview({
           </div>
         </div>
       )}
+
+      <ExerciseInfoSheet
+        exercise={infoDetail}
+        open={infoOpen}
+        loading={infoLoading}
+        onClose={handleCloseExerciseInfo}
+      />
     </>
   );
 }

@@ -11,6 +11,7 @@ export function WorkoutLogExerciseRow({
   thumbSize = 32,
   nameFontWeight = 400,
   setsLabel,
+  onInfoClick,
 }: {
   exerciseImageUrl: string | null;
   exerciseName: string;
@@ -20,6 +21,8 @@ export function WorkoutLogExerciseRow({
   nameFontWeight?: number;
   /** Overrides the default "{completedSets} sets" text. */
   setsLabel?: string;
+  /** Opens exercise details (e.g. preset preview sheet). */
+  onInfoClick?: () => void;
 }) {
   const [imgBroken, setImgBroken] = useState(false);
   const showImg = Boolean(exerciseImageUrl && !imgBroken);
@@ -90,6 +93,37 @@ export function WorkoutLogExerciseRow({
         >
           {rightText}
         </span>
+      ) : null}
+      {onInfoClick ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onInfoClick();
+          }}
+          style={{
+            background: 'none',
+            border: `1px solid ${theme.colors.border}`,
+            borderRadius: '6px',
+            color: theme.colors.textMuted,
+            cursor: 'pointer',
+            padding: '4px 8px',
+            fontSize: '11px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '3px',
+            flexShrink: 0,
+          }}
+          aria-label="Exercise info"
+        >
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="16" x2="12" y2="12" />
+            <line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          Info
+        </button>
       ) : null}
     </div>
   );
