@@ -381,7 +381,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 9,
+                    fontSize: 10,
                     fontWeight: 700,
                     margin: 0,
                     letterSpacing: '0.07em',
@@ -425,7 +425,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 9,
+                    fontSize: 10,
                     fontWeight: 700,
                     margin: 0,
                     letterSpacing: '0.07em',
@@ -469,7 +469,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: textMutedSoft,
-                    fontSize: 9,
+                    fontSize: 10,
                     fontWeight: 700,
                     margin: 0,
                     letterSpacing: '0.07em',
@@ -509,7 +509,7 @@ export default function HomePage() {
                 background: statCardBg,
                 border: statCardBorder,
                 borderRadius: 14,
-                padding: '24px 28px',
+                padding: '18px 12px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
                 display: 'flex',
                 alignItems: 'center',
@@ -534,7 +534,7 @@ export default function HomePage() {
                 <p
                   style={{
                     color: '#f3f4f6',
-                    fontSize: 'clamp(20px, 5vw, 26px)',
+                    fontSize: 'clamp(14px, 3.8vw, 20px)',
                     fontWeight: 800,
                     margin: '10px 0 0',
                     fontVariantNumeric: 'tabular-nums',
@@ -548,8 +548,8 @@ export default function HomePage() {
                 <p
                   style={{
                     color: stats.bestLift ? 'rgba(34,197,94,0.95)' : textMutedSoft,
-                    fontSize: 12,
-                    margin: '8px 0 0',
+                    fontSize: 10,
+                    margin: '5px 0 0',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
