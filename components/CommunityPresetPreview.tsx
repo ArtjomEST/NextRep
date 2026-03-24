@@ -377,7 +377,7 @@ export default function CommunityPresetPreview({
           >
             <Button
               type="button"
-              size={narrow ? 'xs' : 'sm'}
+              size="sm"
               variant="secondary"
               fullWidth
               style={{
@@ -395,7 +395,7 @@ export default function CommunityPresetPreview({
             {showSavePreset ? (
               <Button
                 type="button"
-                size={narrow ? 'xs' : 'sm'}
+                size="sm"
                 variant="primary"
                 fullWidth
                 style={{
