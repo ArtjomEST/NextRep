@@ -3,7 +3,9 @@
     "allow": [
       "Bash(find C:UsersUserDesktopNextRep -type f \\\\\\(-name *onboard* -o -name *Onboard* \\\\\\) ! -path *node_modules*)",
       "Bash(xargs grep:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(node -e \"JSON.parse\\(require\\(''fs''\\).readFileSync\\(''C:/Users/User/Desktop/NextRep/projects/nextrep-docs/nextrep-ui-kit.json'',''utf8''\\)\\); console.log\\(''JSON valid''\\)\")",
+      "Bash(wc -l C:/Users/User/Desktop/NextRep/projects/nextrep-docs/*.md C:/Users/User/Desktop/NextRep/projects/nextrep-docs/*.json)"
     ]
   }
 }

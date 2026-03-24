@@ -1,0 +1,641 @@
+{
+  "project": "NextRep",
+  "description": "UI Kit and Design System — Dark theme fitness app with emerald accents, inline styles (no Tailwind)",
+  "colors": {
+    "primary": {
+      "name": "Emerald",
+      "hex": "#1F8A5B",
+      "rgb": "31, 138, 91",
+      "usage": "Основной цвет кнопок, акцентов, активных элементов"
+    },
+    "primaryHover": {
+      "name": "Emerald Hover",
+      "hex": "#25A46B",
+      "rgb": "37, 164, 107",
+      "usage": "Hover-состояние primary кнопок и ссылок"
+    },
+    "primaryPressed": {
+      "name": "Emerald Pressed",
+      "hex": "#176B47",
+      "rgb": "23, 107, 71",
+      "usage": "Pressed-состояние primary элементов"
+    },
+    "bgPrimary": {
+      "name": "Dark Background",
+      "hex": "#0E1114",
+      "rgb": "14, 17, 20",
+      "usage": "Основной фон приложения, viewport meta theme-color"
+    },
+    "surface": {
+      "name": "Surface",
+      "hex": "#161B20",
+      "rgb": "22, 27, 32",
+      "usage": "Скелетоны, поднятые области, вторичный фон"
+    },
+    "card": {
+      "name": "Card Background",
+      "hex": "#1C2228",
+      "rgb": "28, 34, 40",
+      "usage": "Фон карточек, модальных окон, sheet-компонентов"
+    },
+    "border": {
+      "name": "Border",
+      "hex": "#262E36",
+      "rgb": "38, 46, 54",
+      "usage": "Границы карточек, разделители, input borders"
+    },
+    "textPrimary": {
+      "name": "Primary Text",
+      "hex": "#F3F4F6",
+      "rgb": "243, 244, 246",
+      "usage": "Основной текст, заголовки, значения"
+    },
+    "textSecondary": {
+      "name": "Secondary Text",
+      "hex": "#9CA3AF",
+      "rgb": "156, 163, 175",
+      "usage": "Вторичный текст, подписи, метки"
+    },
+    "textMuted": {
+      "name": "Muted Text",
+      "hex": "#6B7280",
+      "rgb": "107, 114, 128",
+      "usage": "Приглушённый текст, плейсхолдеры"
+    },
+    "success": {
+      "name": "Success Green",
+      "hex": "#22C55E",
+      "rgb": "34, 197, 94",
+      "usage": "Успешные состояния, положительные показатели, рост"
+    },
+    "warning": {
+      "name": "Warning Amber",
+      "hex": "#F59E0B",
+      "rgb": "245, 158, 11",
+      "usage": "Предупреждения, средние показатели"
+    },
+    "error": {
+      "name": "Error Red",
+      "hex": "#EF4444",
+      "rgb": "239, 68, 68",
+      "usage": "Ошибки, удаление, отрицательные показатели"
+    },
+    "info": {
+      "name": "Info Blue",
+      "hex": "#3B82F6",
+      "rgb": "59, 130, 246",
+      "usage": "Информационные уведомления"
+    }
+  },
+  "transparencyColors": {
+    "whiteSubtle": "rgba(255,255,255,0.06)",
+    "whiteHover": "rgba(255,255,255,0.08)",
+    "whiteMuted": "rgba(255,255,255,0.42)",
+    "whiteLabel": "rgba(255,255,255,0.5)",
+    "blackOverlay": "rgba(0,0,0,0.6)",
+    "blackShadow": "rgba(0,0,0,0.25)",
+    "accentSoft": "rgba(34,197,94,0.25)",
+    "accentGlow": "rgba(34,197,94,0.4)",
+    "accentFocus": "rgba(34,197,94,0.5)",
+    "accentNearOpaque": "rgba(34,197,94,0.95)",
+    "successBg": "rgba(34,197,94,0.12)",
+    "infoBg": "rgba(59,130,246,0.12)"
+  },
+  "gradients": {
+    "cardBg": "linear-gradient(180deg, #1a2026 0%, #151b21 100%)",
+    "heroEmerald": "linear-gradient(145deg, #0f2e1f 0%, #143d28 40%, #165834 100%)",
+    "successBar": "linear-gradient(90deg, rgba(34,197,94,0.85), rgba(21,128,61,0.95))",
+    "heroGlowOuter": "radial-gradient(circle, rgba(180,220,190,0.15) 0%, rgba(80,160,120,0.06) 35%, transparent 60%)",
+    "heroGlowInner": "radial-gradient(circle, rgba(200,240,210,0.08) 0%, transparent 55%)"
+  },
+  "typography": {
+    "fontFamily": "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    "sizes": {
+      "xs": { "size": "10px", "usage": "Маленькие лейблы, uppercase бейджи" },
+      "sm": { "size": "12px", "usage": "Лейблы, формы, вторичная информация" },
+      "body-sm": { "size": "13px", "usage": "Инпуты, вторичный текст, ошибки" },
+      "body": { "size": "14px", "usage": "Основной текст, комментарии" },
+      "body-lg": { "size": "15px", "usage": "Текст кнопок, крупный body" },
+      "subtitle": { "size": "16px", "usage": "Подзаголовки, заголовки модалок" },
+      "title-sm": { "size": "18px", "usage": "Заголовки секций" },
+      "title": { "size": "20px", "usage": "Значения статистики" },
+      "heading": { "size": "28px", "usage": "Заголовки страниц" },
+      "display": { "size": "32-40px", "usage": "Крупные заголовки (responsive)" }
+    },
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700,
+      "extrabold": 800
+    },
+    "lineHeights": {
+      "tight": 1.18,
+      "compact": 1.3,
+      "normal": 1.45,
+      "readable": 1.55
+    },
+    "letterSpacing": {
+      "tight": "-0.02em",
+      "default": "-0.01em",
+      "button": "0.01em",
+      "uppercase": "0.04em",
+      "wide": "0.08em"
+    }
+  },
+  "spacing": {
+    "xxs": "2px",
+    "xs": "4px",
+    "sm": "8px",
+    "md": "16px",
+    "lg": "24px",
+    "xl": "32px",
+    "formPaddingX": "14px",
+    "cardPadding": "16px",
+    "pagePadding": "24px",
+    "sectionGap": "14px",
+    "layoutGap": "22px"
+  },
+  "borderRadius": {
+    "sm": "8px",
+    "button": "10px",
+    "md": "12px",
+    "card": "14px",
+    "lg": "16px",
+    "hero": "18px",
+    "pill": "128px",
+    "circle": "50%"
+  },
+  "shadows": {
+    "card": "0 2px 8px rgba(0,0,0,0.25)",
+    "elevated": "0 4px 12px rgba(0,0,0,0.4)",
+    "modal": "0 4px 16px rgba(0,0,0,0.4)",
+    "accentGlow": "0 4px 20px rgba(34,197,94,0.4)",
+    "primaryGlow": "0 8px 32px #1F8A5B40",
+    "bottomSheet": "0 -4px 20px rgba(0,0,0,0.3)",
+    "drag": "0 8px 28px rgba(0,0,0,0.45)",
+    "focusRing": "0 0 0 1px rgba(34,197,94,0.5)",
+    "subtleGlow": "0 0 24px rgba(31,138,91,0.12)"
+  },
+  "transitions": {
+    "fast": "0.15s ease",
+    "default": "0.2s ease",
+    "complex": "0.2s ease, opacity 0.2s ease, transform 0.2s ease"
+  },
+  "borders": {
+    "default": "1px solid #262E36",
+    "subtle": "1px solid rgba(255,255,255,0.06)",
+    "dashed": "1px dashed #262E36",
+    "error": "1px solid #EF4444",
+    "selected": "1.5px solid rgba(34,197,94,0.95)"
+  },
+  "components": [
+    {
+      "name": "Button",
+      "file": "components/Button.tsx",
+      "variants": ["primary", "secondary", "ghost"],
+      "sizes": ["sm", "md", "lg"],
+      "props": {
+        "variant": "primary | secondary | ghost (default: primary)",
+        "size": "sm | md | lg (default: md)",
+        "fullWidth": "boolean (default: false)",
+        "disabled": "boolean",
+        "onClick": "() => void",
+        "children": "React.ReactNode"
+      },
+      "styles": {
+        "primary": {
+          "background": "#1F8A5B",
+          "color": "#FFFFFF",
+          "borderRadius": "10px",
+          "fontWeight": 700,
+          "letterSpacing": "0.01em"
+        },
+        "secondary": {
+          "background": "transparent",
+          "color": "#F3F4F6",
+          "border": "1px dashed #262E36",
+          "borderRadius": "10px"
+        },
+        "ghost": {
+          "background": "transparent",
+          "color": "#9CA3AF",
+          "border": "none"
+        }
+      },
+      "sizeStyles": {
+        "sm": { "padding": "8px 14px", "fontSize": "13px" },
+        "md": { "padding": "13px 20px", "fontSize": "15px" },
+        "lg": { "padding": "15px 20px", "fontSize": "16px" }
+      },
+      "usage": "Основные действия, подтверждения, навигация",
+      "example": "<Button variant=\"primary\" size=\"md\" fullWidth>Начать тренировку</Button>"
+    },
+    {
+      "name": "Card",
+      "file": "components/Card.tsx",
+      "props": {
+        "children": "React.ReactNode",
+        "style": "React.CSSProperties (optional)",
+        "onClick": "() => void (optional)"
+      },
+      "styles": {
+        "background": "#1C2228",
+        "border": "1px solid #262E36",
+        "borderRadius": "12px",
+        "padding": "16px",
+        "transition": "border-color 0.2s ease"
+      },
+      "usage": "Контейнер для контента, кликабельные карточки",
+      "example": "<Card onClick={handleClick}><h3>Тренировка</h3></Card>"
+    },
+    {
+      "name": "Modal",
+      "file": "components/Modal.tsx",
+      "props": {
+        "open": "boolean",
+        "onClose": "() => void",
+        "children": "React.ReactNode"
+      },
+      "styles": {
+        "overlay": "rgba(0,0,0,0.6)",
+        "background": "#1C2228",
+        "border": "1px solid #262E36",
+        "borderRadius": "16px",
+        "padding": "24px",
+        "maxWidth": "360px",
+        "zIndex": 300
+      },
+      "usage": "Подтверждения, простые формы, алерты",
+      "example": "<Modal open={isOpen} onClose={() => setIsOpen(false)}>Контент</Modal>"
+    },
+    {
+      "name": "Skeleton",
+      "file": "components/Skeleton.tsx",
+      "props": {
+        "width": "string | number",
+        "height": "string | number",
+        "borderRadius": "string | number (default: 8px)",
+        "style": "React.CSSProperties (optional)"
+      },
+      "styles": {
+        "background": "#161B20",
+        "defaultHeight": "16px",
+        "borderRadius": "8px"
+      },
+      "usage": "Загрузочные состояния, плейсхолдеры контента",
+      "example": "<Skeleton width=\"100%\" height={20} borderRadius={8} />"
+    },
+    {
+      "name": "StatCard",
+      "file": "components/StatCard.tsx",
+      "props": {
+        "label": "string",
+        "value": "string | number",
+        "unit": "string (optional)"
+      },
+      "styles": {
+        "padding": "14px",
+        "label": { "fontSize": "12px", "textTransform": "uppercase", "letterSpacing": "0.04em", "color": "#9CA3AF" },
+        "value": { "fontSize": "20px", "fontWeight": 700, "color": "#F3F4F6" },
+        "unit": { "fontSize": "13px", "fontWeight": 400, "color": "#6B7280" }
+      },
+      "usage": "Отображение статистики (тренировки, объём, подходы)",
+      "example": "<StatCard label=\"Общий объём\" value=\"12,450\" unit=\"кг\" />"
+    },
+    {
+      "name": "TabBar",
+      "file": "components/TabBar.tsx",
+      "props": "Нет (использует usePathname, useRouter)",
+      "tabs": ["Home (/)", "History (/history)", "Community (/community)", "Account (/account)"],
+      "features": ["SVG иконки", "Активный индикатор (полоска)", "Safe-area поддержка", "Скрывается на workout/start/presets страницах"],
+      "usage": "Нижняя навигация, используется в layout",
+      "example": "<TabBar />"
+    },
+    {
+      "name": "LineChart",
+      "file": "components/LineChart.tsx",
+      "props": {
+        "data": "WeeklyDataPoint[] ({ label, value })",
+        "height": "number (default: 200)"
+      },
+      "features": ["SVG-рендеринг", "Градиентная заливка", "Анимированные точки", "Подписи осей"],
+      "usage": "Графики прогресса по упражнениям",
+      "example": "<LineChart data={[{ label: 'Mon', value: 1200 }]} height={180} />"
+    },
+    {
+      "name": "WeeklyVolumeChart",
+      "file": "components/WeeklyVolumeChart.tsx",
+      "props": {
+        "initialData": "WeeklyVolumeChartData (optional)",
+        "entranceAnimation": "boolean (optional)"
+      },
+      "features": ["Bar chart", "Тултипы при нажатии", "Staggered анимация", "prefers-reduced-motion"],
+      "usage": "График недельного объёма на главной",
+      "example": "<WeeklyVolumeChart initialData={data} entranceAnimation />"
+    },
+    {
+      "name": "SetRow",
+      "file": "components/SetRow.tsx",
+      "props": {
+        "index": "number",
+        "set": "WorkoutSet",
+        "onWeightChange": "(value: string) => void",
+        "onRepsChange": "(value: string) => void",
+        "onToggleComplete": "() => void",
+        "onRemove": "() => void",
+        "readOnly": "boolean (optional)"
+      },
+      "features": ["Инпуты для веса и повторений", "Чекбокс выполнения", "Кнопка удаления", "Decimal нормализация"],
+      "usage": "Строка подхода в активной тренировке",
+      "example": "<SetRow index={0} set={set} onWeightChange={fn} onRepsChange={fn} onToggleComplete={fn} onRemove={fn} />"
+    },
+    {
+      "name": "ExercisePicker",
+      "file": "components/ExercisePicker.tsx",
+      "props": {
+        "open": "boolean",
+        "onClose": "() => void",
+        "onAdd": "(exercises: Exercise[]) => void",
+        "alreadyAddedIds": "string[]"
+      },
+      "features": ["Полноэкранный модал", "Поиск", "Фильтр по мышечным группам", "Мульти-выбор", "Sticky кнопки"],
+      "usage": "Выбор упражнений для тренировки или пресета",
+      "example": "<ExercisePicker open={show} onClose={close} onAdd={handleAdd} alreadyAddedIds={ids} />"
+    },
+    {
+      "name": "ExerciseCard",
+      "file": "components/ExerciseCard.tsx",
+      "props": {
+        "exercise": "Exercise",
+        "onClick": "() => void (optional)"
+      },
+      "features": ["Название упражнения", "Теги мышечных групп и оборудования", "Chevron иконка"],
+      "usage": "Элемент списка упражнений",
+      "example": "<ExerciseCard exercise={exercise} onClick={() => router.push(`/exercises/${exercise.id}`)} />"
+    },
+    {
+      "name": "ExerciseInfoSheet",
+      "file": "components/ExerciseInfoSheet.tsx",
+      "props": {
+        "exercise": "ExerciseDetail | null",
+        "open": "boolean",
+        "loading": "boolean (optional)",
+        "onClose": "() => void"
+      },
+      "features": ["Bottom sheet", "Drag handle", "Изображение", "Мышцы", "Оборудование", "Инструкции", "Chip компоненты"],
+      "usage": "Детальная информация об упражнении",
+      "example": "<ExerciseInfoSheet exercise={detail} open={isOpen} onClose={close} />"
+    },
+    {
+      "name": "WorkoutCard",
+      "file": "components/WorkoutCard.tsx",
+      "props": {
+        "workout": "Workout",
+        "compact": "boolean (optional)"
+      },
+      "features": ["Название", "Дата", "Количество упражнений", "Объём", "% улучшения (цветной)"],
+      "usage": "Карточка тренировки в истории и ленте",
+      "example": "<WorkoutCard workout={workout} compact />"
+    },
+    {
+      "name": "RestTimer",
+      "file": "components/RestTimer.tsx",
+      "props": {
+        "visible": "boolean",
+        "isMinimized": "boolean (optional)",
+        "embedded": "boolean (optional)",
+        "durationSeconds": "number",
+        "suppressAutoDismiss": "boolean",
+        "workoutName": "string",
+        "exerciseName": "string",
+        "setIndex": "number",
+        "onDismiss": "() => void",
+        "onMinimize": "() => void",
+        "onMaximize": "() => void"
+      },
+      "features": ["Круговой SVG таймер", "Кнопки -30/пауза/+30", "Полный/свёрнутый/встроенный режимы", "Авто-скрытие"],
+      "usage": "Таймер отдыха между подходами",
+      "example": "<RestTimer visible={true} durationSeconds={90} exerciseName=\"Bench Press\" setIndex={2} onDismiss={fn} />"
+    },
+    {
+      "name": "AIWorkoutReportCard",
+      "file": "components/AIWorkoutReportCard.tsx",
+      "props": {
+        "loading": "boolean",
+        "error": "string | null",
+        "report": "string | null",
+        "scores": "AiWorkoutReportScores"
+      },
+      "features": ["Круговая визуализация оценки (анимация)", "Breakdown: volume/intensity/consistency/duration/PR bonus", "Скелетон загрузки с shimmer"],
+      "usage": "AI-анализ тренировки на странице summary",
+      "example": "<AIWorkoutReportCard loading={false} error={null} report={text} scores={scores} />"
+    },
+    {
+      "name": "CommunityCommentsSheet",
+      "file": "components/CommunityCommentsSheet.tsx",
+      "props": {
+        "target": "CommentsTarget (workout or post)",
+        "open": "boolean",
+        "onClose": "() => void",
+        "onCommentPosted": "() => void"
+      },
+      "features": ["Bottom sheet", "Список комментариев", "Textarea ввод", "Кнопка отправки", "Аватары"],
+      "usage": "Комментарии к тренировкам и постам",
+      "example": "<CommunityCommentsSheet target={{ type: 'workout', id }} open={show} onClose={close} onCommentPosted={refresh} />"
+    },
+    {
+      "name": "CreatePostSheet",
+      "file": "components/CreatePostSheet.tsx",
+      "props": {
+        "open": "boolean",
+        "onClose": "() => void",
+        "onPosted": "() => void (optional)",
+        "editInitial": "EditPostData (optional)",
+        "onSavedEdit": "() => void (optional)"
+      },
+      "features": ["Textarea", "Загрузка фото с компрессией", "Выбор пресета", "Режим редактирования", "Превью"],
+      "usage": "Создание и редактирование постов в сообществе",
+      "example": "<CreatePostSheet open={show} onClose={close} onPosted={refresh} />"
+    },
+    {
+      "name": "MuscleMap",
+      "file": "components/MuscleMap.tsx",
+      "props": {
+        "primaryMuscles": "string[]",
+        "secondaryMuscles": "string[]",
+        "compact": "boolean (optional)",
+        "plain": "boolean (optional)"
+      },
+      "features": ["Визуализация мышц на теле (react-body-highlighter)", "Фронт/бэк модель", "Dual highlight цвета", "Error boundary"],
+      "usage": "Отображение целевых мышечных групп упражнения",
+      "example": "<MuscleMap primaryMuscles={['chest', 'shoulders']} secondaryMuscles={['triceps']} compact />"
+    },
+    {
+      "name": "MuscleMapLazy",
+      "file": "components/MuscleMapLazy.tsx",
+      "props": "Проксирует все props MuscleMap",
+      "features": ["Dynamic import", "SSR отключен", "Loading = null"],
+      "usage": "Lazy-загрузка MuscleMap (уменьшение bundle)",
+      "example": "<MuscleMapLazy primaryMuscles={['back']} secondaryMuscles={['biceps']} />"
+    },
+    {
+      "name": "AIChatWidget",
+      "file": "components/AIChatWidget.tsx",
+      "props": "Нет (использует контексты)",
+      "features": ["FAB кнопка", "Чат с AI-коучем", "История сообщений", "Голосовой ввод (Web Speech API)", "Превью и сохранение AI-пресетов", "Бейдж непрочитанных"],
+      "usage": "Виджет AI-коуча, доступен на всех страницах",
+      "example": "<AIChatWidget />"
+    },
+    {
+      "name": "AiPresetCards",
+      "file": "components/ai/AiPresetCards.tsx",
+      "subComponents": ["AiPresetResultCard", "PresetLoadingCard", "OnboardingAlexLoadingCard", "AiPresetPreviewSheet"],
+      "usage": "Карточки AI-пресетов в чате и онбординге",
+      "example": "<AiPresetResultCard preset={preset} saveState=\"idle\" onPreview={fn} onSave={fn} />"
+    },
+    {
+      "name": "LegendsWorkoutSlider",
+      "file": "components/LegendsWorkoutSlider.tsx",
+      "props": "Нет (внутренний стейт)",
+      "features": ["Горизонтальный scroll", "Snap к карточкам (90% ширины)", "Разрешение названий упражнений"],
+      "usage": "Слайдер легендарных тренировок на главной",
+      "example": "<LegendsWorkoutSlider />"
+    },
+    {
+      "name": "LegendsWorkoutCard",
+      "file": "components/LegendsWorkoutCard.tsx",
+      "props": {
+        "legend": "LegendWorkout",
+        "onUsePreset": "() => void",
+        "applying": "boolean (optional)"
+      },
+      "features": ["Изображение с gradient overlay", "Иконки traits", "Кнопка использования", "Keyboard accessible"],
+      "usage": "Карточка легендарной тренировки",
+      "example": "<LegendsWorkoutCard legend={legend} onUsePreset={fn} />"
+    },
+    {
+      "name": "CommunityPresetPreview",
+      "file": "components/CommunityPresetPreview.tsx",
+      "props": {
+        "preset": "FeedPostPresetSummary",
+        "authorName": "string",
+        "showSavePreset": "boolean",
+        "savedByMe": "boolean",
+        "onSavePreset": "() => void"
+      },
+      "features": ["Компактная карточка + detail sheet", "MuscleMap", "Список упражнений", "Кнопка сохранения"],
+      "usage": "Превью пресета в ленте сообщества",
+      "example": "<CommunityPresetPreview preset={preset} authorName=\"John\" showSavePreset onSavePreset={fn} />"
+    },
+    {
+      "name": "HistoryProgressSection",
+      "file": "components/HistoryProgressSection.tsx",
+      "props": "Нет (внутренний стейт, fetch)",
+      "subComponents": ["ProgressChart (SVG)"],
+      "features": ["Dropdown выбор упражнения", "Переключатель метрик (weight/volume/1rm)", "Кеширование", "Тултипы"],
+      "usage": "Секция прогресса на странице истории",
+      "example": "<HistoryProgressSection />"
+    },
+    {
+      "name": "ProgressCard",
+      "file": "components/ProgressCard.tsx",
+      "props": {
+        "title": "string (optional)"
+      },
+      "features": ["Exercise chip selector", "LineChart рендеринг", "Scroll на активный chip"],
+      "usage": "Карточка с графиком прогресса",
+      "example": "<ProgressCard title=\"Прогресс\" />"
+    },
+    {
+      "name": "WorkoutExerciseCard",
+      "file": "components/WorkoutExerciseCard.tsx",
+      "props": {
+        "entry": "WorkoutExercise",
+        "onRemove": "() => void",
+        "isDragging": "boolean (optional)",
+        "dragHandleProps": "object (optional)"
+      },
+      "features": ["Drag handle (6-dot grid)", "Информация об упражнении", "Кнопка удаления", "Тень при перетаскивании"],
+      "usage": "Карточка упражнения в создании тренировки (draggable)",
+      "example": "<WorkoutExerciseCard entry={entry} onRemove={fn} />"
+    },
+    {
+      "name": "SortableExerciseCard",
+      "file": "components/SortableExerciseCard.tsx",
+      "props": {
+        "entry": "WorkoutExercise",
+        "onRemove": "() => void"
+      },
+      "features": ["@dnd-kit/sortable обёртка", "Рендерит WorkoutExerciseCard"],
+      "usage": "Sortable обёртка для drag & drop списка упражнений",
+      "example": "<SortableExerciseCard entry={entry} onRemove={fn} />"
+    },
+    {
+      "name": "WorkoutLogExerciseRow",
+      "file": "components/WorkoutLogExerciseRow.tsx",
+      "props": {
+        "exerciseImageUrl": "string (optional)",
+        "exerciseName": "string",
+        "completedSets": "string (optional)",
+        "thumbSize": "number",
+        "nameFontWeight": "number",
+        "setsLabel": "string (optional)"
+      },
+      "usage": "Строка упражнения в ленте/сообществе с опциональным thumbnail",
+      "example": "<WorkoutLogExerciseRow exerciseName=\"Bench Press\" completedSets=\"3 × 10\" thumbSize={36} nameFontWeight={500} />"
+    },
+    {
+      "name": "AuthGate",
+      "file": "components/AuthGate.tsx",
+      "props": { "children": "React.ReactNode" },
+      "subComponents": ["LoadingScreen", "AppLogo", "AuthScreen"],
+      "features": ["Telegram auth flow", "Dev mode bypass", "MainButton интеграция", "Loading/error/auth states"],
+      "usage": "Гейт аутентификации, оборачивает всё приложение",
+      "example": "<AuthGate>{children}</AuthGate>"
+    },
+    {
+      "name": "OnboardingGate",
+      "file": "components/OnboardingGate.tsx",
+      "props": { "children": "React.ReactNode" },
+      "features": ["Показывает OnboardingWizard если онбординг не пройден"],
+      "usage": "Гейт онбординга после авторизации",
+      "example": "<OnboardingGate>{children}</OnboardingGate>"
+    },
+    {
+      "name": "OnboardingWizard",
+      "file": "components/OnboardingWizard.tsx",
+      "props": "Нет",
+      "subComponents": ["ProgressBar", "PrimaryBtn", "NumberInput", "OptionCard", "StepAnim"],
+      "features": ["Многошаговый визард", "Сохранение в localStorage", "Анимации переходов", "Выбор целей/опыта/сплита"],
+      "usage": "Онбординг нового пользователя",
+      "example": "<OnboardingWizard />"
+    },
+    {
+      "name": "UserGreeting",
+      "file": "components/UserGreeting.tsx",
+      "props": "Нет (использует useAuth)",
+      "features": ["Приветствие по имени/username", "Skeleton при загрузке"],
+      "usage": "Приветствие на главной странице",
+      "example": "<UserGreeting />"
+    }
+  ],
+  "designSystem": {
+    "style": "Dark Minimalism with Green Accents",
+    "theme": "Dark mode only — #0E1114 background, emerald (#1F8A5B) primary accent",
+    "stylingApproach": "Inline React styles (React.CSSProperties), NO Tailwind CSS",
+    "themeTokens": "lib/theme.ts (colors, spacing, radius) + lib/ui-styles.ts (extended styles)",
+    "restrictions": [
+      "Никогда не использовать Tailwind CSS — только inline styles",
+      "Только тёмная тема, нет светлого режима",
+      "Основной акцент — emerald/green палитра (#1F8A5B, #22C55E)",
+      "Никаких фиолетовых, розовых или оранжевых градиентов",
+      "Фон всегда #0E1114, не чёрный (#000000) и не серый",
+      "Карточки используют gradient background, не flat color",
+      "Все цвета из theme.ts, не хардкодить",
+      "Скроллбары скрыты глобально",
+      "Mobile-first дизайн, safe-area поддержка",
+      "Шрифт — системный стек (-apple-system), не кастомный"
+    ]
+  }
+}

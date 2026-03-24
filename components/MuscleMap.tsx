@@ -8,6 +8,10 @@ export interface MuscleMapProps {
   primaryMuscles: string[];
   secondaryMuscles: string[];
   compact?: boolean;
+  /** Compact layout without card frame/border (e.g. community preset embed). */
+  plain?: boolean;
+  /** Larger body diagrams (e.g. preset detail sheet on mobile). */
+  large?: boolean;
 }
 
 const muscleMap: Record<string, string> = {
@@ -131,19 +135,25 @@ function Pill({
   );
 }
 
-function MuscleMapBody({ primaryMuscles, secondaryMuscles, compact }: MuscleMapProps) {
+function MuscleMapBody({
+  primaryMuscles,
+  secondaryMuscles,
+  compact,
+  plain,
+  large,
+}: MuscleMapProps) {
   const data = buildExerciseData(primaryMuscles, secondaryMuscles);
   if (data.length === 0) return null;
 
-  const w = compact ? 60 : 90;
-  const h = compact ? 140 : 200;
+  const w = compact ? (large ? 82 : 60) : large ? 124 : 90;
+  const h = compact ? (large ? 178 : 140) : large ? 280 : 200;
 
   const models = (
     <div
       style={{
         display: 'flex',
         alignItems: 'flex-end',
-        gap: compact ? 6 : 10,
+        gap: compact ? 6 : large ? 14 : 10,
         flexShrink: 0,
       }}
     >
@@ -193,19 +203,21 @@ function MuscleMapBody({ primaryMuscles, secondaryMuscles, compact }: MuscleMapP
   );
 
   if (compact) {
-    return (
-      <div
-        style={{
+    const wrapStyle: React.CSSProperties = plain
+      ? {
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          flexShrink: 0,
+        }
+      : {
           ...CARD,
           padding: '10px 12px',
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-        }}
-      >
-        {models}
-      </div>
-    );
+        };
+    return <div style={wrapStyle}>{models}</div>;
   }
 
   return (

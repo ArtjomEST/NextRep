@@ -28,6 +28,7 @@ import {
   aggregateMusclesFromExercises,
   type ExerciseMuscleInput,
 } from '@/lib/utils/muscleAggregator';
+import { buildPresetExercisePreviewsFromRows } from '@/lib/community/preset-exercise-preview';
 
 export type MergeTimelineRow = { kind: 'workout' | 'post'; id: string };
 
@@ -113,24 +114,37 @@ function exerciseNamesFromIds(
   return out;
 }
 
-/** Preset card: single highlight tier — all muscles in `secondary`, `primary` empty. */
+/** Aggregate unique primary muscles from all preset exercises, then secondary (excluding primaries). */
 function musclesForPresetPost(
   orderedIds: string[],
   meta: Map<string, { primaryMuscles: string[]; secondaryMuscles: string[] }>,
 ): { primary: string[]; secondary: string[] } {
-  const seen = new Set<string>();
+  const seenP = new Set<string>();
+  const primary: string[] = [];
+  for (const id of orderedIds) {
+    const ex = meta.get(id);
+    if (!ex) continue;
+    for (const m of ex.primaryMuscles) {
+      if (m && !seenP.has(m)) {
+        seenP.add(m);
+        primary.push(m);
+      }
+    }
+  }
+  const primarySet = new Set(primary);
+  const seenS = new Set<string>();
   const secondary: string[] = [];
   for (const id of orderedIds) {
     const ex = meta.get(id);
     if (!ex) continue;
-    for (const m of [...ex.primaryMuscles, ...ex.secondaryMuscles]) {
-      if (m && !seen.has(m)) {
-        seen.add(m);
+    for (const m of ex.secondaryMuscles) {
+      if (m && !primarySet.has(m) && !seenS.has(m)) {
+        seenS.add(m);
         secondary.push(m);
       }
     }
   }
-  return { primary: [], secondary };
+  return { primary, secondary };
 }
 
 export async function buildWorkoutFeedItems(
@@ -483,6 +497,7 @@ export async function buildPostFeedItems(
           .select({
             id: exercises.id,
             name: exercises.name,
+            imageUrl: exercises.imageUrl,
             primaryMuscles: exercises.primaryMuscles,
             secondaryMuscles: exercises.secondaryMuscles,
           })
@@ -494,6 +509,20 @@ export async function buildPostFeedItems(
     exRows.map((e) => [
       e.id,
       {
+        primaryMuscles: Array.isArray(e.primaryMuscles) ? e.primaryMuscles : [],
+        secondaryMuscles: Array.isArray(e.secondaryMuscles)
+          ? e.secondaryMuscles
+          : [],
+      },
+    ]),
+  );
+  const exerciseRowById = new Map(
+    exRows.map((e) => [
+      e.id,
+      {
+        id: e.id,
+        name: e.name,
+        imageUrl: e.imageUrl,
         primaryMuscles: Array.isArray(e.primaryMuscles) ? e.primaryMuscles : [],
         secondaryMuscles: Array.isArray(e.secondaryMuscles)
           ? e.secondaryMuscles
@@ -536,13 +565,16 @@ export async function buildPostFeedItems(
       ? (r.presetExerciseIds as string[]).filter((x) => typeof x === 'string')
       : [];
 
+    const exercisesFull = buildPresetExercisePreviewsFromRows(ids, exerciseRowById);
+
     const presetPayload =
       r.presetId && r.presetName
         ? {
             id: r.presetId,
             name: r.presetName,
-            exerciseCount: ids.length,
+            exerciseCount: exercisesFull.length,
             exerciseNames: exerciseNamesFromIds(ids, nameById, 3),
+            exercises: exercisesFull,
             muscleSummary: musclesForPresetPost(ids, exerciseMetaById),
           }
         : null;

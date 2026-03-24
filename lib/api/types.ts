@@ -162,11 +162,28 @@ export interface FeedWorkoutItem {
   commentPreviews: FeedCommentPreview[];
 }
 
+/** One exercise line for community preset preview (feed + modal). */
+export interface FeedPresetExercisePreview {
+  exerciseId: string;
+  name: string;
+  imageUrl: string | null;
+  /** Primary muscle, else first secondary — for compact tag. */
+  muscleGroup: string | null;
+  /** When preset templates store reps (future) — e.g. "3 × 10". */
+  setsRepsLabel: string | null;
+  /** When available — e.g. "4 × 80 kg". */
+  setsWeightLabel: string | null;
+  /** Default set count per exercise when stored (optional). */
+  targetSets?: number | null;
+}
+
 export interface FeedPostPresetSummary {
   id: string;
   name: string;
   exerciseCount: number;
   exerciseNames: string[];
+  /** Ordered exercise details for inline preview and modal (from feed API). */
+  exercises?: FeedPresetExercisePreview[];
   /** Muscles from preset exercises; UI uses secondary-only for uniform highlight. */
   muscleSummary: { primary: string[]; secondary: string[] };
 }

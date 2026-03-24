@@ -31,6 +31,7 @@ import {
 import CommunityCommentsSheet, {
   type CommentsTarget,
 } from '@/components/CommunityCommentsSheet';
+import CommunityPresetPreview from '@/components/CommunityPresetPreview';
 import CreatePostSheet from '@/components/CreatePostSheet';
 import Card from '@/components/Card';
 import MuscleMapLazy from '@/components/MuscleMapLazy';
@@ -40,7 +41,7 @@ const FEED_CACHE_KEY = 'feed_cache';
 const FEED_CACHE_TTL_MS = 5 * 60 * 1000;
 
 type FeedCacheStore = {
-  v: 3;
+  v: 5;
   entries: Record<
     string,
     {
@@ -63,7 +64,7 @@ function readValidCachedFeed(
     const raw = localStorage.getItem(FEED_CACHE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as FeedCacheStore;
-    if (parsed.v !== 3 || !parsed.entries) return null;
+    if (parsed.v !== 5 || !parsed.entries) return null;
     const ent = parsed.entries[feedCacheEntryKey(filter, type)];
     if (!ent || !Array.isArray(ent.items)) return null;
     if (Date.now() - ent.at > FEED_CACHE_TTL_MS) return null;
@@ -80,7 +81,7 @@ function writeFeedCache(
 ): void {
   if (typeof window === 'undefined') return;
   try {
-    let store: FeedCacheStore = { v: 3, entries: {} };
+    let store: FeedCacheStore = { v: 5, entries: {} };
     const raw = localStorage.getItem(FEED_CACHE_KEY);
     if (raw) {
       const p = JSON.parse(raw) as unknown;
@@ -88,7 +89,7 @@ function writeFeedCache(
         p &&
         typeof p === 'object' &&
         'v' in p &&
-        (p as FeedCacheStore).v === 3 &&
+        (p as FeedCacheStore).v === 5 &&
         'entries' in p &&
         typeof (p as FeedCacheStore).entries === 'object'
       ) {
@@ -463,27 +464,6 @@ function FeedConfirmModal({
 
 function FeedWorkoutMuscleMap({ item }: { item: FeedWorkoutItem }) {
   const ms = item.muscleSummary ?? {
-    primary: [] as string[],
-    secondary: [] as string[],
-  };
-  if (ms.primary.length === 0 && ms.secondary.length === 0) return null;
-  return (
-    <div style={{ marginBottom: '12px' }}>
-      <MuscleMapLazy
-        primaryMuscles={ms.primary}
-        secondaryMuscles={ms.secondary}
-        compact
-      />
-    </div>
-  );
-}
-
-function PresetPostMuscleMap({
-  preset,
-}: {
-  preset: NonNullable<FeedPostItem['preset']>;
-}) {
-  const ms = preset.muscleSummary ?? {
     primary: [] as string[],
     secondary: [] as string[],
   };
@@ -1656,82 +1636,14 @@ function PostFeedCard({
       ) : null}
 
       {item.preset ? (
-        <div
-          style={{
-            marginBottom: '12px',
-            padding: '12px 14px',
-            borderRadius: theme.radius.md,
-            border: `1px solid ${theme.colors.border}`,
-            backgroundColor: theme.colors.card,
-          }}
-        >
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: '15px',
-              color: theme.colors.textPrimary,
-              marginBottom: '6px',
-            }}
-          >
-            {item.preset.name}
-          </div>
-          <p
-            style={{
-              margin: '0 0 8px',
-              fontSize: '13px',
-              color: theme.colors.textMuted,
-            }}
-          >
-            {item.preset.exerciseCount} exercises
-          </p>
-          {item.preset.exerciseNames.length > 0 && (
-            <ul
-              style={{
-                margin: '0 0 10px',
-                paddingLeft: '18px',
-                color: theme.colors.textSecondary,
-                fontSize: '13px',
-              }}
-            >
-              {item.preset.exerciseNames.map((n, i) => (
-                <li key={`${item.postId}-ex-${i}`} style={{ marginBottom: '4px' }}>
-                  {n}
-                </li>
-              ))}
-            </ul>
-          )}
-          {showSavePreset ? (
-            <button
-              type="button"
-              onClick={() => onSavePreset(item.preset!.id)}
-              style={{
-                padding: '8px 14px',
-                borderRadius: theme.radius.md,
-                border: `1px solid ${theme.colors.primary}`,
-                backgroundColor: theme.colors.surface,
-                color: theme.colors.primary,
-                fontWeight: 700,
-                fontSize: '13px',
-                cursor: 'pointer',
-              }}
-            >
-              Save Preset
-            </button>
-          ) : item.preset && item.savedByMe ? (
-            <span
-              style={{
-                fontSize: '13px',
-                fontWeight: 700,
-                color: theme.colors.primary,
-              }}
-            >
-              Saved ✓
-            </span>
-          ) : null}
-        </div>
+        <CommunityPresetPreview
+          preset={item.preset}
+          authorName={item.user.name}
+          showSavePreset={Boolean(showSavePreset)}
+          savedByMe={Boolean(item.savedByMe)}
+          onSavePreset={() => onSavePreset(item.preset!.id)}
+        />
       ) : null}
-
-      {item.preset ? <PresetPostMuscleMap preset={item.preset} /> : null}
 
       <div
         style={{

@@ -11,6 +11,7 @@ import type {
   PublicProfileData,
   WorkoutCommentRow,
   FeedPostPresetSummary,
+  FeedPresetExercisePreview,
 } from './types';
 import { getAuthHeaders, getTelegramInitData } from '@/lib/auth/client';
 
@@ -466,6 +467,22 @@ export async function deleteCommunityPostApi(postId: string): Promise<void> {
     const json = await res.json().catch(() => ({}));
     throw new Error(json.error ?? `Failed to delete post (${res.status})`);
   }
+}
+
+/** Lazy load exercises for a community preset (cache in caller). */
+export async function fetchCommunityPresetExercisesApi(
+  presetId: string,
+): Promise<FeedPresetExercisePreview[]> {
+  const res = await fetch(`/api/community/presets/${presetId}`, {
+    headers: getAuthHeaders(),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(
+      json.error ?? `Failed to load preset exercises (${res.status})`,
+    );
+  }
+  return (json.data?.exercises ?? []) as FeedPresetExercisePreview[];
 }
 
 export async function patchWorkoutForFeedApi(

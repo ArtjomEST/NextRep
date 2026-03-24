@@ -16,11 +16,15 @@ import { compressImage } from '@/lib/utils/compressImage';
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 function presetSummaryToStubPreset(p: FeedPostPresetSummary): Preset {
+  const ids =
+    p.exercises && p.exercises.length > 0
+      ? p.exercises.map((e) => e.exerciseId)
+      : Array.from({ length: p.exerciseCount }, () => '');
   return {
     id: p.id,
     userId: '',
     name: p.name,
-    exerciseIds: Array.from({ length: p.exerciseCount }, () => ''),
+    exerciseIds: ids,
     createdAt: '',
     updatedAt: '',
   };
