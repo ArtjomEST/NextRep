@@ -224,7 +224,8 @@ export default function CommunityPresetPreview({
           borderRadius: '14px',
           backgroundColor: CARD_BG,
           border: `1px solid ${BORDER}`,
-          overflow: 'hidden',
+          overflow: 'visible',
+          minWidth: 0,
         }}
       >
         <div
@@ -234,7 +235,7 @@ export default function CommunityPresetPreview({
           }}
         />
 
-        <div style={{ padding: '10px 14px 12px' }}>
+        <div style={{ padding: '10px 14px 12px', minWidth: 0 }}>
           <div
             style={{
               display: 'flex',
@@ -363,26 +364,30 @@ export default function CommunityPresetPreview({
 
           <div
             style={{
-              display: 'flex',
-              flexWrap: 'nowrap',
-              alignItems: 'stretch',
+              display: 'grid',
               gap: '8px',
-              width: showSavePreset || savedByMe ? '100%' : 'auto',
-              alignSelf: showSavePreset || savedByMe ? 'stretch' : 'flex-end',
-              marginLeft: showSavePreset || savedByMe ? 0 : 'auto',
+              width: '100%',
               minWidth: 0,
+              gridTemplateColumns:
+                showSavePreset || savedByMe
+                  ? 'minmax(0, 1fr) minmax(0, 1fr)'
+                  : 'minmax(0, 1fr)',
+              justifyItems: showSavePreset || savedByMe ? 'stretch' : 'end',
             }}
           >
             <Button
               type="button"
               size="sm"
               variant="secondary"
-              fullWidth={false}
-              style={
-                showSavePreset || savedByMe
-                  ? { flex: '1 1 0%', minWidth: 0, boxSizing: 'border-box' }
-                  : undefined
-              }
+              fullWidth={Boolean(showSavePreset || savedByMe)}
+              style={{
+                minWidth: 0,
+                maxWidth: '100%',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
               onClick={() => setSheetOpen(true)}
             >
               View Preset
@@ -392,8 +397,15 @@ export default function CommunityPresetPreview({
                 type="button"
                 size="sm"
                 variant="primary"
-                fullWidth={false}
-                style={{ flex: '1 1 0%', minWidth: 0, boxSizing: 'border-box' }}
+                fullWidth
+                style={{
+                  minWidth: 0,
+                  maxWidth: '100%',
+                  boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
                 onClick={onSavePreset}
               >
                 ADD
@@ -401,8 +413,8 @@ export default function CommunityPresetPreview({
             ) : savedByMe ? (
               <span
                 style={{
-                  flex: '1 1 0%',
                   minWidth: 0,
+                  maxWidth: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -412,6 +424,9 @@ export default function CommunityPresetPreview({
                   fontWeight: 700,
                   color: GREEN,
                   boxSizing: 'border-box',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 Saved
