@@ -225,7 +225,7 @@ export default function CommunityPresetPreview({
           borderRadius: '14px',
           backgroundColor: CARD_BG,
           border: `1px solid ${BORDER}`,
-          overflow: 'visible',
+          overflow: 'hidden',
           minWidth: 0,
         }}
       >
@@ -373,14 +373,14 @@ export default function CommunityPresetPreview({
                 (showSavePreset || savedByMe) && !veryNarrow
                   ? 'minmax(0, 1fr) minmax(0, 1fr)'
                   : 'minmax(0, 1fr)',
-              justifyItems: (showSavePreset || savedByMe) && !veryNarrow ? 'stretch' : 'end',
+              justifyItems: 'stretch',
             }}
           >
             <Button
               type="button"
               size={narrow ? 'xs' : 'sm'}
               variant="secondary"
-              fullWidth={Boolean(showSavePreset || savedByMe)}
+              fullWidth
               style={{
                 minWidth: 0,
                 maxWidth: '100%',
