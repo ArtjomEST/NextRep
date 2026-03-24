@@ -6,7 +6,7 @@ import { theme } from '@/lib/theme';
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'ghost';
   fullWidth?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export default function Button({
@@ -18,6 +18,7 @@ export default function Button({
   ...props
 }: ButtonProps) {
   const sizeStyles: Record<string, React.CSSProperties> = {
+    xs: { padding: '6px 10px', fontSize: '12px' },
     sm: { padding: '8px 14px', fontSize: '13px' },
     md: { padding: '13px 20px', fontSize: '15px' },
     lg: { padding: '15px 20px', fontSize: '16px' },

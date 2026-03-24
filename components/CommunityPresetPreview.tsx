@@ -113,6 +113,7 @@ export default function CommunityPresetPreview({
   onSavePreset: () => void;
 }) {
   const narrow = useNarrowLayout(420);
+  const veryNarrow = useNarrowLayout(360);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoLoading, setInfoLoading] = useState(false);
@@ -235,7 +236,7 @@ export default function CommunityPresetPreview({
           }}
         />
 
-        <div style={{ padding: '10px 14px 12px', minWidth: 0 }}>
+        <div style={{ padding: narrow ? '8px 10px 10px' : '10px 14px 12px', minWidth: 0 }}>
           <div
             style={{
               display: 'flex',
@@ -321,8 +322,8 @@ export default function CommunityPresetPreview({
               style={{
                 flex: narrow ? 'none' : '1 1 0',
                 minWidth: 0,
-                maxHeight: narrow ? 'none' : 120,
-                overflowY: narrow ? 'visible' : 'auto',
+                maxHeight: narrow ? '60px' : 120,
+                overflowY: 'auto',
                 alignSelf: narrow ? 'stretch' : 'flex-start',
               }}
             >
@@ -365,19 +366,19 @@ export default function CommunityPresetPreview({
           <div
             style={{
               display: 'grid',
-              gap: '8px',
+              gap: narrow ? '6px' : '8px',
               width: '100%',
               minWidth: 0,
               gridTemplateColumns:
-                showSavePreset || savedByMe
+                (showSavePreset || savedByMe) && !veryNarrow
                   ? 'minmax(0, 1fr) minmax(0, 1fr)'
                   : 'minmax(0, 1fr)',
-              justifyItems: showSavePreset || savedByMe ? 'stretch' : 'end',
+              justifyItems: (showSavePreset || savedByMe) && !veryNarrow ? 'stretch' : 'end',
             }}
           >
             <Button
               type="button"
-              size="sm"
+              size={narrow ? 'xs' : 'sm'}
               variant="secondary"
               fullWidth={Boolean(showSavePreset || savedByMe)}
               style={{
@@ -395,7 +396,7 @@ export default function CommunityPresetPreview({
             {showSavePreset ? (
               <Button
                 type="button"
-                size="sm"
+                size={narrow ? 'xs' : 'sm'}
                 variant="primary"
                 fullWidth
                 style={{
