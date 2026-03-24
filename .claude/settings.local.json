@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:UsersUserDesktopNextRep -type f \\\\\\(-name *onboard* -o -name *Onboard* \\\\\\) ! -path *node_modules*)",
+      "Bash(xargs grep:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

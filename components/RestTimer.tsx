@@ -735,4 +735,7 @@ const miniBtn: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
+  padding: '8px 12px',
+  minWidth: 44,
+  minHeight: 36,
 };
