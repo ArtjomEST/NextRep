@@ -593,10 +593,11 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* ─── 5) Weekly Volume Chart ──────────────────────────────────── */}
-          <WeeklyVolumeChart />
           {totalWorkouts === 0 && <EmptyStatsOverlay />}
           </div>
+
+          {/* ─── 5) Weekly Volume Chart ──────────────────────────────────── */}
+          <WeeklyVolumeChart />
 
           {/* ─── Legends Workouts: hero cards, horizontal slider ───────────── */}
           <SectionErrorBoundary>
