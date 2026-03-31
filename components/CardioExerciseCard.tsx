@@ -68,7 +68,7 @@ export default function CardioExerciseCard({
         }}>
           <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#3B82F6' }} />
           <span style={{ fontSize: 9, fontWeight: 600, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Кардио
+            CARDIO
           </span>
         </div>
       </div>
@@ -82,7 +82,7 @@ export default function CardioExerciseCard({
           {formatTime(displaySec)}
         </div>
         <div style={{ fontSize: 11, color: theme.colors.textMuted, marginTop: 3 }}>
-          {isRunning ? 'идёт' : displaySec > 0 ? 'на паузе' : 'не начат'}
+          {isRunning ? 'active' : displaySec > 0 ? 'paused' : 'not started'}
         </div>
         <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
           <button
@@ -96,7 +96,7 @@ export default function CardioExerciseCard({
               transition: 'background 0.15s ease',
             }}
           >
-            {isRunning ? 'Пауза' : displaySec > 0 ? 'Продолжить' : 'Старт'}
+            {isRunning ? 'Pause' : displaySec > 0 ? 'Resume' : 'Start'}
           </button>
           <button
             onClick={displaySec > 0 ? onStop : undefined}
@@ -111,7 +111,7 @@ export default function CardioExerciseCard({
               opacity: displaySec > 0 ? 1 : 0.4, transition: 'all 0.15s ease',
             }}
           >
-            Готово
+            Done
           </button>
         </div>
       </div>

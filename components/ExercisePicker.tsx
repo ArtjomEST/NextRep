@@ -347,7 +347,7 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
                     }}>
                       <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#3B82F6' }} />
                       <span style={{ fontSize: 9, fontWeight: 600, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                        Кардио
+                        CARDIO
                       </span>
                     </div>
                   )}

@@ -11,12 +11,12 @@ export interface CardioParamConfig {
 }
 
 const PARAM_CONFIGS: Record<CardioParamKey, CardioParamConfig> = {
-  speed:      { key: 'speed',      label: 'Скорость',      unit: 'км/ч',    step: 0.5, min: 1,  max: 25,  default: 6 },
-  incline:    { key: 'incline',    label: 'Наклон',        unit: '%',       step: 0.5, min: 0,  max: 15,  default: 0 },
-  resistance: { key: 'resistance', label: 'Сопротивление', unit: 'ур.',     step: 1,   min: 1,  max: 20,  default: 5 },
-  rpm:        { key: 'rpm',        label: 'RPM',           unit: 'об/мин',  step: 5,   min: 20, max: 160, default: 70 },
-  splitMin:   { key: 'splitMin',   label: 'Сплит мин',     unit: 'мин',     step: 1,   min: 1,  max: 9,   default: 2 },
-  splitSec:   { key: 'splitSec',   label: 'Сплит сек',     unit: 'сек',     step: 1,   min: 0,  max: 59,  default: 0 },
+  speed:      { key: 'speed',      label: 'Speed',       unit: 'км/ч',    step: 0.5, min: 1,  max: 25,  default: 6 },
+  incline:    { key: 'incline',    label: 'Incline',     unit: '%',       step: 0.5, min: 0,  max: 15,  default: 0 },
+  resistance: { key: 'resistance', label: 'Resistance',  unit: 'ур.',     step: 1,   min: 1,  max: 20,  default: 5 },
+  rpm:        { key: 'rpm',        label: 'RPM',         unit: 'об/мин',  step: 5,   min: 20, max: 160, default: 70 },
+  splitMin:   { key: 'splitMin',   label: 'Split min',   unit: 'мин',     step: 1,   min: 1,  max: 9,   default: 2 },
+  splitSec:   { key: 'splitSec',   label: 'Split sec',   unit: 'сек',     step: 1,   min: 0,  max: 59,  default: 0 },
 };
 
 export function getCardioParams(exerciseName: string): CardioParamConfig[] {
