@@ -11,6 +11,7 @@ import { authenticateRequest } from '@/lib/auth/helpers';
 import { loadWorkoutScoreContext } from '@/lib/ai/workoutScoreContext';
 import { computeWorkoutScore } from '@/lib/ai/workoutScore';
 import { openaiChatCompletion } from '@/lib/ai/openai';
+import { formatCardioParams } from '@/lib/cardio-params';
 
 function scoresPayload(scores: ReturnType<typeof computeWorkoutScore>) {
   return {
@@ -185,20 +186,35 @@ export async function POST(req: NextRequest) {
       })
       .join('\n');
 
-    const workoutJson = JSON.stringify({
+    const exerciseLines = loaded.exercises.map((ex) => {
+      if (ex.measurementType === 'cardio') {
+        const sec = ex.cardioSeconds ?? 0;
+        const mins = Math.floor(sec / 60);
+        const secs = sec % 60;
+        const timeStr = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')} мин`;
+        const paramsStr = ex.cardioParams
+          ? formatCardioParams(ex.cardioParams, ex.name)
+          : '';
+        return `- ${ex.name}: ${timeStr}${paramsStr ? ' · ' + paramsStr : ''}`;
+      }
+      return `- ${ex.name}: ${ex.completedSets}/${ex.sets} sets, ${ex.volume} kg volume`;
+    });
+
+    const workoutContext = JSON.stringify({
       name: loaded.workoutName,
       durationMinutes: loaded.durationMinutes,
       totalVolume: loaded.totalVolume,
       totalSets: loaded.totalSetsPlanned,
       completedSets: loaded.totalSetsCompleted,
-      exercises: loaded.exercises,
     });
 
     const userPrompt = `Analyze this workout and give a 3-4 sentence English coaching report.
 Be specific using the actual numbers. Mention what went well, what to improve,
 and one concrete recommendation for next session.
 
-Workout: ${workoutJson}
+Workout: ${workoutContext}
+Exercises:
+${exerciseLines.join('\n')}
 
 Score breakdown: volume: ${scores.volume}, intensity: ${scores.intensity}, consistency: ${scores.consistency}, duration: ${scores.duration}, prBonus: ${scores.prBonus}
 

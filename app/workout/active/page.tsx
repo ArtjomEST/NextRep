@@ -15,6 +15,7 @@ import { fetchExerciseDetailApi, fetchLastSetsApi } from '@/lib/api/client';
 import type { ExerciseDetail } from '@/lib/api/types';
 import type { Exercise } from '@/lib/types';
 import SetRow from '@/components/SetRow';
+import CardioExerciseCard from '@/components/CardioExerciseCard';
 import RestTimer from '@/components/RestTimer';
 import Modal from '@/components/Modal';
 import Button from '@/components/Button';
@@ -278,6 +279,48 @@ export default function ActiveWorkoutPage() {
           const isCompleted = entry.status === 'completed';
           const completedSets = entry.sets.filter((s) => s.completed).length;
           const muscleLabel = entry.muscleGroups.join(' · ').toUpperCase();
+
+          if (entry.measurementType === 'cardio') {
+            return (
+              <div
+                key={entry.id}
+                ref={(el) => { exerciseRefs.current[entry.id] = el; }}
+                style={{
+                  opacity: exitingId === entry.id ? 0 : 1,
+                  transform: exitingId === entry.id ? 'scale(0.98)' : 'none',
+                  transition: 'opacity 0.2s ease, transform 0.2s ease',
+                  pointerEvents: exitingId === entry.id ? 'none' : 'auto',
+                }}
+              >
+                {/* Remove button row */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+                  <button
+                    onClick={() => {
+                      const hasLoggedSets = (draft.cardioTimers[entry.id]?.elapsed ?? 0) > 0;
+                      setRemoveConfirmEntry({ id: entry.id, name: entry.exerciseName, hasLoggedSets });
+                    }}
+                    style={{
+                      background: 'none', border: 'none', color: theme.colors.textMuted,
+                      cursor: 'pointer', padding: '4px 6px', fontSize: '14px', opacity: 0.4,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.4'; }}
+                    aria-label="Remove exercise"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <CardioExerciseCard
+                  workoutExerciseId={entry.id}
+                  exerciseName={entry.exerciseName}
+                  timerState={draft.cardioTimers[entry.id] ?? { startedAt: null, elapsed: 0, params: {} }}
+                  onStart={() => dispatch({ type: 'CARDIO_START', workoutExerciseId: entry.id })}
+                  onStop={() => dispatch({ type: 'CARDIO_STOP', workoutExerciseId: entry.id })}
+                  onSetParam={(paramKey, value) => dispatch({ type: 'CARDIO_SET_PARAM', workoutExerciseId: entry.id, paramKey, value })}
+                />
+              </div>
+            );
+          }
 
           return (
             <section

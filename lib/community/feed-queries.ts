@@ -220,6 +220,7 @@ export async function buildWorkoutFeedItems(
       imageUrl: exercises.imageUrl,
       primaryMuscles: exercises.primaryMuscles,
       secondaryMuscles: exercises.secondaryMuscles,
+      measurementType: exercises.measurementType,
     })
     .from(workoutExercises)
     .innerJoin(exercises, eq(workoutExercises.exerciseId, exercises.id))
@@ -245,18 +246,23 @@ export async function buildWorkoutFeedItems(
           .select({
             workoutExerciseId: workoutSets.workoutExerciseId,
             completed: workoutSets.completed,
+            seconds: workoutSets.seconds,
           })
           .from(workoutSets)
           .where(inArray(workoutSets.workoutExerciseId, weIds))
       : [];
 
   const completedByWe = new Map<string, number>();
+  const secondsByWe = new Map<string, number>();
   for (const s of setRows) {
     if (!s.completed) continue;
     completedByWe.set(
       s.workoutExerciseId,
       (completedByWe.get(s.workoutExerciseId) ?? 0) + 1,
     );
+    if (s.seconds != null) {
+      secondsByWe.set(s.workoutExerciseId, (secondsByWe.get(s.workoutExerciseId) ?? 0) + s.seconds);
+    }
   }
 
   const logByWorkout = new Map<
@@ -265,17 +271,27 @@ export async function buildWorkoutFeedItems(
       exerciseName: string;
       exerciseImageUrl: string | null;
       completedSets: number;
+      setsLabel?: string;
     }>
   >();
   for (const r of weRows) {
     const n = completedByWe.get(r.weId) ?? 0;
-    if (n === 0) continue;
+    const totalSec = secondsByWe.get(r.weId);
+    const isCardio = r.measurementType === 'cardio';
+    if (!isCardio && n === 0) continue;
+    if (isCardio && (totalSec === undefined || totalSec === 0)) continue;
     const arr = logByWorkout.get(r.workoutId) ?? [];
-    arr.push({
+    const entry: { exerciseName: string; exerciseImageUrl: string | null; completedSets: number; setsLabel?: string } = {
       exerciseName: r.exerciseName,
       exerciseImageUrl: r.imageUrl,
       completedSets: n,
-    });
+    };
+    if (isCardio && totalSec !== undefined) {
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      entry.setsLabel = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} мин`;
+    }
+    arr.push(entry);
     logByWorkout.set(r.workoutId, arr);
   }
 

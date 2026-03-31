@@ -23,6 +23,9 @@ export interface WorkoutExerciseSummary {
   sets: number;
   completedSets: number;
   volume: number;
+  measurementType?: string;
+  cardioSeconds?: number;
+  cardioParams?: Record<string, number>;
 }
 
 export interface LoadedWorkoutScoreContext {
@@ -59,6 +62,7 @@ export async function loadWorkoutScoreContext(
       exerciseId: workoutExercises.exerciseId,
       order: workoutExercises.order,
       exerciseName: exercises.name,
+      measurementType: exercises.measurementType,
     })
     .from(workoutExercises)
     .innerJoin(exercises, eq(workoutExercises.exerciseId, exercises.id))
@@ -95,6 +99,8 @@ export async function loadWorkoutScoreContext(
     let exVol = 0;
     let exCompleted = 0;
     let exMaxW = 0;
+    let cardioSeconds: number | undefined;
+    let cardioParams: Record<string, number> | undefined;
     for (const s of sets) {
       plannedSets += 1;
       const w = s.weight != null ? Number(s.weight) : 0;
@@ -108,6 +114,11 @@ export async function loadWorkoutScoreContext(
           countWeightForAvg += 1;
           if (w > exMaxW) exMaxW = w;
         }
+        if (we.measurementType === 'cardio' && s.seconds != null) {
+          cardioSeconds = s.seconds;
+          const cd = s.cardioData as Record<string, number> | null;
+          if (cd) cardioParams = cd;
+        }
       }
     }
     computedVolume += exVol;
@@ -116,6 +127,9 @@ export async function loadWorkoutScoreContext(
       sets: sets.length,
       completedSets: exCompleted,
       volume: Math.round(exVol * 10) / 10,
+      measurementType: we.measurementType,
+      ...(cardioSeconds !== undefined ? { cardioSeconds } : {}),
+      ...(cardioParams !== undefined ? { cardioParams } : {}),
     });
     if (exMaxW > 0) {
       const prev = currentMaxWeightByExercise.get(we.exerciseId) ?? 0;

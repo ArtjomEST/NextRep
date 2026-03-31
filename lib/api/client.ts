@@ -56,6 +56,7 @@ function mapDbExercise(e: DbExercise): Exercise {
     description: e.description ?? undefined,
     howTo: e.howTo ?? undefined,
     imageUrl: e.imageUrl ?? undefined,
+    measurementType: e.measurementType as Exercise['measurementType'],
   };
 }
 

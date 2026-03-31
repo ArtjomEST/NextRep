@@ -172,6 +172,7 @@ export async function POST(req: NextRequest) {
       reps: number | null;
       seconds: number | null;
       completed: boolean;
+      cardioData: { durationSec: number; speed?: number; incline?: number; resistance?: number; rpm?: number; splitMin?: number; splitSec?: number } | null;
     }[] = [];
 
     for (const ex of data.exercises) {
@@ -193,6 +194,7 @@ export async function POST(req: NextRequest) {
           reps: s.reps ?? null,
           seconds: s.seconds ?? null,
           completed: s.completed ?? false,
+          cardioData: (s.cardioData as { durationSec: number; speed?: number; incline?: number; resistance?: number; rpm?: number; splitMin?: number; splitSec?: number } | null) ?? null,
         });
       }
     }

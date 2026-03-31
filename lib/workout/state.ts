@@ -8,7 +8,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
-import type { WorkoutDraft, WorkoutExercise, WorkoutSet, Exercise, Workout } from '@/lib/types';
+import type { WorkoutDraft, WorkoutExercise, WorkoutSet, Exercise, Workout, CardioTimerState } from '@/lib/types';
 import {
   generateId,
   defaultWorkoutName,
@@ -32,6 +32,7 @@ const INITIAL_DRAFT: WorkoutDraft = {
   endedAt: null,
   exercises: [],
   activeExerciseId: null,
+  cardioTimers: {},
 };
 
 function createEmptyDraft(): WorkoutDraft {
@@ -43,6 +44,7 @@ function createEmptyDraft(): WorkoutDraft {
     endedAt: null,
     exercises: [],
     activeExerciseId: null,
+    cardioTimers: {},
   };
 }
 
@@ -63,12 +65,23 @@ type Action =
   | { type: 'RESET_DRAFT' }
   | { type: 'SET_ACTIVE_EXERCISE'; exerciseId: string }
   | { type: 'FINISH_EXERCISE'; exerciseId: string }
-  | { type: 'RESTORE_EXERCISE'; exerciseId: string };
+  | { type: 'RESTORE_EXERCISE'; exerciseId: string }
+  | { type: 'CARDIO_INIT'; workoutExerciseId: string }
+  | { type: 'CARDIO_START'; workoutExerciseId: string }
+  | { type: 'CARDIO_STOP'; workoutExerciseId: string }
+  | { type: 'CARDIO_SET_PARAM'; workoutExerciseId: string; paramKey: string; value: number };
 
 function reducer(state: WorkoutDraft, action: Action): WorkoutDraft {
   switch (action.type) {
-    case 'LOAD_DRAFT':
-      return action.draft;
+    case 'LOAD_DRAFT': {
+      // Ensure cardioTimers exists (old drafts won't have it)
+      // Also reset any running timers (startedAt) since page was reloaded
+      const loadedTimers: Record<string, CardioTimerState> = {};
+      for (const [k, v] of Object.entries(action.draft.cardioTimers ?? {})) {
+        loadedTimers[k] = { ...v, startedAt: null };
+      }
+      return { ...action.draft, cardioTimers: loadedTimers };
+    }
 
     case 'SET_NAME':
       return { ...state, name: action.name };
@@ -88,13 +101,24 @@ function reducer(state: WorkoutDraft, action: Action): WorkoutDraft {
         order: state.exercises.length,
         sets: [createEmptySet()],
         status: 'pending',
+        measurementType: ex.measurementType,
       };
       const exercises = [...state.exercises, entry];
-      return {
+      const newState = {
         ...state,
         exercises,
         activeExerciseId: state.activeExerciseId ?? entry.id,
       };
+      if (ex.measurementType === 'cardio') {
+        return {
+          ...newState,
+          cardioTimers: {
+            ...newState.cardioTimers,
+            [entry.id]: { startedAt: null, elapsed: 0, params: {} },
+          },
+        };
+      }
+      return newState;
     }
 
     case 'REMOVE_EXERCISE': {
@@ -197,6 +221,57 @@ function reducer(state: WorkoutDraft, action: Action): WorkoutDraft {
         e.id === action.exerciseId ? { ...e, status: 'pending' as const } : e,
       );
       return { ...state, exercises, activeExerciseId: action.exerciseId };
+    }
+
+    case 'CARDIO_INIT': {
+      if (state.cardioTimers[action.workoutExerciseId]) return state;
+      return {
+        ...state,
+        cardioTimers: {
+          ...state.cardioTimers,
+          [action.workoutExerciseId]: { startedAt: null, elapsed: 0, params: {} },
+        },
+      };
+    }
+
+    case 'CARDIO_START': {
+      const timer = state.cardioTimers[action.workoutExerciseId];
+      if (!timer || timer.startedAt !== null) return state;
+      return {
+        ...state,
+        cardioTimers: {
+          ...state.cardioTimers,
+          [action.workoutExerciseId]: { ...timer, startedAt: Date.now() },
+        },
+      };
+    }
+
+    case 'CARDIO_STOP': {
+      const timer = state.cardioTimers[action.workoutExerciseId];
+      if (!timer || timer.startedAt === null) return state;
+      const elapsed = timer.elapsed + (Date.now() - timer.startedAt) / 1000;
+      return {
+        ...state,
+        cardioTimers: {
+          ...state.cardioTimers,
+          [action.workoutExerciseId]: { ...timer, startedAt: null, elapsed },
+        },
+      };
+    }
+
+    case 'CARDIO_SET_PARAM': {
+      const timer = state.cardioTimers[action.workoutExerciseId];
+      if (!timer) return state;
+      return {
+        ...state,
+        cardioTimers: {
+          ...state.cardioTimers,
+          [action.workoutExerciseId]: {
+            ...timer,
+            params: { ...timer.params, [action.paramKey]: action.value },
+          },
+        },
+      };
     }
 
     default:

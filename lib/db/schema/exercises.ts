@@ -12,7 +12,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 export const exerciseSourceEnum = pgEnum('exercise_source', ['wger', 'custom']);
-export const measurementTypeEnum = pgEnum('measurement_type', ['weight_reps', 'reps_only', 'time']);
+export const measurementTypeEnum = pgEnum('measurement_type', ['weight_reps', 'reps_only', 'time', 'cardio']);
 
 export const exercises = pgTable('exercises', {
   id: uuid('id').primaryKey().defaultRandom(),

@@ -9,6 +9,7 @@ import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
 import { aggregateMusclesFromExercises } from '@/lib/utils/muscleAggregator';
 import MuscleMapLazy from '@/components/MuscleMapLazy';
+import { formatCardioParams } from '@/lib/cardio-params';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -521,60 +522,109 @@ function ExerciseDetailCard({
           ? 'Time'
           : '';
 
-  return (
-    <Card>
-      <div
-        style={{
+  const cardHeader = (
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: '10px',
+      }}
+    >
+      <div>
+        <h3
+          style={{
+            color: theme.colors.textPrimary,
+            fontSize: '15px',
+            fontWeight: 600,
+            margin: 0,
+          }}
+        >
+          {exercise.exerciseName}
+        </h3>
+        <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+          {exercise.category && (
+            <span
+              style={{
+                backgroundColor: theme.colors.surface,
+                color: theme.colors.textSecondary,
+                fontSize: '11px',
+                fontWeight: 500,
+                padding: '2px 7px',
+                borderRadius: '6px',
+                border: `1px solid ${theme.colors.border}`,
+              }}
+            >
+              {exercise.category}
+            </span>
+          )}
+        </div>
+      </div>
+      {exercise.status === 'completed' && (
+        <span
+          style={{
+            backgroundColor: 'rgba(34,197,94,0.12)',
+            color: theme.colors.success,
+            fontSize: '11px',
+            fontWeight: 600,
+            padding: '3px 8px',
+            borderRadius: '6px',
+          }}
+        >
+          Done
+        </span>
+      )}
+    </div>
+  );
+
+  if (mt === 'cardio') {
+    const set = exercise.sets[0];
+    const sec = set?.seconds ?? 0;
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    const timeLabel = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    const paramsLabel = set?.cardioData
+      ? formatCardioParams(set.cardioData as unknown as Record<string, number>, exercise.exerciseName)
+      : 'кардио';
+
+    return (
+      <Card>
+        {cardHeader}
+        <div style={{
+          background: 'rgba(59,130,246,0.06)',
+          border: '1px solid rgba(59,130,246,0.15)',
+          borderRadius: theme.radius.sm,
+          padding: '10px 12px',
           display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '10px',
-        }}
-      >
-        <div>
-          <h3
-            style={{
-              color: theme.colors.textPrimary,
-              fontSize: '15px',
-              fontWeight: 600,
-              margin: 0,
-            }}
-          >
-            {exercise.exerciseName}
-          </h3>
-          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-            {exercise.category && (
-              <span
-                style={{
-                  backgroundColor: theme.colors.surface,
-                  color: theme.colors.textSecondary,
-                  fontSize: '11px',
-                  fontWeight: 500,
-                  padding: '2px 7px',
-                  borderRadius: '6px',
-                  border: `1px solid ${theme.colors.border}`,
-                }}
-              >
-                {exercise.category}
-              </span>
-            )}
+        }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: theme.colors.textPrimary, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
+              {timeLabel}
+            </div>
+            <div style={{ fontSize: 11, color: theme.colors.textMuted, marginTop: 2 }}>
+              {paramsLabel}
+            </div>
+          </div>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 4,
+            background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)',
+            borderRadius: 5, padding: '2px 8px',
+          }}>
+            <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#3B82F6' }} />
+            <span style={{ fontSize: 9, fontWeight: 600, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              Кардио
+            </span>
           </div>
         </div>
-        {exercise.status === 'completed' && (
-          <span
-            style={{
-              backgroundColor: 'rgba(34,197,94,0.12)',
-              color: theme.colors.success,
-              fontSize: '11px',
-              fontWeight: 600,
-              padding: '3px 8px',
-              borderRadius: '6px',
-            }}
-          >
-            Done
-          </span>
-        )}
-      </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      {cardHeader}
 
       {headerLabels && (
         <div

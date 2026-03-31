@@ -43,6 +43,13 @@
       "when": 1774040452540,
       "tag": "0005_complex_venus",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774899836882,
+      "tag": "0006_narrow_tombstone",
+      "breakpoints": true
     }
   ]
 }

@@ -243,6 +243,7 @@ export async function GET(
           reps: s.reps,
           seconds: s.seconds,
           completed: s.completed,
+          cardioData: s.cardioData ?? null,
         });
         setsMap.set(s.workoutExerciseId, arr);
       }

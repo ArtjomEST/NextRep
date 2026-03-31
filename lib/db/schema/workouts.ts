@@ -10,6 +10,7 @@ import {
   pgEnum,
   index,
   uniqueIndex,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { users } from './users';
 import { exercises } from './exercises';
@@ -55,6 +56,15 @@ export const workoutSets = pgTable('workout_sets', {
   reps: integer('reps'),
   seconds: integer('seconds'),
   completed: boolean('completed').notNull().default(false),
+  cardioData: jsonb('cardio_data').$type<{
+    durationSec: number;
+    speed?: number;
+    incline?: number;
+    resistance?: number;
+    rpm?: number;
+    splitMin?: number;
+    splitSec?: number;
+  } | null>().default(null),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index('workout_sets_workout_exercise_id_idx').on(t.workoutExerciseId),

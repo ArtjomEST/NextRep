@@ -190,18 +190,39 @@ export default function WorkoutSummaryPage() {
         durationSec: stats.duration > 0 ? stats.duration * 60 : undefined,
         isPublic,
         photoUrl,
-        exercises: draft.exercises.map((ex) => ({
-          exerciseId: ex.exerciseId,
-          order: ex.order,
-          status: ex.status,
-          sets: ex.sets.map((s, idx) => ({
-            setIndex: idx + 1,
-            completed: s.completed,
-            weight: s.weight || null,
-            reps: s.reps || null,
-            seconds: null,
-          })),
-        })),
+        exercises: draft.exercises.map((ex) => {
+          if (ex.measurementType === 'cardio') {
+            const cardioTimer = draft.cardioTimers[ex.id] ?? { elapsed: 0, params: {} };
+            return {
+              exerciseId: ex.exerciseId,
+              order: ex.order,
+              status: ex.status,
+              sets: [{
+                setIndex: 0,
+                weight: null,
+                reps: null,
+                seconds: Math.round(cardioTimer.elapsed),
+                completed: cardioTimer.elapsed > 0,
+                cardioData: {
+                  durationSec: Math.round(cardioTimer.elapsed),
+                  ...cardioTimer.params,
+                },
+              }],
+            };
+          }
+          return {
+            exerciseId: ex.exerciseId,
+            order: ex.order,
+            status: ex.status,
+            sets: ex.sets.map((s, idx) => ({
+              setIndex: idx + 1,
+              completed: s.completed,
+              weight: s.weight || null,
+              reps: s.reps || null,
+              seconds: null,
+            })),
+          };
+        }),
       };
 
       const result = await saveWorkoutApi(request);

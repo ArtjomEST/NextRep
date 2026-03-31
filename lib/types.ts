@@ -22,6 +22,7 @@ export interface Exercise {
   description?: string;
   howTo?: string;
   imageUrl?: string;
+  measurementType?: 'weight_reps' | 'reps_only' | 'time' | 'cardio';
 }
 
 export type MuscleGroup = 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core';
@@ -47,6 +48,7 @@ export interface WorkoutExercise {
   order: number;
   sets: WorkoutSet[];
   status: ExerciseStatus;
+  measurementType?: 'weight_reps' | 'reps_only' | 'time' | 'cardio';
 }
 
 export interface Workout {
@@ -63,6 +65,12 @@ export interface Workout {
 
 export type WorkoutStatus = 'planning' | 'active' | 'finished';
 
+export interface CardioTimerState {
+  startedAt: number | null;
+  elapsed: number;
+  params: Record<string, number>;
+}
+
 export interface WorkoutDraft {
   id: string;
   name: string;
@@ -71,6 +79,7 @@ export interface WorkoutDraft {
   endedAt: string | null;
   exercises: WorkoutExercise[];
   activeExerciseId: string | null;
+  cardioTimers: Record<string, CardioTimerState>;
 }
 
 export interface WeeklyDataPoint {

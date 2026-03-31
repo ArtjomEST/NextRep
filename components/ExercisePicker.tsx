@@ -339,6 +339,18 @@ export default function ExercisePicker({ open, onClose, onAdd, alreadyAddedIds }
                   {ex.equipment && (
                     <span style={equipTagStyle}>{ex.equipment}</span>
                   )}
+                  {ex.measurementType === 'cardio' && (
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)',
+                      borderRadius: 5, padding: '1px 6px',
+                    }}>
+                      <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#3B82F6' }} />
+                      <span style={{ fontSize: 9, fontWeight: 600, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                        Кардио
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 

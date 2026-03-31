@@ -1252,6 +1252,7 @@ export default function CommunityPage() {
                         exerciseImageUrl={line.exerciseImageUrl}
                         exerciseName={line.exerciseName}
                         completedSets={line.completedSets}
+                        setsLabel={line.setsLabel}
                       />
                     ))}
                   </div>

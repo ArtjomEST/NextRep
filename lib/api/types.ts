@@ -1,11 +1,22 @@
 // ─── Save Workout Request / Response ────────────────────────
 
+export interface CardioData {
+  durationSec: number;
+  speed?: number;
+  incline?: number;
+  resistance?: number;
+  rpm?: number;
+  splitMin?: number;
+  splitSec?: number;
+}
+
 export interface SaveWorkoutSetPayload {
   setIndex: number;
   completed: boolean;
   weight: number | null;
   reps: number | null;
   seconds: number | null;
+  cardioData?: CardioData | null;
 }
 
 export interface SaveWorkoutExercisePayload {
@@ -59,6 +70,7 @@ export interface WorkoutDetailSet {
   reps: number | null;
   seconds: number | null;
   completed: boolean;
+  cardioData?: CardioData | null;
 }
 
 export interface LastSet {
@@ -72,7 +84,7 @@ export interface WorkoutDetailExercise {
   exerciseName: string;
   category: string | null;
   imageUrl: string | null;
-  measurementType: string;
+  measurementType: 'weight_reps' | 'reps_only' | 'time' | 'cardio' | string;
   order: number;
   status: string;
   primaryMuscles: string[];
@@ -107,7 +119,7 @@ export interface ExerciseDetail {
   primaryMuscles: string[];
   secondaryMuscles: string[];
   equipment: string[];
-  measurementType: string;
+  measurementType: 'weight_reps' | 'reps_only' | 'time' | 'cardio' | string;
   imageUrl: string | null;
   images: string[];
   source: string;
@@ -131,6 +143,8 @@ export interface FeedWorkoutLogLine {
   exerciseName: string;
   exerciseImageUrl: string | null;
   completedSets: number;
+  /** Overrides "X sets" display — used for cardio duration e.g. "08:22 мин" */
+  setsLabel?: string;
 }
 
 export interface FeedCommentPreview {
