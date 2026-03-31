@@ -10,6 +10,7 @@ import Card from '@/components/Card';
 import { aggregateMusclesFromExercises } from '@/lib/utils/muscleAggregator';
 import MuscleMapLazy from '@/components/MuscleMapLazy';
 import { formatCardioParams } from '@/lib/cardio-params';
+import DownloadWorkoutButton from '@/components/DownloadWorkoutButton';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -278,7 +279,10 @@ export default function WorkoutDetailPage() {
             </p>
           </div>
 
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            <DownloadWorkoutButton workoutId={id} />
+
+            <div style={{ position: 'relative' }}>
             <button
               onClick={() => setMenuOpen((o) => !o)}
               style={{
@@ -351,6 +355,7 @@ export default function WorkoutDetailPage() {
               </>
             )}
           </div>
+            </div>
         </div>
       </div>
 

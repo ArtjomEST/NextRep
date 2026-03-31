@@ -21,12 +21,14 @@
     "@vercel/blob": "^0.27.3",
     "drizzle-orm": "^0.45.1",
     "next": "16.1.6",
+    "pdfkit": "^0.18.0",
     "react": "19.2.3",
     "react-body-highlighter": "^2.0.5",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "cross-env": "^7.0.3",
