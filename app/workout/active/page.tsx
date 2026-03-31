@@ -282,43 +282,172 @@ export default function ActiveWorkoutPage() {
 
           if (entry.measurementType === 'cardio') {
             return (
-              <div
+              <section
                 key={entry.id}
                 ref={(el) => { exerciseRefs.current[entry.id] = el; }}
                 style={{
-                  opacity: exitingId === entry.id ? 0 : 1,
+                  backgroundColor: theme.colors.card,
+                  border: `1.5px solid ${isActive ? theme.colors.primary : theme.colors.border}`,
+                  borderRadius: '14px',
+                  padding: isActive ? '14px 16px' : '12px 14px',
+                  transition: 'border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, transform 0.2s ease',
+                  boxShadow: isActive ? `0 0 24px rgba(31,138,91,0.12)` : 'none',
+                  opacity: exitingId === entry.id ? 0 : isCompleted ? 0.65 : 1,
                   transform: exitingId === entry.id ? 'scale(0.98)' : 'none',
-                  transition: 'opacity 0.2s ease, transform 0.2s ease',
                   pointerEvents: exitingId === entry.id ? 'none' : 'auto',
                 }}
               >
-                {/* Remove button row */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
-                  <button
-                    onClick={() => {
-                      const hasLoggedSets = (draft.cardioTimers[entry.id]?.elapsed ?? 0) > 0;
-                      setRemoveConfirmEntry({ id: entry.id, name: entry.exerciseName, hasLoggedSets });
-                    }}
+                {/* ─── Cardio Header ─── */}
+                <div
+                  onClick={() => handleActivate(entry.id)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    minHeight: '40px',
+                  }}
+                >
+                  {/* Status dot */}
+                  <div
                     style={{
-                      background: 'none', border: 'none', color: theme.colors.textMuted,
-                      cursor: 'pointer', padding: '4px 6px', fontSize: '14px', opacity: 0.4,
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: isCompleted
+                        ? theme.colors.success
+                        : isActive
+                          ? theme.colors.primary
+                          : theme.colors.textMuted,
+                      flexShrink: 0,
+                      transition: 'background-color 0.2s ease',
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.4'; }}
-                    aria-label="Remove exercise"
-                  >
-                    ✕
-                  </button>
+                  />
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h2
+                        style={{
+                          color: isCompleted ? theme.colors.textMuted : theme.colors.textPrimary,
+                          fontSize: '15px',
+                          fontWeight: 600,
+                          margin: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {entry.exerciseName}
+                      </h2>
+                      {isCompleted && (
+                        <span
+                          style={{
+                            backgroundColor: 'rgba(34,197,94,0.12)',
+                            color: theme.colors.success,
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            flexShrink: 0,
+                          }}
+                        >
+                          Done
+                        </span>
+                      )}
+                    </div>
+                    {/* CARDIO badge */}
+                    <div style={{ marginTop: 4 }}>
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.2)',
+                        borderRadius: 5, padding: '1px 6px',
+                      }}>
+                        <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#3B82F6' }} />
+                        <span style={{ fontSize: 9, fontWeight: 600, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          CARDIO
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right actions */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const hasLoggedSets = (draft.cardioTimers[entry.id]?.elapsed ?? 0) > 0;
+                        setRemoveConfirmEntry({ id: entry.id, name: entry.exerciseName, hasLoggedSets });
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: theme.colors.textMuted,
+                        cursor: 'pointer',
+                        padding: '6px 4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                        fontSize: '16px',
+                        opacity: 0.4,
+                        transition: 'opacity 0.15s ease',
+                        lineHeight: 1,
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.4'; }}
+                      aria-label="Remove exercise"
+                    >
+                      ✕
+                    </button>
+                    {isCompleted && !isActive && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRestoreExercise(entry.id); }}
+                        style={{
+                          background: 'none',
+                          border: `1px solid ${theme.colors.border}`,
+                          borderRadius: '6px',
+                          color: theme.colors.textMuted,
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          padding: '4px 8px',
+                        }}
+                      >
+                        Restore
+                      </button>
+                    )}
+                    {!isActive ? (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={theme.colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    ) : (
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={theme.colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="18 15 12 9 6 15" />
+                      </svg>
+                    )}
+                  </div>
                 </div>
-                <CardioExerciseCard
-                  workoutExerciseId={entry.id}
-                  exerciseName={entry.exerciseName}
-                  timerState={draft.cardioTimers[entry.id] ?? { startedAt: null, elapsed: 0, params: {} }}
-                  onStart={() => dispatch({ type: 'CARDIO_START', workoutExerciseId: entry.id })}
-                  onStop={() => dispatch({ type: 'CARDIO_STOP', workoutExerciseId: entry.id })}
-                  onSetParam={(paramKey, value) => dispatch({ type: 'CARDIO_SET_PARAM', workoutExerciseId: entry.id, paramKey, value })}
-                />
-              </div>
+
+                {/* ─── Expanded body (active only) ─── */}
+                {isActive && (
+                  <div style={{ marginTop: '14px' }}>
+                    <CardioExerciseCard
+                      workoutExerciseId={entry.id}
+                      exerciseName={entry.exerciseName}
+                      timerState={draft.cardioTimers[entry.id] ?? { startedAt: null, elapsed: 0, params: {} }}
+                      onStart={() => dispatch({ type: 'CARDIO_START', workoutExerciseId: entry.id })}
+                      onStop={() => dispatch({ type: 'CARDIO_STOP', workoutExerciseId: entry.id })}
+                      onDone={() => {
+                        if (draft.cardioTimers[entry.id]?.startedAt !== null) {
+                          dispatch({ type: 'CARDIO_STOP', workoutExerciseId: entry.id });
+                        }
+                        handleFinishExercise(entry.id);
+                      }}
+                      onSetParam={(paramKey, value) => dispatch({ type: 'CARDIO_SET_PARAM', workoutExerciseId: entry.id, paramKey, value })}
+                    />
+                  </div>
+                )}
+              </section>
             );
           }
 

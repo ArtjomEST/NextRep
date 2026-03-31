@@ -11,6 +11,7 @@ interface CardioExerciseCardProps {
   timerState: CardioTimerState;
   onStart: () => void;
   onStop: () => void;
+  onDone: () => void;
   onSetParam: (paramKey: string, value: number) => void;
 }
 
@@ -20,6 +21,7 @@ export default function CardioExerciseCard({
   timerState,
   onStart,
   onStop,
+  onDone,
   onSetParam,
 }: CardioExerciseCardProps) {
   const [displaySec, setDisplaySec] = useState(timerState.elapsed);
@@ -52,29 +54,9 @@ export default function CardioExerciseCard({
   void workoutExerciseId;
 
   return (
-    <div style={{
-      background: theme.colors.card,
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: theme.radius.lg,
-      overflow: 'hidden',
-    }}>
-      {/* Header */}
-      <div style={{ padding: '12px 14px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: theme.colors.textPrimary }}>{exerciseName}</span>
-        <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: 5,
-          background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)',
-          borderRadius: 6, padding: '2px 8px',
-        }}>
-          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#3B82F6' }} />
-          <span style={{ fontSize: 9, fontWeight: 600, color: '#3B82F6', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            CARDIO
-          </span>
-        </div>
-      </div>
-
+    <div>
       {/* Timer */}
-      <div style={{ padding: '4px 14px 12px' }}>
+      <div style={{ padding: '0 0 12px' }}>
         <div style={{
           fontSize: 40, fontWeight: 700, color: theme.colors.textPrimary,
           letterSpacing: '-0.03em', lineHeight: 1, fontVariantNumeric: 'tabular-nums',
@@ -99,7 +81,7 @@ export default function CardioExerciseCard({
             {isRunning ? 'Pause' : displaySec > 0 ? 'Resume' : 'Start'}
           </button>
           <button
-            onClick={displaySec > 0 ? onStop : undefined}
+            onClick={displaySec > 0 ? onDone : undefined}
             disabled={displaySec === 0}
             style={{
               flex: 1, padding: '10px 0',
@@ -116,13 +98,13 @@ export default function CardioExerciseCard({
         </div>
       </div>
 
-      <div style={{ height: 1, background: theme.colors.border, margin: '0 14px 12px' }} />
+      <div style={{ height: 1, background: theme.colors.border, margin: '0 0 12px' }} />
 
       {/* Params */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: `repeat(${Math.min(paramConfigs.length, 2)}, 1fr)`,
-        gap: 8, padding: '0 14px 14px',
+        gap: 8,
       }}>
         {paramConfigs.map((cfg) => {
           const value = timerState.params[cfg.key] ?? cfg.default;
