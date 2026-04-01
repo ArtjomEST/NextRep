@@ -9,9 +9,15 @@ import {
 } from '@/lib/db/schema';
 import { eq, asc, inArray } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
-import { buildWorkoutPdfBuffer, type PdfExerciseRow, type PdfSetRow } from '@/lib/pdf/workoutPdf';
+import {
+  buildWorkoutPdfBuffer,
+  formatDatePdf,
+  formatDurationPdf,
+  type PdfExerciseRow,
+  type PdfSetRow,
+} from '@/lib/pdf/workoutPdf';
 
-export async function GET(
+export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
@@ -38,14 +44,23 @@ export async function GET(
     }
 
     const [user] = await db
-      .select({ username: users.username, firstName: users.firstName, lastName: users.lastName })
+      .select({
+        username: users.username,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        telegramUserId: users.telegramUserId,
+      })
       .from(users)
       .where(eq(users.id, auth.userId))
       .limit(1);
 
-    const userName = user?.username
+    if (!user?.telegramUserId) {
+      return NextResponse.json({ error: 'Telegram user ID not found' }, { status: 400 });
+    }
+
+    const userName = user.username
       ? `@${user.username}`
-      : [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'User';
+      : [user.firstName, user.lastName].filter(Boolean).join(' ') || 'User';
 
     const weRows = await db
       .select({
@@ -117,19 +132,42 @@ export async function GET(
       userName,
     });
 
-    const dateStr = (workout.startedAt ?? workout.createdAt).toISOString().slice(0, 10);
+    const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+    if (!BOT_TOKEN) {
+      return NextResponse.json({ error: 'Bot token not configured' }, { status: 500 });
+    }
 
-    return new Response(new Uint8Array(pdfBuffer), {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="nextrep-workout-${dateStr}.pdf"`,
-        'Content-Length': String(pdfBuffer.length),
-      },
-    });
+    const dateStr = (workout.startedAt ?? workout.createdAt).toISOString().slice(0, 10);
+    const caption = `${workout.name}\n${formatDatePdf(workout.startedAt?.toISOString() ?? workout.createdAt.toISOString())} · ${formatDurationPdf(workout.durationSec)}`;
+
+    const formData = new FormData();
+    formData.append('chat_id', user.telegramUserId);
+    formData.append('caption', caption);
+    formData.append(
+      'document',
+      new Blob([new Uint8Array(pdfBuffer)], { type: 'application/pdf' }),
+      `nextrep-workout-${dateStr}.pdf`,
+    );
+
+    const tgRes = await fetch(
+      `https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`,
+      { method: 'POST', body: formData },
+    );
+
+    if (!tgRes.ok) {
+      const detail = await tgRes.text();
+      console.error('Telegram sendDocument failed:', detail);
+      return NextResponse.json(
+        { error: 'Failed to send to Telegram', detail },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('GET /api/workouts/[id]/export error:', err);
+    console.error('POST /api/workouts/[id]/send-pdf error:', err);
     return NextResponse.json(
-      { error: 'Failed to generate PDF', message: String(err) },
+      { error: 'Failed to send PDF', message: String(err) },
       { status: 500 },
     );
   }
