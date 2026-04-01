@@ -838,6 +838,28 @@ function FeatureMuscleSlide() {
 
   return (
     <>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'linear-gradient(135deg, rgba(31,138,91,0.15) 0%, rgba(31,138,91,0.08) 100%)',
+        border: '1px solid rgba(31,138,91,0.3)',
+        borderRadius: 6,
+        padding: '6px 12px',
+        marginBottom: 12,
+        alignSelf: 'flex-start',
+      }}>
+        <span style={{ fontSize: 12 }}>✨</span>
+        <span style={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: '#1F8A5B',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase' as const,
+        }}>
+          PRO Feature
+        </span>
+      </div>
       <div style={{ marginBottom: 20 }}>
         <div
           style={{
@@ -1076,6 +1098,28 @@ function FeatureAiCoachSlide() {
 
   return (
     <>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        background: 'linear-gradient(135deg, rgba(31,138,91,0.15) 0%, rgba(31,138,91,0.08) 100%)',
+        border: '1px solid rgba(31,138,91,0.3)',
+        borderRadius: 6,
+        padding: '6px 12px',
+        marginBottom: 12,
+        alignSelf: 'flex-start',
+      }}>
+        <span style={{ fontSize: 12 }}>✨</span>
+        <span style={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: '#1F8A5B',
+          letterSpacing: '0.04em',
+          textTransform: 'uppercase' as const,
+        }}>
+          PRO Feature
+        </span>
+      </div>
       <div style={{ marginBottom: 16 }}>
         <div
           style={{

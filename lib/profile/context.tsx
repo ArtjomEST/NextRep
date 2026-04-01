@@ -31,6 +31,10 @@ interface ProfileContextValue {
   refreshProfile: () => Promise<void>;
   saveProfile: (data: OnboardingData) => Promise<void>;
   updateProfile: (data: ProfileUpdatePayload) => Promise<void>;
+  showTrialOnboarding: boolean;
+  trialOnboardingEndsAt: string | null;
+  dismissTrialOnboarding: () => void;
+  triggerTrialOnboarding: (trialEndsAt: string) => void;
 }
 
 const ProfileContext = createContext<ProfileContextValue>({
@@ -45,6 +49,10 @@ const ProfileContext = createContext<ProfileContextValue>({
   refreshProfile: async () => {},
   saveProfile: async () => {},
   updateProfile: async () => {},
+  showTrialOnboarding: false,
+  trialOnboardingEndsAt: null,
+  dismissTrialOnboarding: () => {},
+  triggerTrialOnboarding: () => {},
 });
 
 export function ProfileProvider({ children }: { children: React.ReactNode }) {
@@ -55,6 +63,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
   const [proExpiresAt, setProExpiresAt] = useState<string | null>(null);
   const [trialEndsAt, setTrialEndsAt] = useState<string | null>(null);
   const [trialUsed, setTrialUsed] = useState(false);
+  const [showTrialOnboarding, setShowTrialOnboarding] = useState(false);
+  const [trialOnboardingEndsAt, setTrialOnboardingEndsAt] = useState<string | null>(null);
   const fetchedRef = useRef(false);
 
   const fetchProfile = useCallback(async () => {
@@ -125,6 +135,15 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
 
   const hasCompletedOnboarding = profile?.onboardingCompleted === true;
 
+  const triggerTrialOnboarding = useCallback((endsAt: string) => {
+    setTrialOnboardingEndsAt(endsAt);
+    setShowTrialOnboarding(true);
+  }, []);
+
+  const dismissTrialOnboarding = useCallback(() => {
+    setShowTrialOnboarding(false);
+  }, []);
+
   return (
     <ProfileContext.Provider
       value={{
@@ -139,6 +158,10 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
         refreshProfile: fetchProfile,
         saveProfile,
         updateProfile,
+        showTrialOnboarding,
+        trialOnboardingEndsAt,
+        dismissTrialOnboarding,
+        triggerTrialOnboarding,
       }}
     >
       {children}

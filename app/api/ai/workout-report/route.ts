@@ -256,6 +256,7 @@ ${historySummary || '(none)'}`;
         { role: 'user', content: userPrompt },
       ],
       temperature: 0.55,
+      maxTokens: 180,
     });
 
     try {

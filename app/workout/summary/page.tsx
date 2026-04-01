@@ -18,7 +18,7 @@ import {
   postAiWorkoutReportApi,
   type AiWorkoutReportScores,
 } from '@/lib/api/client';
-import AIWorkoutReportCard from '@/components/AIWorkoutReportCard';
+import AIReportWithGate from '@/components/AIReportWithGate';
 import type { SaveWorkoutRequest } from '@/lib/api/types';
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
@@ -325,16 +325,6 @@ export default function WorkoutSummaryPage() {
             {saveNotice}
           </p>
         )}
-        {isPro && (
-          <div style={{ width: '100%', marginTop: 16 }}>
-            <AIWorkoutReportCard
-              loading={aiLoading}
-              error={aiError}
-              report={aiPayload?.report ?? null}
-              scores={aiPayload?.scores ?? null}
-            />
-          </div>
-        )}
         <div
           style={{
             display: 'flex',
@@ -504,6 +494,14 @@ export default function WorkoutSummaryPage() {
         <StatCard label="PRs" value={stats.prs} />
       </div>
 
+      {/* AI Workout Report */}
+      <AIReportWithGate
+        loading={aiLoading}
+        error={aiError}
+        report={aiPayload?.report ?? null}
+        scores={aiPayload?.scores ?? null}
+      />
+
       {(muscleSummary.primaryMuscles.length > 0 ||
         muscleSummary.secondaryMuscles.length > 0) && (
         <MuscleMapWithGate
@@ -512,18 +510,6 @@ export default function WorkoutSummaryPage() {
           compact={false}
         />
       )}
-
-      <p
-        style={{
-          margin: 0,
-          color: theme.colors.textMuted,
-          fontSize: 13,
-          textAlign: 'center',
-          lineHeight: 1.45,
-        }}
-      >
-        Save your workout to get an AI Coach analysis with session score.
-      </p>
 
       {/* Highlights */}
       <Card>

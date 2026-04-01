@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
+import { notifyTrialActivated } from '@/lib/telegram/notify';
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,6 +36,9 @@ export async function POST(req: NextRequest) {
         proSource: 'trial',
       })
       .where(eq(userProfiles.userId, auth.userId));
+
+    const telegramUserId = auth.telegramUser ? String(auth.telegramUser.id) : null;
+    notifyTrialActivated(telegramUserId, trialEndsAt);
 
     return NextResponse.json({
       success: true,

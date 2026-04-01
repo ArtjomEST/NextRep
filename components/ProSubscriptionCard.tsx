@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { useProfile } from '@/lib/profile/context';
 import { theme } from '@/lib/theme';
 import { activateTrialApi, redeemPromoApi, createStarsInvoiceApi } from '@/lib/api/client';
+import ProTrialOnboardingSheet from '@/components/ProTrialOnboardingSheet';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function ProSubscriptionCard() {
-  const { isPro, proExpiresAt, trialEndsAt, trialUsed, refreshProfile } = useProfile();
+  const { isPro, proExpiresAt, trialEndsAt, trialUsed, refreshProfile, triggerTrialOnboarding } = useProfile();
   const [promoOpen, setPromoOpen] = useState(false);
   const [promoCode, setPromoCode] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
@@ -18,6 +19,7 @@ export default function ProSubscriptionCard() {
   const [promoSuccess, setPromoSuccess] = useState(false);
   const [trialLoading, setTrialLoading] = useState(false);
   const [starsLoading, setStarsLoading] = useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   const isTrialActive = !isPro && trialEndsAt != null && new Date(trialEndsAt) > new Date();
   const expiresStr = isPro && proExpiresAt ? formatDate(proExpiresAt) : null;
@@ -26,8 +28,9 @@ export default function ProSubscriptionCard() {
   async function handleTrial() {
     setTrialLoading(true);
     try {
-      await activateTrialApi();
+      const result = await activateTrialApi();
       await refreshProfile();
+      triggerTrialOnboarding(result.trialEndsAt);
     } catch {
       // silent
     } finally {
@@ -77,96 +80,134 @@ export default function ProSubscriptionCard() {
   // ── State 1: PRO active ───────────────────────────────────────
   if (isPro) {
     return (
-      <div style={{
-        background: theme.colors.card,
-        border: `1.5px solid ${theme.colors.primary}`,
-        borderRadius: 16,
-        padding: 18,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <span style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: 700 }}>
-            NextRep PRO
-          </span>
-          <span style={{
-            background: theme.colors.primary,
-            color: '#fff',
-            fontSize: 10,
-            fontWeight: 700,
-            padding: '3px 8px',
-            borderRadius: 6,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase' as const,
-          }}>
-            ACTIVE
-          </span>
-        </div>
-        {expiresStr && (
-          <p style={{ color: theme.colors.textSecondary, fontSize: 13, margin: '0 0 14px' }}>
-            Expires {expiresStr}
-          </p>
-        )}
-        <button onClick={handleStars} disabled={starsLoading} style={{
-          width: '100%',
-          background: 'transparent',
-          border: `1px solid ${theme.colors.primary}`,
-          borderRadius: 10,
-          color: theme.colors.primary,
-          fontSize: 14,
-          fontWeight: 600,
-          padding: '11px 16px',
-          cursor: starsLoading ? 'wait' : 'pointer',
-          opacity: starsLoading ? 0.6 : 1,
+      <>
+        <div style={{
+          background: 'linear-gradient(145deg, #0f2e1f 0%, #143d28 60%, #1C2228 100%)',
+          border: '1px solid rgba(31,138,91,0.4)',
+          borderRadius: 14,
+          padding: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
         }}>
-          {starsLoading ? 'Opening…' : 'Extend (+30 days · 50 ⭐)'}
-        </button>
-      </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ color: '#F3F4F6', fontSize: 15, fontWeight: 700 }}>
+              NextRep PRO
+            </span>
+            <span style={{
+              background: 'rgba(34,197,94,0.15)',
+              border: '1px solid rgba(34,197,94,0.4)',
+              color: '#22C55E',
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: 20,
+            }}>
+              ACTIVE
+            </span>
+          </div>
+          {expiresStr && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: '#9CA3AF', fontSize: 13 }}>Active until</span>
+              <span style={{ color: '#F3F4F6', fontSize: 13, fontWeight: 700 }}>{expiresStr}</span>
+            </div>
+          )}
+          <button onClick={handleStars} disabled={starsLoading} style={{
+            width: '100%',
+            background: 'rgba(255,255,255,0.07)',
+            border: 'none',
+            borderRadius: 10,
+            color: '#F3F4F6',
+            fontSize: 14,
+            fontWeight: 600,
+            padding: '11px 16px',
+            cursor: starsLoading ? 'wait' : 'pointer',
+            opacity: starsLoading ? 0.6 : 1,
+          }}>
+            {starsLoading ? 'Opening…' : 'Extend (+30 days · 50 ⭐)'}
+          </button>
+          <button onClick={() => setShowInfo(true)} style={{
+            background: 'none',
+            border: 'none',
+            color: '#9CA3AF',
+            fontSize: 13,
+            padding: '8px 0',
+            cursor: 'pointer',
+            textAlign: 'center',
+            width: '100%',
+          }}>
+            Learn about PRO
+          </button>
+        </div>
+        <ProTrialOnboardingSheet open={showInfo} onClose={() => setShowInfo(false)} mode="info" />
+      </>
     );
   }
 
   // ── State 2: Trial active ─────────────────────────────────────
   if (isTrialActive) {
     return (
-      <div style={{
-        background: theme.colors.card,
-        border: `1.5px solid ${theme.colors.primary}`,
-        borderRadius: 16,
-        padding: 18,
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <span style={{ color: theme.colors.textPrimary, fontSize: 16, fontWeight: 700 }}>
-            NextRep PRO
-          </span>
-          <span style={{
-            background: 'rgba(34,197,94,0.2)',
-            color: theme.colors.success,
-            fontSize: 10,
-            fontWeight: 700,
-            padding: '3px 8px',
-            borderRadius: 6,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase' as const,
-          }}>
-            TRIAL
-          </span>
-        </div>
-        <p style={{ color: theme.colors.textSecondary, fontSize: 13, margin: '0 0 14px' }}>
-          Trial ends {trialExpiresStr}. Upgrade to keep PRO.
-        </p>
-        <button onClick={handleStars} disabled={starsLoading} style={{
-          width: '100%',
-          background: theme.colors.primary,
-          border: 'none',
-          borderRadius: 10,
-          color: '#fff',
-          fontSize: 14,
-          fontWeight: 700,
-          padding: '13px 16px',
-          cursor: starsLoading ? 'wait' : 'pointer',
-          opacity: starsLoading ? 0.6 : 1,
+      <>
+        <div style={{
+          background: 'linear-gradient(145deg, #0f2e1f 0%, #143d28 60%, #1C2228 100%)',
+          border: '1px solid rgba(31,138,91,0.4)',
+          borderRadius: 14,
+          padding: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
         }}>
-          {starsLoading ? 'Opening…' : 'Upgrade to PRO · 50 ⭐'}
-        </button>
-      </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ color: '#F3F4F6', fontSize: 15, fontWeight: 700 }}>
+              NextRep PRO
+            </span>
+            <span style={{
+              background: 'rgba(34,197,94,0.15)',
+              border: '1px solid rgba(34,197,94,0.4)',
+              color: '#22C55E',
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '3px 10px',
+              borderRadius: 20,
+            }}>
+              TRIAL
+            </span>
+          </div>
+          {trialExpiresStr && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ color: '#9CA3AF', fontSize: 13 }}>Active until</span>
+              <span style={{ color: '#F3F4F6', fontSize: 13, fontWeight: 700 }}>{trialExpiresStr}</span>
+            </div>
+          )}
+          <button onClick={handleStars} disabled={starsLoading} style={{
+            width: '100%',
+            background: 'rgba(255,255,255,0.07)',
+            border: 'none',
+            borderRadius: 10,
+            color: '#F3F4F6',
+            fontSize: 14,
+            fontWeight: 600,
+            padding: '11px 16px',
+            cursor: starsLoading ? 'wait' : 'pointer',
+            opacity: starsLoading ? 0.6 : 1,
+          }}>
+            {starsLoading ? 'Opening…' : 'Extend (+30 days · 50 ⭐)'}
+          </button>
+          <button onClick={() => setShowInfo(true)} style={{
+            background: 'none',
+            border: 'none',
+            color: '#9CA3AF',
+            fontSize: 13,
+            padding: '8px 0',
+            cursor: 'pointer',
+            textAlign: 'center',
+            width: '100%',
+          }}>
+            Learn about PRO
+          </button>
+        </div>
+        <ProTrialOnboardingSheet open={showInfo} onClose={() => setShowInfo(false)} mode="info" />
+      </>
     );
   }
 

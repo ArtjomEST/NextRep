@@ -90,6 +90,16 @@ export function notifyPostLiked(args: {
   );
 }
 
+export function notifyTrialActivated(
+  telegramUserId: string | null,
+  trialEndsAt: Date,
+): void {
+  sendTelegramMessage(
+    telegramUserId,
+    `🎉 Your 7-day NextRep PRO trial is now active!\n\nEnjoy full access to AI analysis, Muscle Map, AI Coach, and unlimited presets.\n\nTrial ends: ${trialEndsAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`,
+  );
+}
+
 export function notifyPostCommented(args: {
   actorId: string;
   recipientId: string;
