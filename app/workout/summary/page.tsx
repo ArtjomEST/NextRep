@@ -325,6 +325,14 @@ export default function WorkoutSummaryPage() {
             {saveNotice}
           </p>
         )}
+        <div style={{ width: '100%', marginTop: 14 }}>
+          <AIReportWithGate
+            loading={aiLoading}
+            error={aiError}
+            report={aiPayload?.report ?? null}
+            scores={aiPayload?.scores ?? null}
+          />
+        </div>
         <div
           style={{
             display: 'flex',
@@ -493,14 +501,6 @@ export default function WorkoutSummaryPage() {
         <StatCard label="Sets" value={stats.sets} />
         <StatCard label="PRs" value={stats.prs} />
       </div>
-
-      {/* AI Workout Report */}
-      <AIReportWithGate
-        loading={aiLoading}
-        error={aiError}
-        report={aiPayload?.report ?? null}
-        scores={aiPayload?.scores ?? null}
-      />
 
       {(muscleSummary.primaryMuscles.length > 0 ||
         muscleSummary.secondaryMuscles.length > 0) && (
