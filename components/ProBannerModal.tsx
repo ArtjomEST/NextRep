@@ -48,8 +48,11 @@ export default function ProBannerModal() {
     setStarsLoading(true);
     try {
       const { invoiceUrl } = await createStarsInvoiceApi();
-      if (window.Telegram?.WebApp?.openInvoice) {
-        window.Telegram.WebApp.openInvoice(invoiceUrl, async (status: string) => {
+      const tgWebApp = window.Telegram?.WebApp as {
+        openInvoice?: (url: string, callback: (status: string) => void) => void;
+      } | undefined;
+      if (tgWebApp?.openInvoice) {
+        tgWebApp.openInvoice(invoiceUrl, async (status: string) => {
           if (status === 'paid') {
             await refreshProfile();
             setVisible(false);
