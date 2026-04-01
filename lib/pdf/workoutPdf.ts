@@ -1,12 +1,16 @@
 import path from 'path';
+import fs from 'fs';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const PDFDocument = require('pdfkit');
 
-// ─── Font paths ───────────────────────────────────────────────────────────────
+// ─── Font buffers ─────────────────────────────────────────────────────────────
+// Read at module level so Next.js file tracing detects them and includes them
+// in the serverless bundle. Buffers are passed directly to pdfkit so there is
+// no filesystem dependency at request time.
 
 const FONTS_DIR = path.join(process.cwd(), 'public', 'fonts');
-export const FONT_REGULAR = path.join(FONTS_DIR, 'DejaVuSans.ttf');
-export const FONT_BOLD = path.join(FONTS_DIR, 'DejaVuSans-Bold.ttf');
+const FONT_REGULAR = fs.readFileSync(path.join(FONTS_DIR, 'DejaVuSans.ttf'));
+const FONT_BOLD = fs.readFileSync(path.join(FONTS_DIR, 'DejaVuSans-Bold.ttf'));
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

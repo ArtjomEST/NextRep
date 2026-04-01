@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   // pdfkit loads font files from its own package directory at runtime via __dirname.
   // Bundling it breaks those paths, so we keep it as a native Node.js external.
   serverExternalPackages: ['pdfkit'],
+  // Explicitly include font files in the serverless function bundle.
+  // public/ is served as static CDN assets and is NOT automatically available
+  // to serverless functions via the filesystem without this.
+  outputFileTracingIncludes: {
+    '/api/workouts/[id]/export': ['./public/fonts/**'],
+    '/api/workouts/[id]/send-pdf': ['./public/fonts/**'],
+  },
 };
 
 export default nextConfig;

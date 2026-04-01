@@ -7,7 +7,7 @@ export async function sendWorkoutPdfToBot(workoutId: string): Promise<void> {
   });
 
   if (!res.ok) {
-    const json = await res.json().catch(() => ({})) as { error?: string };
-    throw new Error(json.error ?? `Send failed: ${res.status}`);
+    const json = await res.json().catch(() => ({})) as { error?: string; message?: string };
+    throw new Error(json.message ?? json.error ?? `Send failed: ${res.status}`);
   }
 }
