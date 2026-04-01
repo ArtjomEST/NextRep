@@ -21,8 +21,10 @@ export default function ProSubscriptionCard() {
   const [starsLoading, setStarsLoading] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
 
-  const isTrialActive = !isPro && trialEndsAt != null && new Date(trialEndsAt) > new Date();
-  const expiresStr = isPro && proExpiresAt ? formatDate(proExpiresAt) : null;
+  const now = new Date();
+  const isPaidPro = proExpiresAt != null && new Date(proExpiresAt) > now;
+  const isTrialActive = !isPaidPro && trialEndsAt != null && new Date(trialEndsAt) > now;
+  const expiresStr = isPaidPro ? formatDate(proExpiresAt!) : null;
   const trialExpiresStr = isTrialActive && trialEndsAt ? formatDate(trialEndsAt) : null;
 
   async function handleTrial() {
@@ -78,7 +80,7 @@ export default function ProSubscriptionCard() {
   }
 
   // ── State 1: PRO active ───────────────────────────────────────
-  if (isPro) {
+  if (isPaidPro) {
     return (
       <>
         <div style={{
