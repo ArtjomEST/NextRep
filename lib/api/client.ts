@@ -830,6 +830,69 @@ export async function deletePresetApi(id: string): Promise<void> {
   }
 }
 
+// ─── Me / PRO status ─────────────────────────────────────────
+
+export interface MeProData {
+  isPro: boolean;
+  proExpiresAt: string | null;
+  trialEndsAt: string | null;
+  trialUsed: boolean;
+}
+
+export async function fetchMeProApi(): Promise<MeProData> {
+  const res = await fetch('/api/me', { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error(`Failed to fetch /api/me (${res.status})`);
+  const json = await res.json();
+  const d = json.data as {
+    isPro?: boolean;
+    proExpiresAt?: string | null;
+    trialEndsAt?: string | null;
+    trialUsed?: boolean;
+  };
+  return {
+    isPro: d.isPro ?? false,
+    proExpiresAt: d.proExpiresAt ?? null,
+    trialEndsAt: d.trialEndsAt ?? null,
+    trialUsed: d.trialUsed ?? false,
+  };
+}
+
+// ─── Billing / Trial / Promo ─────────────────────────────────
+
+export async function activateTrialApi(): Promise<{ trialEndsAt: string }> {
+  const res = await fetch('/api/trial/activate', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error((json as { error?: string }).error ?? `HTTP ${res.status}`);
+  }
+  return (await res.json()) as { trialEndsAt: string };
+}
+
+export async function redeemPromoApi(code: string): Promise<{ proExpiresAt: string }> {
+  const res = await fetch('/api/promo/redeem', {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error((json as { error?: string }).error ?? `HTTP ${res.status}`);
+  }
+  return (await res.json()) as { proExpiresAt: string };
+}
+
+export async function createStarsInvoiceApi(): Promise<{ invoiceUrl: string }> {
+  const res = await fetch('/api/billing/stars', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return (await res.json()) as { invoiceUrl: string };
+}
+
 // ─── User Profile (Onboarding) ────────────────────────────────
 
 export async function fetchProfileApi(): Promise<UserProfile | null> {

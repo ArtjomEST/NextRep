@@ -50,6 +50,13 @@
       "when": 1774899836882,
       "tag": "0006_narrow_tombstone",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775029057870,
+      "tag": "0007_handy_network",
+      "breakpoints": true
     }
   ]
 }

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { users } from '@/lib/db/schema';
+import { users, userProfiles } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
+import { computeIsPro } from '@/lib/pro/helpers';
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,7 +37,25 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ data: user });
+    const [profile] = await db
+      .select({
+        proExpiresAt: userProfiles.proExpiresAt,
+        trialEndsAt: userProfiles.trialEndsAt,
+        trialUsed: userProfiles.trialUsed,
+      })
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, auth.userId))
+      .limit(1);
+
+    return NextResponse.json({
+      data: {
+        ...user,
+        isPro: computeIsPro(profile ?? {}),
+        proExpiresAt: profile?.proExpiresAt?.toISOString() ?? null,
+        trialEndsAt: profile?.trialEndsAt?.toISOString() ?? null,
+        trialUsed: profile?.trialUsed ?? false,
+      },
+    });
   } catch (err) {
     console.error('GET /api/me error:', err);
     return NextResponse.json(

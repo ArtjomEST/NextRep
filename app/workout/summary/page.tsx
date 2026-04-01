@@ -25,13 +25,15 @@ import Card from '@/components/Card';
 import Button from '@/components/Button';
 import { compressImage } from '@/lib/utils/compressImage';
 import { aggregateMusclesFromExercises } from '@/lib/utils/muscleAggregator';
-import MuscleMapLazy from '@/components/MuscleMapLazy';
+import MuscleMapWithGate from '@/components/MuscleMapWithGate';
+import { useProfile } from '@/lib/profile/context';
 
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 export default function WorkoutSummaryPage() {
   const router = useRouter();
   const { draft, dispatch } = useWorkout();
+  const { isPro } = useProfile();
   const [saving, setSaving] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [savedWorkoutId, setSavedWorkoutId] = useState<string | null>(null);
@@ -77,6 +79,7 @@ export default function WorkoutSummaryPage() {
 
   useEffect(() => {
     if (!savedWorkoutId) return;
+    if (!isPro) return;
     if (aiWorkoutProcessedRef.current === savedWorkoutId) return;
     aiWorkoutProcessedRef.current = savedWorkoutId;
     let cancelled = false;
@@ -322,14 +325,16 @@ export default function WorkoutSummaryPage() {
             {saveNotice}
           </p>
         )}
-        <div style={{ width: '100%', marginTop: 16 }}>
-          <AIWorkoutReportCard
-            loading={aiLoading}
-            error={aiError}
-            report={aiPayload?.report ?? null}
-            scores={aiPayload?.scores ?? null}
-          />
-        </div>
+        {isPro && (
+          <div style={{ width: '100%', marginTop: 16 }}>
+            <AIWorkoutReportCard
+              loading={aiLoading}
+              error={aiError}
+              report={aiPayload?.report ?? null}
+              scores={aiPayload?.scores ?? null}
+            />
+          </div>
+        )}
         <div
           style={{
             display: 'flex',
@@ -501,7 +506,7 @@ export default function WorkoutSummaryPage() {
 
       {(muscleSummary.primaryMuscles.length > 0 ||
         muscleSummary.secondaryMuscles.length > 0) && (
-        <MuscleMapLazy
+        <MuscleMapWithGate
           primaryMuscles={muscleSummary.primaryMuscles}
           secondaryMuscles={muscleSummary.secondaryMuscles}
           compact={false}

@@ -87,7 +87,7 @@ type SuggestAddUiState = 'idle' | 'adding' | 'done' | 'error';
 
 export default function AIChatWidget() {
   const pathname = usePathname();
-  const { isLoading: profileLoading, hasCompletedOnboarding } = useProfile();
+  const { isLoading: profileLoading, hasCompletedOnboarding, isPro } = useProfile();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<AiChatMessageRow[]>([]);
   const [input, setInput] = useState('');
@@ -365,6 +365,7 @@ export default function AIChatWidget() {
   }
 
   if (hidden) return null;
+  if (!isPro) return null;
 
   return (
     <>

@@ -3,6 +3,8 @@ import Script from 'next/script';
 import './globals.css';
 import TabBar from '@/components/TabBar';
 import AIChatWidget from '@/components/AIChatWidget';
+import ProGateTooltip from '@/components/ProGateTooltip';
+import ProBannerModal from '@/components/ProBannerModal';
 import { Providers } from './providers';
 import { LayoutShell } from './layout-shell';
 import { AppErrorBoundary } from './AppErrorBoundary';
@@ -39,6 +41,8 @@ export default function RootLayout({
             <LayoutShell>{children}</LayoutShell>
             <TabBar />
             <AIChatWidget />
+            <ProGateTooltip />
+            <ProBannerModal />
           </Providers>
         </AppErrorBoundary>
       </body>

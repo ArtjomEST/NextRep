@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getDb } from '@/lib/db';
+import { userProfiles, starPayments } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? '';
 const WEBAPP_URL = process.env.NEXTREP_WEBAPP_URL ?? '';
@@ -24,6 +27,27 @@ interface TelegramMessage {
 interface TelegramUpdate {
   update_id: number;
   message?: TelegramMessage;
+}
+
+interface PreCheckoutQuery {
+  id: string;
+  from: { id: number };
+  currency: string;
+  total_amount: number;
+  invoice_payload: string;
+}
+
+interface SuccessfulPayment {
+  currency: string;
+  total_amount: number;
+  invoice_payload: string;
+  telegram_payment_charge_id: string;
+  provider_payment_charge_id: string;
+}
+
+interface TelegramUpdateExtended extends TelegramUpdate {
+  pre_checkout_query?: PreCheckoutQuery;
+  message?: TelegramMessage & { successful_payment?: SuccessfulPayment };
 }
 
 async function sendMessage(
@@ -65,9 +89,9 @@ export async function POST(req: NextRequest) {
     return new NextResponse('configuration error', { status: 200 }); // 200 to prevent Telegram retries
   }
 
-  let update: TelegramUpdate;
+  let update: TelegramUpdateExtended;
   try {
-    update = (await req.json()) as TelegramUpdate;
+    update = (await req.json()) as TelegramUpdateExtended;
   } catch {
     console.error('[telegram] invalid JSON body');
     return new NextResponse('bad request', { status: 200 });
@@ -75,9 +99,72 @@ export async function POST(req: NextRequest) {
 
   console.log(`[telegram] update ${update.update_id}`);
 
+  // Подтверждаем pre-checkout (всегда ok для Stars)
+  if (update.pre_checkout_query) {
+    const pcq = update.pre_checkout_query;
+    await fetch(`${TELEGRAM_API}/answerPreCheckoutQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ pre_checkout_query_id: pcq.id, ok: true }),
+    });
+    return new NextResponse('ok', { status: 200 });
+  }
+
   // Ignore non-message updates (callback_query, edited_message, etc.)
   const message = update.message;
   if (!message) {
+    return new NextResponse('ok', { status: 200 });
+  }
+
+  // Обработка успешной оплаты Stars
+  if (message.successful_payment) {
+    const sp = message.successful_payment;
+    const userId = sp.invoice_payload;
+    const telegramPaymentId = sp.telegram_payment_charge_id;
+
+    try {
+      const db = getDb();
+
+      const [existing] = await db
+        .select({ id: starPayments.id })
+        .from(starPayments)
+        .where(eq(starPayments.telegramPaymentId, telegramPaymentId))
+        .limit(1);
+
+      if (!existing) {
+        await db.insert(starPayments).values({
+          userId,
+          telegramPaymentId,
+          amount: sp.total_amount,
+          status: 'completed',
+          completedAt: new Date(),
+        });
+
+        const [profile] = await db
+          .select({ proExpiresAt: userProfiles.proExpiresAt })
+          .from(userProfiles)
+          .where(eq(userProfiles.userId, userId))
+          .limit(1);
+
+        const baseDate = (profile?.proExpiresAt && profile.proExpiresAt > new Date())
+          ? profile.proExpiresAt
+          : new Date();
+
+        const proExpiresAt = new Date(baseDate);
+        proExpiresAt.setDate(proExpiresAt.getDate() + 30);
+
+        await db.update(userProfiles).set({
+          proExpiresAt,
+          proSource: 'stars',
+        }).where(eq(userProfiles.userId, userId));
+
+        console.log(`[webhook] PRO activated for userId=${userId} until ${proExpiresAt.toISOString()}`);
+      }
+    } catch (err) {
+      console.error('[webhook] successful_payment processing error:', err);
+      // Возвращаем 200 в любом случае — Telegram не должен ретраить
+    }
+
     return new NextResponse('ok', { status: 200 });
   }
 

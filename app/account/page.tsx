@@ -8,6 +8,9 @@ import { getTelegramUser } from '@/lib/auth/client';
 import { fetchSettings, updateSettings, fetchPresetsApi, deletePresetApi, type UserSettings } from '@/lib/api/client';
 import type { Preset } from '@/lib/api/types';
 import { ui } from '@/lib/ui-styles';
+import ProLockBadge from '@/components/ProLockBadge';
+import ProSubscriptionCard from '@/components/ProSubscriptionCard';
+import { triggerProGate } from '@/lib/pro/helpers';
 
 const KG_TO_LB = 2.20462;
 
@@ -100,7 +103,7 @@ const btnBase: React.CSSProperties = {
 export default function AccountPage() {
   const router = useRouter();
   const { user, isTelegram } = useAuth();
-  const { profile, updateProfile } = useProfile();
+  const { profile, updateProfile, isPro } = useProfile();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetsError, setPresetsError] = useState<string | null>(null);
@@ -370,6 +373,10 @@ export default function AccountPage() {
       <h1 style={{ color: ui.textPrimary, fontSize: 24, fontWeight: 800, margin: 0 }}>
         Account
       </h1>
+
+      <div id="pro">
+        <ProSubscriptionCard />
+      </div>
 
       <div
         style={{
@@ -691,21 +698,31 @@ export default function AccountPage() {
           <h3 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: 0 }}>
             Workout Presets
           </h3>
-          <button
-            onClick={() => router.push('/account/presets/new')}
-            style={{
-              background: ui.accent,
-              color: ui.textPrimary,
-              border: 'none',
-              borderRadius: 8,
-              padding: '8px 14px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Create Preset
-          </button>
+          {(() => {
+            const presetLimitReached = !isPro && presets.length >= 3;
+            return (
+              <button
+                onClick={presetLimitReached ? triggerProGate : () => router.push('/account/presets/new')}
+                style={{
+                  background: presetLimitReached ? 'transparent' : ui.accent,
+                  color: ui.textPrimary,
+                  border: presetLimitReached ? `1px solid ${ui.accent}` : 'none',
+                  borderRadius: 8,
+                  padding: '8px 14px',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  opacity: presetLimitReached ? 0.6 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                Create Preset
+                {presetLimitReached && <ProLockBadge />}
+              </button>
+            );
+          })()}
         </div>
         {presetsError && (
           <p style={{ color: ui.error, fontSize: 13, margin: '0 0 8px' }}>

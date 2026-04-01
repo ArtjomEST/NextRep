@@ -46,6 +46,10 @@ export const userProfiles = pgTable('user_profiles', {
   injuries: jsonb('injuries').$type<string[]>(),
   onboardingCompleted: boolean('onboarding_completed').notNull().default(false),
   isPro: boolean('is_pro').notNull().default(false),
+  proExpiresAt: timestamp('pro_expires_at', { withTimezone: true }),
+  proSource: varchar('pro_source', { length: 32 }),
+  trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
+  trialUsed: boolean('trial_used').default(false).notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

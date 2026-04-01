@@ -8,9 +8,12 @@ import type { WorkoutDetail, WorkoutDetailExercise, WorkoutDetailSet } from '@/l
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
 import { aggregateMusclesFromExercises } from '@/lib/utils/muscleAggregator';
-import MuscleMapLazy from '@/components/MuscleMapLazy';
+import MuscleMapWithGate from '@/components/MuscleMapWithGate';
 import { formatCardioParams } from '@/lib/cardio-params';
 import DownloadWorkoutButton from '@/components/DownloadWorkoutButton';
+import ProLockBadge from '@/components/ProLockBadge';
+import { useProfile } from '@/lib/profile/context';
+import { triggerProGate } from '@/lib/pro/helpers';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -67,6 +70,7 @@ export default function WorkoutDetailPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
+  const { isPro } = useProfile();
 
   const [workout, setWorkout] = useState<WorkoutDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -280,7 +284,31 @@ export default function WorkoutDetailPage() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
-            <DownloadWorkoutButton workoutId={id} />
+            {isPro ? (
+              <DownloadWorkoutButton workoutId={id} />
+            ) : (
+              <button
+                onClick={triggerProGate}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 8,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  opacity: 0.5,
+                }}
+                aria-label="Export PDF (PRO)"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={theme.colors.textMuted} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                <ProLockBadge />
+              </button>
+            )}
 
             <div style={{ position: 'relative' }}>
             <button
@@ -382,7 +410,7 @@ export default function WorkoutDetailPage() {
 
       {(muscleSummary.primaryMuscles.length > 0 ||
         muscleSummary.secondaryMuscles.length > 0) && (
-        <MuscleMapLazy
+        <MuscleMapWithGate
           primaryMuscles={muscleSummary.primaryMuscles}
           secondaryMuscles={muscleSummary.secondaryMuscles}
           compact={false}

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { aiMessages } from '@/lib/db/schema';
+import { aiMessages, userProfiles } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
+import { computeIsPro } from '@/lib/pro/helpers';
 import {
   buildCoachContextData,
   buildCoachProfilePromptSection,
@@ -44,6 +45,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const db = getDb();
+
+    // PRO check
+    const [proProfile] = await db
+      .select({ proExpiresAt: userProfiles.proExpiresAt, trialEndsAt: userProfiles.trialEndsAt })
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, auth.userId))
+      .limit(1);
+
+    if (!computeIsPro(proProfile ?? {})) {
+      return NextResponse.json({ error: 'PRO subscription required' }, { status: 403 });
+    }
+
     let body: unknown;
     try {
       body = await req.json();
@@ -62,7 +76,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'message is required' }, { status: 400 });
     }
 
-    const db = getDb();
     const { firstName, streak, workoutSummary, prSummary, volumeSummary } =
       await buildCoachContextData(db, auth.userId);
     const profileSection = await buildCoachProfilePromptSection(db, auth.userId);

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { workoutPresets } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { workoutPresets, userProfiles } from '@/lib/db/schema';
+import { eq, desc, count } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
+import { computeIsPro } from '@/lib/pro/helpers';
 
 export interface PresetPayload {
   id: string;
@@ -63,6 +64,29 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const db = getDb();
+
+    // Preset limit for free users
+    const [proProfile] = await db
+      .select({ proExpiresAt: userProfiles.proExpiresAt, trialEndsAt: userProfiles.trialEndsAt })
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, auth.userId))
+      .limit(1);
+
+    if (!computeIsPro(proProfile ?? {})) {
+      const [countRow] = await db
+        .select({ count: count() })
+        .from(workoutPresets)
+        .where(eq(workoutPresets.userId, auth.userId));
+
+      if (Number(countRow?.count ?? 0) >= 3) {
+        return NextResponse.json(
+          { error: 'Preset limit reached', code: 'PRESET_LIMIT' },
+          { status: 403 },
+        );
+      }
+    }
+
     const body = await req.json();
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const exerciseIds = Array.isArray(body.exerciseIds)
@@ -76,7 +100,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const db = getDb();
     const [inserted] = await db
       .insert(workoutPresets)
       .values({

@@ -5,9 +5,11 @@ import {
   workoutExercises,
   exercises,
   aiWorkoutReports,
+  userProfiles,
 } from '@/lib/db/schema';
 import { eq, and, desc, inArray, asc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
+import { computeIsPro } from '@/lib/pro/helpers';
 import { loadWorkoutScoreContext } from '@/lib/ai/workoutScoreContext';
 import { computeWorkoutScore } from '@/lib/ai/workoutScore';
 import { openaiChatCompletion } from '@/lib/ai/openai';
@@ -34,6 +36,19 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const db = getDb();
+
+    // PRO check
+    const [proProfile] = await db
+      .select({ proExpiresAt: userProfiles.proExpiresAt, trialEndsAt: userProfiles.trialEndsAt })
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, auth.userId))
+      .limit(1);
+
+    if (!computeIsPro(proProfile ?? {})) {
+      return NextResponse.json({ error: 'PRO subscription required' }, { status: 403 });
+    }
+
     const workoutId = req.nextUrl.searchParams.get('workoutId')?.trim();
     if (!workoutId) {
       return NextResponse.json(
@@ -42,7 +57,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const db = getDb();
     const [row] = await db
       .select()
       .from(aiWorkoutReports)
@@ -90,6 +104,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const db = getDb();
+
+    // PRO check
+    const [proProfile] = await db
+      .select({ proExpiresAt: userProfiles.proExpiresAt, trialEndsAt: userProfiles.trialEndsAt })
+      .from(userProfiles)
+      .where(eq(userProfiles.userId, auth.userId))
+      .limit(1);
+
+    if (!computeIsPro(proProfile ?? {})) {
+      return NextResponse.json({ error: 'PRO subscription required' }, { status: 403 });
+    }
+
     let body: unknown;
     try {
       body = await req.json();
@@ -107,8 +134,6 @@ export async function POST(req: NextRequest) {
     if (!workoutId) {
       return NextResponse.json({ error: 'workoutId is required' }, { status: 400 });
     }
-
-    const db = getDb();
 
     const [existing] = await db
       .select()
