@@ -7,6 +7,7 @@ import {
   updateTimerApi,
   pauseTimerApi,
   resumeTimerApi,
+  fireTimerApi,
 } from '@/lib/api/client';
 
 interface RestTimerProps {
@@ -121,6 +122,7 @@ export default function RestTimer({
       : Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
     if (remainingSecs === 0) {
       hasAutoClosedRef.current = true;
+      fireTimerApi().catch(console.error);
       onDismiss();
     }
   }, [visible, isPaused, restEndsAt, remainingWhenPaused, tick, onDismiss, suppressAutoDismiss]);

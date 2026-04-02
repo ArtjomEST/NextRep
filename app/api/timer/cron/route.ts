@@ -1,3 +1,8 @@
+// NOTE: This cron endpoint exists but is NOT scheduled on Hobby plan.
+// To enable ±10s accuracy, upgrade to Vercel Pro and add to vercel.json:
+// { "crons": [{ "path": "/api/timer/cron", "schedule": "* * * * *" }] }
+// On Hobby plan, the client fires /api/timer/fire when the timer reaches zero.
+//
 // CRON_SECRET env variable must be set in Vercel project settings (Settings → Environment Variables).
 // Generate with: openssl rand -hex 32
 // Vercel automatically passes it as the Authorization: Bearer <CRON_SECRET> header when invoking this route.

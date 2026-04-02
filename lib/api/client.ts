@@ -1174,3 +1174,10 @@ export async function cleanupTimerApi(workoutId: string): Promise<void> {
     body: JSON.stringify({ workoutId }),
   });
 }
+
+export async function fireTimerApi(): Promise<void> {
+  await fetch('/api/timer/fire', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+}
