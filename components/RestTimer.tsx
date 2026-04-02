@@ -2,6 +2,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { theme } from '@/lib/theme';
+import {
+  armTimerApi,
+  updateTimerApi,
+  pauseTimerApi,
+  resumeTimerApi,
+} from '@/lib/api/client';
 
 interface RestTimerProps {
   visible: boolean;
@@ -12,6 +18,8 @@ interface RestTimerProps {
   durationSeconds?: number;
   /** When true, timer does not call onDismiss at 0. */
   suppressAutoDismiss?: boolean;
+  /** Workout draft ID — used to sync timer state with the server for push notifications. */
+  workoutId?: string;
   workoutName: string;
   exerciseName: string;
   setIndex: number;
@@ -33,6 +41,7 @@ export default function RestTimer({
   embedded = false,
   durationSeconds,
   suppressAutoDismiss = false,
+  workoutId,
   workoutName,
   exerciseName,
   setIndex,
@@ -68,10 +77,13 @@ export default function RestTimer({
       setIsPaused(false);
       setRemainingWhenPaused(0);
       hasAutoClosedRef.current = false;
+      if (workoutId) {
+        armTimerApi(workoutId, durationSec).catch(console.error);
+      }
     } else {
       clearIntervalRef();
     }
-  }, [visible, clearIntervalRef, durationSec]);
+  }, [visible, clearIntervalRef, durationSec, workoutId]);
 
   // Tick interval for UI refresh (only when running, not paused)
   useEffect(() => {
@@ -120,17 +132,33 @@ export default function RestTimer({
 
   const handleMinus30 = () => {
     if (isPaused) {
-      setRemainingWhenPaused((r) => Math.max(0, r - 30));
+      const newRemaining = Math.max(0, remainingWhenPaused - 30);
+      setRemainingWhenPaused(newRemaining);
+      if (workoutId) {
+        updateTimerApi(new Date(Date.now() + newRemaining * 1000).toISOString()).catch(console.error);
+      }
     } else {
-      setRestEndsAt((e) => Math.max(Date.now(), e - 30000));
+      const newEnd = Math.max(Date.now(), restEndsAt - 30000);
+      setRestEndsAt(newEnd);
+      if (workoutId) {
+        updateTimerApi(new Date(newEnd).toISOString()).catch(console.error);
+      }
     }
   };
 
   const handlePlus30 = () => {
     if (isPaused) {
-      setRemainingWhenPaused((r) => r + 30);
+      const newRemaining = remainingWhenPaused + 30;
+      setRemainingWhenPaused(newRemaining);
+      if (workoutId) {
+        updateTimerApi(new Date(Date.now() + newRemaining * 1000).toISOString()).catch(console.error);
+      }
     } else {
-      setRestEndsAt((e) => e + 30000);
+      const newEnd = restEndsAt + 30000;
+      setRestEndsAt(newEnd);
+      if (workoutId) {
+        updateTimerApi(new Date(newEnd).toISOString()).catch(console.error);
+      }
     }
   };
 
@@ -138,10 +166,16 @@ export default function RestTimer({
     if (isPaused) {
       setRestEndsAt(Date.now() + remainingWhenPaused * 1000);
       setIsPaused(false);
+      if (workoutId) {
+        resumeTimerApi(remainingWhenPaused * 1000).catch(console.error);
+      }
     } else {
       const secs = Math.max(0, Math.ceil((restEndsAt - Date.now()) / 1000));
       setRemainingWhenPaused(secs);
       setIsPaused(true);
+      if (workoutId) {
+        pauseTimerApi(secs * 1000).catch(console.error);
+      }
     }
   };
 

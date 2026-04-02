@@ -1,5 +1,34 @@
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN!;
+const BASE = `https://api.telegram.org/bot${BOT_TOKEN}`;
+
 const TELEGRAM_API = (token: string) =>
   `https://api.telegram.org/bot${token}/sendMessage`;
+
+export async function sendRestEndedMessage(telegramUserId: string): Promise<number | null> {
+  const res = await fetch(`${BASE}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: telegramUserId,
+      text: '⏱ Rest time is up!\n\nTime to get back to your workout 💪',
+    }),
+  });
+  const data = await res.json();
+  if (data.ok) return data.result.message_id as number;
+  console.error('sendMessage failed:', data);
+  return null;
+}
+
+export async function deleteMessage(telegramUserId: string, messageId: number): Promise<void> {
+  await fetch(`${BASE}/deleteMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: telegramUserId,
+      message_id: messageId,
+    }),
+  });
+}
 
 function truncateCommentPreview(text: string): string {
   const t = text.trim();

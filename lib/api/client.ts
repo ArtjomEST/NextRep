@@ -1076,3 +1076,101 @@ export async function postAiWorkoutReportApi(
     scores: json.scores as AiWorkoutReportScores,
   };
 }
+
+// ─── Deload Planner ─────────────────────────────────────────
+
+export interface DeloadStatusData {
+  status: 'good' | 'warning' | 'recommended';
+  signals: string[];
+  weeklyVolumes: { weekStart: string; volume: number }[];
+  hidden: boolean;
+}
+
+export interface DeloadPlanData {
+  explanation: string;
+  preset: {
+    name: string;
+    exercises: { name: string; sets: number; targetReps: number; targetWeight: number }[];
+  };
+}
+
+export async function fetchDeloadStatusApi(): Promise<DeloadStatusData> {
+  const res = await fetch('/api/deload/status', { headers: getAuthHeaders() });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? `Failed to fetch deload status (${res.status})`);
+  return json.data as DeloadStatusData;
+}
+
+export async function fetchDeloadPlanApi(): Promise<DeloadPlanData> {
+  const res = await fetch('/api/deload/plan', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? `Failed to fetch deload plan (${res.status})`);
+  return json.data as DeloadPlanData;
+}
+
+export async function dismissDeloadApi(): Promise<void> {
+  const res = await fetch('/api/deload/dismiss', {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to dismiss deload (${res.status})`);
+  }
+}
+
+export async function restoreDeloadApi(): Promise<void> {
+  const res = await fetch('/api/deload/restore', {
+    method: 'PATCH',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    throw new Error(json.error ?? `Failed to restore deload (${res.status})`);
+  }
+}
+
+// ─── Rest Timer ──────────────────────────────────────────────
+
+export async function armTimerApi(workoutId: string, durationSeconds: number): Promise<void> {
+  await fetch('/api/timer/arm', {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ workoutId, durationSeconds }),
+  });
+}
+
+export async function updateTimerApi(endsAt: string): Promise<void> {
+  await fetch('/api/timer/update', {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ endsAt }),
+  });
+}
+
+export async function pauseTimerApi(remainingMs: number): Promise<void> {
+  await fetch('/api/timer/pause', {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ remainingMs }),
+  });
+}
+
+export async function resumeTimerApi(remainingMs: number): Promise<void> {
+  await fetch('/api/timer/resume', {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ remainingMs }),
+  });
+}
+
+export async function cleanupTimerApi(workoutId: string): Promise<void> {
+  await fetch('/api/timer/cleanup', {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ workoutId }),
+  });
+}

@@ -11,7 +11,7 @@ import {
   computeTotalExercises,
   getNextPendingExerciseId,
 } from '@/lib/workout/metrics';
-import { fetchExerciseDetailApi, fetchLastSetsApi } from '@/lib/api/client';
+import { fetchExerciseDetailApi, fetchLastSetsApi, cleanupTimerApi } from '@/lib/api/client';
 import type { ExerciseDetail } from '@/lib/api/types';
 import type { Exercise } from '@/lib/types';
 import SetRow from '@/components/SetRow';
@@ -133,6 +133,7 @@ export default function ActiveWorkoutPage() {
   }
 
   function handleFinishWorkout() {
+    cleanupTimerApi(draft.id).catch(console.error);
     dispatch({ type: 'FINISH_SESSION' });
     setShowFinishModal(false);
     setShowAllDoneModal(false);
@@ -812,6 +813,7 @@ export default function ActiveWorkoutPage() {
       <RestTimer
         visible={showRest}
         isMinimized={restMinimized}
+        workoutId={draft.id}
         workoutName={draft.name}
         exerciseName={lastLoggedExerciseName}
         setIndex={lastLoggedSetIndex}

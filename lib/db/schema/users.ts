@@ -12,6 +12,7 @@ import {
   jsonb,
 } from 'drizzle-orm/pg-core';
 
+
 export const unitsEnum = pgEnum('units', ['kg', 'lb']);
 export const experienceLevelEnum = pgEnum('experience_level', ['beginner', 'intermediate', 'advanced']);
 export const goalEnum = pgEnum('goal', ['muscle_growth', 'strength', 'endurance', 'weight_loss', 'general_fitness']);
@@ -50,6 +51,8 @@ export const userProfiles = pgTable('user_profiles', {
   proSource: varchar('pro_source', { length: 32 }),
   trialEndsAt: timestamp('trial_ends_at', { withTimezone: true }),
   trialUsed: boolean('trial_used').default(false).notNull(),
+  deloadDismissCount: integer('deload_dismiss_count').notNull().default(0),
+  deloadHidden: boolean('deload_hidden').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

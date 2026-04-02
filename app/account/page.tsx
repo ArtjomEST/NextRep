@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { useProfile } from '@/lib/profile/context';
 import { getTelegramUser } from '@/lib/auth/client';
-import { fetchSettings, updateSettings, fetchPresetsApi, deletePresetApi, type UserSettings } from '@/lib/api/client';
+import { fetchSettings, updateSettings, fetchPresetsApi, deletePresetApi, fetchDeloadStatusApi, dismissDeloadApi, restoreDeloadApi, type UserSettings } from '@/lib/api/client';
 import type { Preset } from '@/lib/api/types';
 import { ui } from '@/lib/ui-styles';
 import ProLockBadge from '@/components/ProLockBadge';
@@ -122,6 +122,8 @@ export default function AccountPage() {
   const [editingTraining, setEditingTraining] = useState(false);
   const [savingTraining, setSavingTraining] = useState(false);
   const [replayingOnboarding, setReplayingOnboarding] = useState(false);
+  const [deloadHidden, setDeloadHidden] = useState<boolean>(false);
+  const [deloadHiddenLoaded, setDeloadHiddenLoaded] = useState(false);
   const [editDays, setEditDays] = useState<number>(4);
   const [editBench, setEditBench] = useState('');
   const [editSquat, setEditSquat] = useState('');
@@ -148,6 +150,15 @@ export default function AccountPage() {
       if (s) setSettings(s as UserSettings);
       if (Array.isArray(p)) setPresets(p);
     }).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    fetchDeloadStatusApi()
+      .then((data) => {
+        setDeloadHidden(data.hidden);
+        setDeloadHiddenLoaded(true);
+      })
+      .catch(() => setDeloadHiddenLoaded(true));
   }, []);
 
   const flash = useCallback((msg: string) => {
@@ -815,6 +826,78 @@ export default function AccountPage() {
           </div>
         )}
       </div>
+
+      {/* ─── Recovery Status Card toggle ───────────────────────────── */}
+      {deloadHiddenLoaded && (
+        <div
+          style={{
+            background: ui.cardBg,
+            border: ui.cardBorder,
+            borderRadius: ui.cardRadius,
+            padding: 18,
+            boxShadow: ui.cardShadow,
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              gap: 12,
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: '0 0 4px' }}>
+                Recovery Status Card
+              </h3>
+              <p style={{ color: ui.textMuted, fontSize: 13, margin: 0, lineHeight: 1.4 }}>
+                Show deload recommendations on home screen
+              </p>
+            </div>
+            <button
+              role="switch"
+              aria-checked={!deloadHidden}
+              onClick={async () => {
+                const newHidden = !deloadHidden;
+                setDeloadHidden(newHidden);
+                try {
+                  if (newHidden) {
+                    await dismissDeloadApi();
+                  } else {
+                    await restoreDeloadApi();
+                  }
+                } catch {
+                  setDeloadHidden(!newHidden);
+                }
+              }}
+              style={{
+                flexShrink: 0,
+                width: 44,
+                height: 24,
+                borderRadius: 12,
+                border: 'none',
+                background: deloadHidden ? 'rgba(255,255,255,0.12)' : ui.accent,
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'background 0.2s',
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: deloadHidden ? 2 : 22,
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  background: '#fff',
+                  transition: 'left 0.2s',
+                }}
+              />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div
         style={{

@@ -57,6 +57,20 @@
       "when": 1775029057870,
       "tag": "0007_handy_network",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1775121914544,
+      "tag": "0008_illegal_vision",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1743552000000,
+      "tag": "0009_timer_sessions",
+      "breakpoints": true
     }
   ]
 }

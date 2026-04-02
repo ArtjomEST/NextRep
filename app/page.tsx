@@ -11,6 +11,9 @@ import {
   fetchWorkoutsApi,
   fetchWorkoutDetailApi,
   fetchWorkoutStatsApi,
+  fetchDeloadStatusApi,
+  dismissDeloadApi,
+  type DeloadStatusData,
 } from '@/lib/api/client';
 import type { WorkoutListItem, WorkoutDetail } from '@/lib/api/types';
 import { getTimeGreeting, getHomeStats } from '@/lib/home/utils';
@@ -20,6 +23,8 @@ import LegendsWorkoutSlider from '@/components/LegendsWorkoutSlider';
 import WeeklyVolumeChart from '@/components/WeeklyVolumeChart';
 import { SectionErrorBoundary } from './AppErrorBoundary';
 import EmptyStatsOverlay from '@/components/EmptyStatsOverlay';
+import RecoveryStatusCard from '@/components/RecoveryStatusCard';
+import DeloadPlanSheet from '@/components/DeloadPlanSheet';
 
 function formatVolume(kg: number): string {
   if (kg >= 1000) return `${(kg / 1000).toFixed(1)}k`;
@@ -30,7 +35,7 @@ export default function HomePage() {
   const router = useRouter();
   const { status: authStatus, user } = useAuth();
   const { hasDraft, draft, dispatch } = useWorkout();
-  const { profile } = useProfile();
+  const { profile, isPro } = useProfile();
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [workouts, setWorkouts] = useState<WorkoutListItem[]>([]);
@@ -40,10 +45,28 @@ export default function HomePage() {
   const [totalWorkoutsFromApi, setTotalWorkoutsFromApi] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deloadStatus, setDeloadStatus] = useState<DeloadStatusData | null>(null);
+  const [deloadDismissed, setDeloadDismissed] = useState(false);
+  const [deloadPlanOpen, setDeloadPlanOpen] = useState(false);
 
   useEffect(() => {
     const tg = getTelegramUser();
     setPhotoUrl(tg?.photo_url ?? null);
+  }, []);
+
+  useEffect(() => {
+    fetchDeloadStatusApi()
+      .then((data) => setDeloadStatus(data))
+      .catch(() => null);
+  }, []);
+
+  const handleDeloadDismiss = useCallback(async () => {
+    setDeloadDismissed(true);
+    try {
+      await dismissDeloadApi();
+    } catch {
+      // ignore — local dismiss already applied
+    }
   }, []);
 
   const loadData = useCallback(async () => {
@@ -202,6 +225,18 @@ export default function HomePage() {
           />
         </div>
       </header>
+
+      {/* ─── Recovery Status Card ─────────────────────────────────────── */}
+      {deloadStatus && !deloadStatus.hidden && !deloadDismissed && (
+        <RecoveryStatusCard
+          status={deloadStatus.status}
+          signals={deloadStatus.signals}
+          weeklyVolumes={deloadStatus.weeklyVolumes}
+          isPro={isPro}
+          onOpenPlan={() => setDeloadPlanOpen(true)}
+          onDismiss={handleDeloadDismiss}
+        />
+      )}
 
       {/* ─── 2) Hero CTA: layered divs only (no background/backgroundImage mix) ─ */}
       <div
@@ -719,6 +754,7 @@ export default function HomePage() {
           </section>
         </>
       )}
+      <DeloadPlanSheet open={deloadPlanOpen} onClose={() => setDeloadPlanOpen(false)} />
     </div>
   );
 }
