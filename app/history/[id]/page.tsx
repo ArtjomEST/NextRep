@@ -1,10 +1,18 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { theme } from '@/lib/theme';
-import { fetchWorkoutDetailApi, deleteWorkoutApi, fetchSettings } from '@/lib/api/client';
+import {
+  fetchWorkoutDetailApi,
+  deleteWorkoutApi,
+  fetchSettings,
+  fetchAiWorkoutReportApi,
+  postAiWorkoutReportApi,
+  type AiWorkoutReportScores,
+} from '@/lib/api/client';
 import type { WorkoutDetail, WorkoutDetailExercise, WorkoutDetailSet } from '@/lib/api/types';
+import AIReportWithGate from '@/components/AIReportWithGate';
 import StatCard from '@/components/StatCard';
 import Card from '@/components/Card';
 import { aggregateMusclesFromExercises } from '@/lib/utils/muscleAggregator';
@@ -79,6 +87,46 @@ export default function WorkoutDetailPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [units, setUnits] = useState<'kg' | 'lb'>('kg');
+
+  const aiProcessedRef = useRef<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiPayload, setAiPayload] = useState<{
+    report: string;
+    scores: AiWorkoutReportScores;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+    if (!isPro) return;
+    if (aiProcessedRef.current === id) return;
+    aiProcessedRef.current = id;
+    let cancelled = false;
+    (async () => {
+      setAiLoading(true);
+      setAiError(null);
+      setAiPayload(null);
+      try {
+        const existing = await fetchAiWorkoutReportApi(id);
+        if (cancelled) return;
+        if (existing) {
+          setAiPayload(existing);
+          return;
+        }
+        const gen = await postAiWorkoutReportApi(id);
+        if (!cancelled) setAiPayload(gen);
+      } catch (e) {
+        if (!cancelled) {
+          setAiError(e instanceof Error ? e.message : 'AI report unavailable');
+        }
+      } finally {
+        if (!cancelled) setAiLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isPro]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -407,6 +455,14 @@ export default function WorkoutDetailPage() {
         <StatCard label="Sets" value={workout.totalSets} />
         <StatCard label="Exercises" value={workout.exercises.length} />
       </div>
+
+      {/* AI Workout Report */}
+      <AIReportWithGate
+        loading={aiLoading}
+        error={aiError}
+        report={aiPayload?.report ?? null}
+        scores={aiPayload?.scores ?? null}
+      />
 
       {(muscleSummary.primaryMuscles.length > 0 ||
         muscleSummary.secondaryMuscles.length > 0) && (

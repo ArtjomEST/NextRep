@@ -109,7 +109,7 @@ export default function WorkoutSummaryPage() {
     return () => {
       cancelled = true;
     };
-  }, [savedWorkoutId]);
+  }, [savedWorkoutId, isPro]);
 
   function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
