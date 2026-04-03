@@ -37,7 +37,7 @@ export async function generateFreeReportText(input: FreeReportInput): Promise<st
       temperature: 0.8,
     });
 
-    return text;
+    return text.replace(/<br\s*\/?>/gi, '\n');
   } catch {
     // Template fallback
     if (hitGoal) {
@@ -98,11 +98,11 @@ Format the report with:
 Use <b>bold</b> for section headers. Keep it scannable in Telegram. Total length: ~250-300 words.`,
         },
       ],
-      maxTokens: 600,
+      maxTokens: 400,
       temperature: 0.7,
     });
 
-    return text;
+    return text.replace(/<br\s*\/?>/gi, '\n');
   } catch {
     // Template fallback
     return `Hey ${firstName}, this is Alex 👋

@@ -181,29 +181,47 @@ export async function sendWeeklyReportFree(
 }
 
 /**
- * Sends weekly report photo (muscle map PNG) with caption to a PRO user.
- * Returns true on success.
+ * Sends weekly report to a PRO user as two messages:
+ * 1. sendPhoto with a short caption (≤200 chars)
+ * 2. sendMessage with the full report text
+ * Returns true if both succeed.
  */
 export async function sendWeeklyReportPro(
   telegramUserId: string,
-  caption: string,
+  firstName: string,
+  fullReportText: string,
   pngBuffer: Buffer,
 ): Promise<boolean> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token || telegramUserId.startsWith('dev_')) return false;
 
+  const shortCaption = `Hey ${firstName}, this is Alex 👋 Here's your weekly muscle balance report:`;
+
   const form = new FormData();
   form.append('chat_id', telegramUserId);
   form.append('photo', new Blob([pngBuffer.buffer as ArrayBuffer], { type: 'image/png' }), 'muscle-map.png');
-  form.append('caption', caption);
-  form.append('parse_mode', 'HTML');
+  form.append('caption', shortCaption);
 
-  const res = await fetch(`${BASE}/sendPhoto`, {
+  const photoRes = await fetch(`${BASE}/sendPhoto`, {
     method: 'POST',
     body: form,
   });
+  const photoData = await photoRes.json() as { ok: boolean };
+  if (!photoData.ok) {
+    console.error('[weekly-report] sendPhoto failed for', telegramUserId, photoData);
+    return false;
+  }
 
-  const data = await res.json() as { ok: boolean };
-  if (!data.ok) console.error('[weekly-report] sendPhoto failed for', telegramUserId, data);
-  return data.ok;
+  const msgRes = await fetch(`${BASE}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: telegramUserId,
+      text: fullReportText,
+      parse_mode: 'HTML',
+    }),
+  });
+  const msgData = await msgRes.json() as { ok: boolean };
+  if (!msgData.ok) console.error('[weekly-report] sendMessage failed for', telegramUserId, msgData);
+  return msgData.ok;
 }

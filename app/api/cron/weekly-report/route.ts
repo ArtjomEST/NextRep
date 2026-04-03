@@ -151,7 +151,7 @@ export async function GET(req: Request) {
               generateMuscleMapPng(analysis.muscleStatuses),
             ]);
 
-            sent = await sendWeeklyReportPro(tgId, reportText, pngBuffer);
+            sent = await sendWeeklyReportPro(tgId, firstName, reportText, pngBuffer);
           } else {
             const reportText = await generateFreeReportText({
               firstName,
