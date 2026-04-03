@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { useProfile } from '@/lib/profile/context';
-import { getTelegramUser } from '@/lib/auth/client';
+import { getTelegramUser, getAuthHeaders } from '@/lib/auth/client';
 import { fetchSettings, updateSettings, fetchPresetsApi, deletePresetApi, fetchDeloadStatusApi, dismissDeloadApi, restoreDeloadApi, type UserSettings } from '@/lib/api/client';
 import type { Preset } from '@/lib/api/types';
 import { ui } from '@/lib/ui-styles';
@@ -103,7 +103,7 @@ const btnBase: React.CSSProperties = {
 export default function AccountPage() {
   const router = useRouter();
   const { user, isTelegram } = useAuth();
-  const { profile, updateProfile, isPro } = useProfile();
+  const { profile, updateProfile, isPro, refreshProfile } = useProfile();
   const [settings, setSettings] = useState<UserSettings | null>(null);
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetsError, setPresetsError] = useState<string | null>(null);
@@ -122,6 +122,7 @@ export default function AccountPage() {
   const [editingTraining, setEditingTraining] = useState(false);
   const [savingTraining, setSavingTraining] = useState(false);
   const [replayingOnboarding, setReplayingOnboarding] = useState(false);
+  const [cancellingPro, setCancellingPro] = useState(false);
   const [deloadHidden, setDeloadHidden] = useState<boolean>(false);
   const [deloadHiddenLoaded, setDeloadHiddenLoaded] = useState(false);
   const [editDays, setEditDays] = useState<number>(4);
@@ -322,6 +323,23 @@ export default function AccountPage() {
       flash('Could not replay onboarding');
     } finally {
       setReplayingOnboarding(false);
+    }
+  };
+
+  const cancelPro = async () => {
+    setCancellingPro(true);
+    try {
+      const res = await fetch('/api/dev/cancel-pro', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      if (!res.ok) throw new Error('Failed');
+      await refreshProfile();
+      flash('PRO cancelled');
+    } catch {
+      flash('Could not cancel PRO');
+    } finally {
+      setCancellingPro(false);
     }
   };
 
@@ -930,6 +948,25 @@ export default function AccountPage() {
         >
           {replayingOnboarding ? 'Opening…' : 'Replay onboarding'}
         </button>
+        {(process.env.NODE_ENV === 'development' || isPro) && (
+          <button
+            type="button"
+            onClick={() => void cancelPro()}
+            disabled={cancellingPro}
+            style={{
+              ...btnBase,
+              width: '100%',
+              marginTop: 8,
+              background: 'transparent',
+              color: '#EF4444',
+              border: '1px solid #EF4444',
+              opacity: cancellingPro ? 0.6 : 1,
+              cursor: cancellingPro ? 'wait' : 'pointer',
+            }}
+          >
+            {cancellingPro ? 'Cancelling…' : 'Cancel PRO (Dev)'}
+          </button>
+        )}
       </div>
 
       <div

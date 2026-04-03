@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useProfile } from '@/lib/profile/context';
 import { theme } from '@/lib/theme';
 import AIWorkoutReportCard from '@/components/AIWorkoutReportCard';
 import { activateTrialApi } from '@/lib/api/client';
+import { triggerProGate } from '@/lib/pro/helpers';
 import type { AiWorkoutReportScores } from '@/lib/api/client';
 
 interface AIReportWithGateProps {
@@ -22,7 +22,6 @@ export default function AIReportWithGate({
   scores,
 }: AIReportWithGateProps) {
   const { isPro, trialUsed, refreshProfile, triggerTrialOnboarding } = useProfile();
-  const router = useRouter();
   const [trialLoading, setTrialLoading] = useState(false);
   const [trialError, setTrialError] = useState<string | null>(null);
 
@@ -62,7 +61,6 @@ export default function AIReportWithGate({
       {/* Lock overlay for non-pro users */}
       {!isPro && (
         <div
-          onClick={() => router.push('/account#pro')}
           style={{
             position: 'absolute',
             inset: 0,
@@ -74,16 +72,12 @@ export default function AIReportWithGate({
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            cursor: 'pointer',
           }}
         >
           {trialUsed ? (
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push('/account#pro');
-              }}
+              onClick={triggerProGate}
               style={{
                 background: theme.colors.primary,
                 color: 'white',

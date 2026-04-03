@@ -1,9 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useProfile } from '@/lib/profile/context';
 import { theme } from '@/lib/theme';
 import MuscleMapLazy from '@/components/MuscleMapLazy';
+import { triggerProGate } from '@/lib/pro/helpers';
 
 interface MuscleMapWithGateProps {
   primaryMuscles: string[];
@@ -13,7 +13,6 @@ interface MuscleMapWithGateProps {
 
 export default function MuscleMapWithGate({ primaryMuscles, secondaryMuscles, compact }: MuscleMapWithGateProps) {
   const { isPro } = useProfile();
-  const router = useRouter();
 
   return (
     <div style={{ position: 'relative' }}>
@@ -31,7 +30,7 @@ export default function MuscleMapWithGate({ primaryMuscles, secondaryMuscles, co
 
       {!isPro && (
         <div
-          onClick={() => router.push('/account#pro')}
+          onClick={triggerProGate}
           style={{
             position: 'absolute',
             inset: 0,
