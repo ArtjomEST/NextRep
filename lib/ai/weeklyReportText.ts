@@ -30,7 +30,7 @@ export async function generateFreeReportText(input: FreeReportInput): Promise<st
 
     const text = await openaiChatCompletion({
       messages: [
-        { role: 'system', content: 'You are Alex, a friendly fitness coach assistant for the NextRep app. Be concise, warm, and motivating. Plain text only.' },
+        { role: 'system', content: 'You are Alex, a friendly fitness coach assistant for the NextRep app. Be concise, warm, and motivating. Use NO markdown formatting. No **bold**, no *italic*, no bullet points with dashes, no numbered lists. Use emojis as visual separators instead. Plain text only.' },
         { role: 'user', content: prompt },
       ],
       maxTokens: 120,
@@ -73,29 +73,40 @@ export async function generateProReportText(input: ProReportInput): Promise<stri
       messages: [
         {
           role: 'system',
-          content: 'You are Alex, a fitness coach for the NextRep app. Write a well-formatted Telegram weekly fitness report using HTML formatting (bold with <b>tags</b>). Be specific, professional, and actionable. Use relevant emojis naturally.',
+          content: 'You are Alex, a fitness coach for the NextRep app. Write a weekly fitness report as plain text. Use NO markdown formatting. No **bold**, no *italic*, no bullet points with dashes, no numbered lists with dots. Use emojis as visual separators instead. Plain text only.',
         },
         {
           role: 'user',
           content: `Write a weekly fitness report for ${firstName}.
 
 Stats:
-- Workouts completed: ${workoutsThisWeek}
-- Total volume: ${volumeStr}
-- Overworked muscles: ${overworkedList}
-- Well-trained muscles: ${normalList}
-- Untrained muscles: ${underworkedList}
-- Push/pull balance: ${analysis.pushPullLabel} (push workouts: ${analysis.pushWorkouts}, pull workouts: ${analysis.pullWorkouts})
-- Balance note: ${balanceNote}
+Workouts completed: ${workoutsThisWeek}
+Total volume: ${volumeStr}
+Overworked muscles: ${overworkedList}
+Well-trained muscles: ${normalList}
+Untrained muscles: ${underworkedList}
+Push/pull balance: ${analysis.pushPullLabel} (push workouts: ${analysis.pushWorkouts}, pull workouts: ${analysis.pullWorkouts})
+Balance note: ${balanceNote}
 
-Format the report with:
-1. A greeting ("Hey ${firstName}, this is Alex 👋")
-2. Weekly summary (workouts + volume)
-3. Muscle balance section with specific observations
-4. 2-3 concrete exercise recommendations for next week to address imbalances
-5. A closing motivational line
+Format the report exactly like this example (plain text, emojis only for structure):
 
-Use <b>bold</b> for section headers. Keep it scannable in Telegram. Total length: ~250-300 words.`,
+Hey ${firstName}, this is Alex 👋
+
+This week you completed X workout(s) with a total volume of Y kg 💪
+
+💪 Well-trained: [muscles]
+🔴 Overworked: [muscles]
+😴 Untrained: [muscles]
+
+[One sentence about push/pull balance.]
+
+🏋️ Recommendations for next week:
+[Exercise name] — [benefit], [sets x reps]
+[Exercise name] — [benefit], [sets x reps]
+
+[One closing motivational line with emoji]
+
+No dashes, no asterisks, no numbered lists. Plain text only.`,
         },
       ],
       maxTokens: 400,
@@ -107,22 +118,18 @@ Use <b>bold</b> for section headers. Keep it scannable in Telegram. Total length
     // Template fallback
     return `Hey ${firstName}, this is Alex 👋
 
-<b>📊 Weekly Summary</b>
-Workouts: ${workoutsThisWeek} | Volume: ${volumeStr}
+This week you completed ${workoutsThisWeek} workout(s) with a total volume of ${volumeStr} 💪
 
-<b>💪 Muscle Balance</b>
+💪 Well-trained: ${normalList}
 🔴 Overworked: ${overworkedList}
-🟡 Well-trained: ${normalList}
-🔵 Needs attention: ${underworkedList}
+😴 Untrained: ${underworkedList}
 
-<b>⚖️ Push/Pull Balance</b>
 ${balanceNote}
 
-<b>📝 Recommendations for Next Week</b>
-• Focus on undertrained muscle groups
-• Aim for balanced push/pull sessions
-• Keep up the consistency!
+🏋️ Recommendations for next week:
+Focus on undertrained muscle groups with compound movements.
+Aim for balanced push/pull sessions next week.
 
-Great work this week — see you next Sunday 💪`;
+Keep it up — progress takes time! 🚀`;
   }
 }

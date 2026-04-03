@@ -195,7 +195,7 @@ export async function sendWeeklyReportPro(
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token || telegramUserId.startsWith('dev_')) return false;
 
-  const shortCaption = `Hey ${firstName}, this is Alex 👋 Here's your weekly muscle balance report:`;
+  const shortCaption = `Hey ${firstName}, this is Alex 👋 Here's your weekly muscle balance report:\n🔴 Overworked  🟡 Normal  🔵 Untrained`;
 
   const form = new FormData();
   form.append('chat_id', telegramUserId);

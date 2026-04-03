@@ -86,7 +86,8 @@ function buildBodySvg(
 
 /**
  * Generates anterior + posterior body diagrams side by side as an SVG string.
- * Canvas: 240 × 240 px total (two 100×200 bodies with margins + labels).
+ * No text elements (font rendering unreliable on Vercel serverless).
+ * Legend shown as three colored circles only.
  */
 function buildSvgString(muscleStatuses: Record<string, MuscleStatus>): string {
   const anteriorPolygons = ANTERIOR_DATA.map(({ muscle, svgPoints }) => {
@@ -103,34 +104,19 @@ function buildSvgString(muscleStatuses: Record<string, MuscleStatus>): string {
     return svgPoints.map((pts) => `<polygon points="${pts}" fill="${fill}"/>`).join('');
   }).join('');
 
-  // Legend items
-  const legendItems = [
-    { color: COLORS.overworked, label: 'Overworked' },
-    { color: COLORS.normal, label: 'Normal' },
-    { color: COLORS.untrained, label: 'Untrained' },
-  ];
-  const legendSvg = legendItems
-    .map((item, i) => {
-      const x = 10 + i * 75;
-      return (
-        `<rect x="${x}" y="222" width="10" height="10" fill="${item.color}" rx="2"/>` +
-        `<text x="${x + 13}" y="231" font-size="9" fill="#9CA3AF" font-family="sans-serif">${item.label}</text>`
-      );
-    })
+  // Three colored circles as legend (no text)
+  const legendCircles = [COLORS.overworked, COLORS.normal, COLORS.untrained]
+    .map((color, i) => `<circle cx="${20 + i * 20}" cy="228" r="6" fill="${color}"/>`)
     .join('');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 245" width="480" height="490">
-  <rect width="240" height="245" fill="#161B20" rx="8"/>
-  <!-- FRONT label -->
-  <text x="50" y="9" font-size="7" font-weight="bold" fill="#6B7280" font-family="sans-serif" text-anchor="middle">FRONT</text>
-  <!-- BACK label -->
-  <text x="160" y="9" font-size="7" font-weight="bold" fill="#6B7280" font-family="sans-serif" text-anchor="middle">BACK</text>
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 240" width="440" height="480">
+  <rect width="220" height="240" fill="#0F1318" rx="8"/>
   <!-- Anterior body -->
-  <g transform="translate(0, 10) scale(1)">${anteriorPolygons}</g>
+  <g transform="translate(5, 8)">${anteriorPolygons}</g>
   <!-- Posterior body -->
-  <g transform="translate(110, 10) scale(1)">${posteriorPolygons}</g>
-  <!-- Legend -->
-  ${legendSvg}
+  <g transform="translate(112, 8)">${posteriorPolygons}</g>
+  <!-- Legend: colored circles only -->
+  ${legendCircles}
 </svg>`;
 }
 
