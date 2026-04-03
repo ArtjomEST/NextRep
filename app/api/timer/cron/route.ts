@@ -7,6 +7,7 @@
 // Generate with: openssl rand -hex 32
 // Vercel automatically passes it as the Authorization: Bearer <CRON_SECRET> header when invoking this route.
 
+import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { timerSessions, users } from '@/lib/db/schema';
 import { and, eq, lte, isNull } from 'drizzle-orm';
@@ -58,11 +59,10 @@ function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
-export async function GET(request: Request) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+export async function GET(req: Request) {
+  const secret = req.headers.get('x-cron-secret');
+  if (secret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   // 6 iterations × 10 seconds = 60 seconds total, ±10s accuracy

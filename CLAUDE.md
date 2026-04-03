@@ -219,3 +219,11 @@ success: '#22C55E'      warning: '#F59E0B'     error: '#EF4444'  info: '#3B82F6'
 - `LayoutShell` даёт `padding: 0 16px` горизонтально и `80px` снизу (для tab bar) на всех страницах кроме `/workout/*` (там `24px` снизу)
 - Deployment на Vercel (`build` команда сначала запускает миграции БД)
 - Cardio упражнения используют отдельный `cardioTimers` стейт в WorkoutProvider, сохраняются как один set с `cardioData` JSON
+
+---
+
+## PROJECT_MAP.md
+
+`PROJECT_MAP.md` в корне проекта — единственный источник правды о структуре проекта.
+
+**After every code change that adds, removes, or renames a file OR adds/removes an API endpoint OR changes a DB schema — update `PROJECT_MAP.md` to reflect the change.**

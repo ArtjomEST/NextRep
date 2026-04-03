@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
+import { useProUpgrade } from '@/app/providers';
 
 export default function ProGateTooltip() {
-  const router = useRouter();
+  const { openProUpgradeSheet } = useProUpgrade();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function ProGateTooltip() {
         Available in PRO
       </span>
       <button
-        onClick={() => { setVisible(false); router.push('/account#pro'); }}
+        onClick={() => { setVisible(false); openProUpgradeSheet(); }}
         style={{
           background: theme.colors.primary,
           border: 'none',

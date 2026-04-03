@@ -1,0 +1,1 @@
+ALTER TABLE "timer_sessions" ALTER COLUMN "workout_id" SET DATA TYPE text;

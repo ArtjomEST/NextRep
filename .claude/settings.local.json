@@ -15,7 +15,17 @@
       "Bash(npm run:*)",
       "Bash(grep -E workout.*[id])",
       "Bash(npm install:*)",
-      "Bash(ls C:/Users/User/Desktop/NextRep/app/api/workouts/[id]/)"
+      "Bash(ls C:/Users/User/Desktop/NextRep/app/api/workouts/[id]/)",
+      "Bash(curl -L \"https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf\" -o \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans.ttf\")",
+      "Bash(curl -L \"https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf\" -o \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans-Bold.ttf\")",
+      "mcp__8865dfff-350c-47f2-88f3-f442e712d3e4__list_teams",
+      "mcp__8865dfff-350c-47f2-88f3-f442e712d3e4__list_projects",
+      "mcp__8865dfff-350c-47f2-88f3-f442e712d3e4__get_runtime_logs",
+      "mcp__8865dfff-350c-47f2-88f3-f442e712d3e4__get_deployment_build_logs",
+      "Bash(curl -v -L \"https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2.37/dejavu-fonts-ttf-2.37.zip\" -o /tmp/dejavu.zip)",
+      "Bash(cp \"C:/Windows/Fonts/DejaVuSans.ttf\" \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans.ttf\")",
+      "Bash(cp \"C:/Windows/Fonts/DejaVuSans-Bold.ttf\" \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans-Bold.ttf\")",
+      "Bash(xxd \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans.ttf\")"
     ]
   }
 }

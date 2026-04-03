@@ -16,6 +16,7 @@ import {
   type DeloadStatusData,
 } from '@/lib/api/client';
 import type { WorkoutListItem, WorkoutDetail } from '@/lib/api/types';
+import type { WorkoutDraft } from '@/lib/types';
 import { getTimeGreeting, getHomeStats } from '@/lib/home/utils';
 import { useProfile } from '@/lib/profile/context';
 import { ui } from '@/lib/ui-styles';
@@ -48,10 +49,25 @@ export default function HomePage() {
   const [deloadStatus, setDeloadStatus] = useState<DeloadStatusData | null>(null);
   const [deloadDismissed, setDeloadDismissed] = useState(false);
   const [deloadPlanOpen, setDeloadPlanOpen] = useState(false);
+  const [finishedDraft, setFinishedDraft] = useState<WorkoutDraft | null>(null);
 
   useEffect(() => {
     const tg = getTelegramUser();
     setPhotoUrl(tg?.photo_url ?? null);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('nextrep_workout_draft');
+      if (stored) {
+        const parsed = JSON.parse(stored) as WorkoutDraft;
+        if (parsed?.status === 'finished' && parsed.exercises?.length > 0) {
+          setFinishedDraft(parsed);
+        }
+      }
+    } catch {
+      // ignore
+    }
   }, []);
 
   useEffect(() => {
@@ -122,6 +138,11 @@ export default function HomePage() {
 
   const handleDiscardDraft = () => {
     dispatch({ type: 'RESET_DRAFT' });
+  };
+
+  const handleDiscardFinished = () => {
+    dispatch({ type: 'RESET_DRAFT' });
+    setFinishedDraft(null);
   };
 
   const displayName =
@@ -345,6 +366,54 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {/* ─── Unsaved finished workout banner ─────────────────────────── */}
+      {finishedDraft && !hasDraft && (() => {
+        const exCount = finishedDraft.exercises.length;
+        const durMin = finishedDraft.startedAt && finishedDraft.endedAt
+          ? Math.round((new Date(finishedDraft.endedAt).getTime() - new Date(finishedDraft.startedAt).getTime()) / 60000)
+          : null;
+        return (
+          <div style={{
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.3)',
+            borderRadius: 12,
+            padding: 16,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+              <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0, marginTop: 1 }}>⚠️</span>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ color: '#F59E0B', fontSize: 15, fontWeight: 700, margin: 0 }}>
+                  You have an unsaved workout
+                </p>
+                <p style={{ color: textLabelSoft, fontSize: 13, margin: '3px 0 0' }}>
+                  {exCount} exercise{exCount !== 1 ? 's' : ''}
+                  {durMin != null ? ` · ${durMin} min` : ''}
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button size="sm" onClick={() => { setFinishedDraft(null); router.push('/workout/summary'); }}>
+                Finish &amp; Save
+              </Button>
+              <button
+                onClick={handleDiscardFinished}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: textLabelSoft,
+                  fontSize: 14,
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  padding: '0 4px',
+                }}
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ─── 3) Resume Workout (only if draft) ─────────────────────────── */}
       {hasDraft && (

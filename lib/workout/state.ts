@@ -309,7 +309,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as WorkoutDraft;
-        if (parsed && parsed.exercises && parsed.status !== 'finished') {
+        if (parsed && parsed.exercises) {
           dispatch({ type: 'LOAD_DRAFT', draft: parsed });
         }
       }
@@ -326,7 +326,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated.current) return;
     try {
-      if (draft.status === 'finished' || (draft.exercises.length === 0 && draft.status === 'planning')) {
+      if (draft.exercises.length === 0 && draft.status === 'planning') {
         localStorage.removeItem(STORAGE_KEY);
       } else {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
