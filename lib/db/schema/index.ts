@@ -8,3 +8,4 @@ export * from './ai';
 export * from './billing';
 export * from './deload';
 export * from './timer-sessions';
+export * from './weekly-reports';

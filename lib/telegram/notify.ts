@@ -144,3 +144,66 @@ export function notifyPostCommented(args: {
     `💬 ${firstName} commented: ${preview}`,
   );
 }
+
+/**
+ * Sends weekly report message to a free user with a PRO upsell inline button.
+ * Returns true on success.
+ */
+export async function sendWeeklyReportFree(
+  telegramUserId: string,
+  text: string,
+  miniAppUrl: string,
+): Promise<boolean> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token || telegramUserId.startsWith('dev_')) return false;
+
+  const res = await fetch(`${BASE}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: telegramUserId,
+      text,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: 'Unlock PRO →',
+            web_app: { url: miniAppUrl },
+          },
+        ]],
+      },
+    }),
+  });
+
+  const data = await res.json() as { ok: boolean };
+  if (!data.ok) console.error('[weekly-report] sendMessage failed for', telegramUserId, data);
+  return data.ok;
+}
+
+/**
+ * Sends weekly report photo (muscle map PNG) with caption to a PRO user.
+ * Returns true on success.
+ */
+export async function sendWeeklyReportPro(
+  telegramUserId: string,
+  caption: string,
+  pngBuffer: Buffer,
+): Promise<boolean> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token || telegramUserId.startsWith('dev_')) return false;
+
+  const form = new FormData();
+  form.append('chat_id', telegramUserId);
+  form.append('photo', new Blob([pngBuffer.buffer as ArrayBuffer], { type: 'image/png' }), 'muscle-map.png');
+  form.append('caption', caption);
+  form.append('parse_mode', 'HTML');
+
+  const res = await fetch(`${BASE}/sendPhoto`, {
+    method: 'POST',
+    body: form,
+  });
+
+  const data = await res.json() as { ok: boolean };
+  if (!data.ok) console.error('[weekly-report] sendPhoto failed for', telegramUserId, data);
+  return data.ok;
+}

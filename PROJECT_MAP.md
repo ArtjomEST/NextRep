@@ -43,6 +43,7 @@
 ./app/api/timer/arm/route.ts
 ./app/api/timer/cleanup/route.ts
 ./app/api/timer/cron/route.ts
+./app/api/cron/weekly-report/route.ts
 ./app/api/timer/fire/route.ts
 ./app/api/timer/pause/route.ts
 ./app/api/timer/resume/route.ts
@@ -131,6 +132,7 @@
 ./lib/ai/openai.ts
 ./lib/ai/presetGeneration.ts
 ./lib/ai/presetIntent.ts
+./lib/ai/weeklyReportText.ts
 ./lib/ai/workoutScore.ts
 ./lib/ai/workoutScoreContext.ts
 ./lib/api/client.ts
@@ -158,6 +160,7 @@
 ./lib/db/schema/social.ts
 ./lib/db/schema/timer-sessions.ts
 ./lib/db/schema/users.ts
+./lib/db/schema/weekly-reports.ts
 ./lib/db/schema/workouts.ts
 ./lib/deload/analysis.ts
 ./lib/home/utils.ts
@@ -175,6 +178,8 @@
 ./lib/users/display.ts
 ./lib/utils/compressImage.ts
 ./lib/utils/muscleAggregator.ts
+./lib/utils/muscleMapSvg.ts
+./lib/utils/weeklyMuscleAnalysis.ts
 ./lib/workout/metrics.ts
 ./lib/workout/state.ts
 ./scripts/broadcast-v1.1.ts
@@ -454,6 +459,9 @@
 
 #### `app/api/timer/cron/route.ts`
 - **POST** `/api/timer/cron` — No auth (Vercel cron) → fires all expired non-notified timer sessions
+
+#### `app/api/cron/weekly-report/route.ts`
+- **GET** `/api/cron/weekly-report` — Auth: `x-cron-secret` header → sends weekly fitness report to all eligible users via Telegram; free users get text+PRO upsell button, PRO users get muscle map PNG + AI analysis caption
 
 #### `app/api/upload/workout-photo/route.ts`
 - **POST** `/api/upload/workout-photo` — Auth: required → multipart form with `file` → uploads to Vercel Blob → `{ photoUrl: string }`
@@ -1187,6 +1195,7 @@
 | POST | `/api/timer/fire` | required | Fire timer notification |
 | POST | `/api/timer/cleanup` | required | Delete timer session |
 | POST | `/api/timer/cron` | Vercel cron | Fire all expired timers |
+| GET | `/api/cron/weekly-report` | x-cron-secret | Send weekly fitness reports to all users |
 | POST | `/api/upload/workout-photo` | required | Upload photo to Vercel Blob |
 | POST | `/api/telegram/webhook` | Telegram | Bot webhook handler |
 | POST | `/api/dev/cancel-pro` | dev only | Cancel Pro status (dev tool) |
