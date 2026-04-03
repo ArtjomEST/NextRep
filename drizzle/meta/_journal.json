@@ -71,6 +71,13 @@
       "when": 1743552000000,
       "tag": "0009_timer_sessions",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1775213143010,
+      "tag": "0010_glossy_surge",
+      "breakpoints": true
     }
   ]
 }
