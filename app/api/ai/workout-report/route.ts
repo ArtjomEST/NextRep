@@ -9,6 +9,7 @@ import {
 } from '@/lib/db/schema';
 import { eq, and, desc, inArray, asc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
+import { rateLimit } from '@/lib/rateLimit';
 import { computeIsPro } from '@/lib/pro/helpers';
 import { loadWorkoutScoreContext } from '@/lib/ai/workoutScoreContext';
 import { computeWorkoutScore } from '@/lib/ai/workoutScore';
@@ -102,6 +103,10 @@ export async function POST(req: NextRequest) {
         { error: 'Authentication required' },
         { status: 401 },
       );
+    }
+
+    if (!rateLimit(`ai-report:${auth.userId}`, 5, 3_600_000)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
     }
 
     const db = getDb();

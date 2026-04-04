@@ -24,7 +24,6 @@
 ./app/api/deload/plan/route.ts
 ./app/api/deload/restore/route.ts
 ./app/api/deload/status/route.ts
-./app/api/dev/cancel-pro/route.ts
 ./app/api/exercises/[id]/route.ts
 ./app/api/exercises/route.ts
 ./app/api/feed/route.ts
@@ -468,9 +467,6 @@
 
 #### `app/api/telegram/webhook/route.ts`
 - **POST** `/api/telegram/webhook` — Telegram Bot API webhook → handles incoming messages/callbacks
-
-#### `app/api/dev/cancel-pro/route.ts`
-- **POST** `/api/dev/cancel-pro` — Dev only (non-production guard) → cancels Pro status for user
 
 ---
 
@@ -1198,7 +1194,6 @@
 | GET | `/api/cron/weekly-report` | x-cron-secret | Send weekly fitness reports to all users |
 | POST | `/api/upload/workout-photo` | required | Upload photo to Vercel Blob |
 | POST | `/api/telegram/webhook` | Telegram | Bot webhook handler |
-| POST | `/api/dev/cancel-pro` | dev only | Cancel Pro status (dev tool) |
 
 ---
 

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { useProfile } from '@/lib/profile/context';
-import { getTelegramUser, getAuthHeaders } from '@/lib/auth/client';
+import { getTelegramUser } from '@/lib/auth/client';
 import { fetchSettings, updateSettings, fetchPresetsApi, deletePresetApi, fetchDeloadStatusApi, dismissDeloadApi, restoreDeloadApi, type UserSettings } from '@/lib/api/client';
 import type { Preset } from '@/lib/api/types';
 import { ui } from '@/lib/ui-styles';
@@ -121,8 +121,7 @@ export default function AccountPage() {
 
   const [editingTraining, setEditingTraining] = useState(false);
   const [savingTraining, setSavingTraining] = useState(false);
-  const [replayingOnboarding, setReplayingOnboarding] = useState(false);
-  const [cancellingPro, setCancellingPro] = useState(false);
+
   const [deloadHidden, setDeloadHidden] = useState<boolean>(false);
   const [deloadHiddenLoaded, setDeloadHiddenLoaded] = useState(false);
   const [editDays, setEditDays] = useState<number>(4);
@@ -306,40 +305,6 @@ export default function AccountPage() {
       window.Telegram.WebApp.close();
     } else {
       window.location.href = '/';
-    }
-  };
-
-  const replayOnboarding = async () => {
-    setReplayingOnboarding(true);
-    try {
-      try {
-        localStorage.removeItem('nextrep_onboarding_draft');
-      } catch {
-        /* ignore */
-      }
-      await updateProfile({ onboardingCompleted: false });
-      flash('Onboarding opened — finish it to save again.');
-    } catch {
-      flash('Could not replay onboarding');
-    } finally {
-      setReplayingOnboarding(false);
-    }
-  };
-
-  const cancelPro = async () => {
-    setCancellingPro(true);
-    try {
-      const res = await fetch('/api/dev/cancel-pro', {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      if (!res.ok) throw new Error('Failed');
-      await refreshProfile();
-      flash('PRO cancelled');
-    } catch {
-      flash('Could not cancel PRO');
-    } finally {
-      setCancellingPro(false);
     }
   };
 
@@ -932,41 +897,6 @@ export default function AccountPage() {
         <p style={{ color: ui.textMuted, fontSize: 13, margin: '0 0 14px', lineHeight: 1.45 }}>
           Open the setup flow again to preview it. Your profile stays until you complete the last step.
         </p>
-        <button
-          type="button"
-          onClick={() => void replayOnboarding()}
-          disabled={replayingOnboarding}
-          style={{
-            ...btnBase,
-            width: '100%',
-            background: 'transparent',
-            color: ui.accent,
-            border: `1px solid ${ui.accent}`,
-            opacity: replayingOnboarding ? 0.6 : 1,
-            cursor: replayingOnboarding ? 'wait' : 'pointer',
-          }}
-        >
-          {replayingOnboarding ? 'Opening…' : 'Replay onboarding'}
-        </button>
-        {(process.env.NODE_ENV === 'development' || isPro) && (
-          <button
-            type="button"
-            onClick={() => void cancelPro()}
-            disabled={cancellingPro}
-            style={{
-              ...btnBase,
-              width: '100%',
-              marginTop: 8,
-              background: 'transparent',
-              color: '#EF4444',
-              border: '1px solid #EF4444',
-              opacity: cancellingPro ? 0.6 : 1,
-              cursor: cancellingPro ? 'wait' : 'pointer',
-            }}
-          >
-            {cancellingPro ? 'Cancelling…' : 'Cancel PRO (Dev)'}
-          </button>
-        )}
       </div>
 
       <div

@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { aiMessages, userProfiles } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
+import { rateLimit } from '@/lib/rateLimit';
 import { computeIsPro } from '@/lib/pro/helpers';
 import {
   buildCoachContextData,
@@ -45,6 +46,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!rateLimit(`ai-chat:${auth.userId}`, 10, 60_000)) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const db = getDb();
 
     // PRO check
@@ -72,8 +77,8 @@ export async function POST(req: NextRequest) {
         ? String((body as { message: string }).message).trim()
         : '';
 
-    if (!msg) {
-      return NextResponse.json({ error: 'message is required' }, { status: 400 });
+    if (!msg || msg.length > 4000) {
+      return NextResponse.json({ error: 'Message too long or empty' }, { status: 400 });
     }
 
     const { firstName, streak, workoutSummary, prSummary, volumeSummary } =
