@@ -83,6 +83,14 @@ export async function GET() {
 
 // POST – Telegram webhook entry point
 export async function POST(req: NextRequest) {
+  const secretToken = req.headers.get('x-telegram-bot-api-secret-token');
+  const expectedToken = process.env.TELEGRAM_WEBHOOK_SECRET;
+
+  // Only enforce if secret is configured — allows zero-downtime rollout
+  if (expectedToken && secretToken !== expectedToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // Fail fast if env vars are missing
   if (!BOT_TOKEN || !WEBAPP_URL) {
     console.error('[telegram] BOT_TOKEN or NEXTREP_WEBAPP_URL not set');
