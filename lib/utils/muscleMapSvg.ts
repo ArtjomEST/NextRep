@@ -5,8 +5,9 @@
  * (node_modules/react-body-highlighter/dist/react-body-highlighter.cjs.development.js)
  * to avoid relying on the library's internal dist file paths.
  *
- * Renders anterior + posterior body models side by side with
- * overworked=red, normal=yellow, untrained=blue coloring.
+ * Renders anterior + posterior body models side by side.
+ * Colors: overworked=red, normal=emerald, untrained=dark outline only.
+ * No legend, no text. Output PNG 600×640.
  */
 
 import type { MuscleStatus } from './weeklyMuscleAnalysis';
@@ -38,7 +39,7 @@ const POSTERIOR_DATA: MusclePolygon[] = [
   { muscle: 'head', svgPoints: ['50.6382979 0 45.9574468 0.85106383 40.8510638 5.53191489 40.4255319 12.7659574 45.106383 20 55.7446809 20 59.1489362 13.6170213 59.5744681 4.68085106 55.7446809 1.27659574'] },
   { muscle: 'trapezius', svgPoints: ['44.6808511 21.7021277 47.6595745 21.7021277 47.2340426 38.2978723 47.6595745 64.6808511 38.2978723 53.1914894 35.3191489 40.8510638 31.0638298 36.5957447 39.1489362 33.1914894 43.8297872 27.2340426', '52.3404255 21.7021277 55.7446809 21.7021277 56.5957447 27.2340426 60.8510638 32.7659574 68.9361702 36.5957447 64.6808511 40.4255319 61.7021277 53.1914894 52.3404255 64.6808511 53.1914894 38.2978723'] },
   { muscle: 'back-deltoids', svgPoints: ['29.3617021 37.0212766 22.9787234 39.1489362 17.4468085 44.2553191 18.2978723 53.6170213 24.2553191 49.3617021 27.2340426 46.3829787', '71.0638298 37.0212766 78.2978723 39.5744681 82.5531915 44.6808511 81.7021277 53.6170213 74.893617 48.9361702 72.3404255 45.106383'] },
-  { muscle: 'upper-back', svgPoints: ['31.0638298 38.7234043 28.0851064 48.9361702 28.5106383 55.3191489 34.0425532 75.3191489 47.2340426 71.0638298 47.2340426 66.3829787 36.5957447 54.0425532 33.6170213 41.2765957', '68.9361702 38.7234043 71.9148936 49.3617021 71.4893617 56.1702128 65.9574468 75.3191489 52.7659574 71.0638298 52.7659574 66.3829787 63.4042553 54.4680851 66.3829787 41.7021277'] },
+  { muscle: 'upper-back', svgPoints: ['31.0638298 38.7234043 28.0851064 48.9361702 28.5106383 55.3191489 34.0425532 75.3191489 47.2340426 71.0638298 47.2340426 66.3829787 36.5957447 54.0425532 33.6170613 41.2765957', '68.9361702 38.7234043 71.9148936 49.3617021 71.4893617 56.1702128 65.9574468 75.3191489 52.7659574 71.0638298 52.7659574 66.3829787 63.4042553 54.4680851 66.3829787 41.7021277'] },
   { muscle: 'triceps', svgPoints: ['26.8085106 49.787234 17.8723404 55.7446809 14.4680851 72.3404255 16.5957447 81.7021277 21.7021277 63.8297872 26.8085106 55.7446809', '73.6170213 50.212766 82.1276596 55.7446809 85.9574468 73.1914894 83.4042553 82.1276596 77.8723404 62.9787234 73.1914894 55.7446809', '26.8085106 58.2978723 26.8085106 68.5106383 22.9787234 75.3191489 19.1489362 77.4468085 22.5531915 65.5319149', '72.7659574 58.2978723 77.0212766 64.6808511 80.4255319 77.4468085 76.5957447 75.3191489 72.7659574 68.9361702'] },
   { muscle: 'lower-back', svgPoints: ['47.6595745 72.7659574 34.4680851 77.0212766 35.3191489 83.4042553 49.3617021 102.12766 46.8085106 82.9787234', '52.3404255 72.7659574 65.5319149 77.0212766 64.6808511 83.4042553 50.6382979 102.12766 53.1914894 83.8297872'] },
   { muscle: 'forearm', svgPoints: ['86.3829787 75.7446809 91.0638298 83.4042553 93.1914894 94.0425532 100 106.382979 96.1702128 104.255319 88.0851064 89.3617021 84.2553191 83.8297872', '13.6170213 75.7446809 8.93617021 83.8297872 6.80851064 93.6170213 0 106.382979 3.82978723 104.255319 12.3404255 88.5106383 15.7446809 82.9787234', '81.2765957 79.5744681 77.4468085 77.8723404 79.1489362 84.6808511 91.0638298 103.829787 93.1914894 108.93617 94.4680851 104.680851', '18.7234043 79.5744681 22.1276596 77.8723404 20.8510638 84.2553191 9.36170213 102.978723 6.80851064 108.510638 5.10638298 104.680851'] },
@@ -55,68 +56,58 @@ const POSTERIOR_DATA: MusclePolygon[] = [
 const NEUTRAL_MUSCLES = new Set(['head', 'neck', 'knees', 'left-soleus', 'right-soleus']);
 
 const COLORS = {
-  overworked: '#EF4444',  // red
-  normal: '#F59E0B',      // yellow/amber
-  untrained: '#3B82F6',   // blue
-  neutral: '#374151',     // gray for head/knees/etc.
-  body: '#1C2228',        // dark background body color
+  overworked: '#EF4444',   // red
+  normal: '#1F8A5B',       // emerald (app accent)
+  neutral: '#2A3340',      // dark neutral for head/knees
+  background: '#0E1114',   // app background
+  untrainedFill: '#1C2228',
+  untrainedStroke: '#262E36',
 };
 
-function buildBodySvg(
-  data: MusclePolygon[],
-  muscleStatuses: Record<string, MuscleStatus>,
-  offsetX: number,
-): string {
-  return data
-    .map(({ muscle, svgPoints }) => {
-      let fill: string;
-      if (NEUTRAL_MUSCLES.has(muscle)) {
-        fill = COLORS.neutral;
-      } else {
-        const status = muscleStatuses[muscle];
-        fill = status ? COLORS[status] : COLORS.body;
-      }
-      return svgPoints
-        .map((points) => `<polygon points="${points}" fill="${fill}" />`)
-        .join('');
-    })
-    .map((polygons) => `<g transform="translate(${offsetX}, 10)">${polygons}</g>`)
-    .join('');
+function getPolygonStyle(muscle: string, muscleStatuses: Record<string, MuscleStatus>): { fill: string; stroke: string; strokeWidth: number } {
+  if (NEUTRAL_MUSCLES.has(muscle)) {
+    return { fill: COLORS.neutral, stroke: COLORS.neutral, strokeWidth: 0.5 };
+  }
+
+  const status = muscleStatuses[muscle];
+  if (status === 'overworked') {
+    return { fill: COLORS.overworked, stroke: COLORS.overworked, strokeWidth: 1.5 };
+  }
+  if (status === 'normal') {
+    return { fill: COLORS.normal, stroke: COLORS.normal, strokeWidth: 1.5 };
+  }
+
+  // untrained or unknown — dark fill with slightly lighter border
+  return { fill: COLORS.untrainedFill, stroke: COLORS.untrainedStroke, strokeWidth: 1.5 };
 }
 
 /**
  * Generates anterior + posterior body diagrams side by side as an SVG string.
- * No text elements (font rendering unreliable on Vercel serverless).
- * Legend shown as three colored circles only.
+ * No text, no legend. Centered and well-proportioned for 600×640 output.
  */
 function buildSvgString(muscleStatuses: Record<string, MuscleStatus>): string {
-  const anteriorPolygons = ANTERIOR_DATA.map(({ muscle, svgPoints }) => {
-    let fill: string;
-    if (NEUTRAL_MUSCLES.has(muscle)) fill = COLORS.neutral;
-    else fill = muscleStatuses[muscle] ? COLORS[muscleStatuses[muscle]] : COLORS.body;
-    return svgPoints.map((pts) => `<polygon points="${pts}" fill="${fill}"/>`).join('');
-  }).join('');
+  const renderBody = (data: MusclePolygon[], offsetX: number): string => {
+    return data.map(({ muscle, svgPoints }) => {
+      const style = getPolygonStyle(muscle, muscleStatuses);
+      return svgPoints.map((pts) =>
+        `<polygon points="${pts}" fill="${style.fill}" stroke="${style.stroke}" stroke-width="${style.strokeWidth}"/>`
+      ).join('');
+    }).map((polygons, _i) =>
+      `<g transform="translate(${offsetX}, 0)">${polygons}</g>`
+    ).join('');
+  };
 
-  const posteriorPolygons = POSTERIOR_DATA.map(({ muscle, svgPoints }) => {
-    let fill: string;
-    if (NEUTRAL_MUSCLES.has(muscle)) fill = COLORS.neutral;
-    else fill = muscleStatuses[muscle] ? COLORS[muscleStatuses[muscle]] : COLORS.body;
-    return svgPoints.map((pts) => `<polygon points="${pts}" fill="${fill}"/>`).join('');
-  }).join('');
+  // viewBox: 220 wide (100 per body + 20 gap), ~225 tall for body data
+  // We center within a taller canvas to use the freed legend space
+  const anteriorPolygons = renderBody(ANTERIOR_DATA, 5);
+  const posteriorPolygons = renderBody(POSTERIOR_DATA, 115);
 
-  // Three colored circles as legend (no text)
-  const legendCircles = [COLORS.overworked, COLORS.normal, COLORS.untrained]
-    .map((color, i) => `<circle cx="${20 + i * 20}" cy="228" r="6" fill="${color}"/>`)
-    .join('');
-
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 240" width="440" height="480">
-  <rect width="220" height="240" fill="#0F1318" rx="8"/>
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 230" width="600" height="640">
+  <rect width="220" height="230" fill="${COLORS.background}" rx="6"/>
   <!-- Anterior body -->
-  <g transform="translate(5, 8)">${anteriorPolygons}</g>
+  ${anteriorPolygons}
   <!-- Posterior body -->
-  <g transform="translate(112, 8)">${posteriorPolygons}</g>
-  <!-- Legend: colored circles only -->
-  ${legendCircles}
+  ${posteriorPolygons}
 </svg>`;
 }
 
@@ -130,6 +121,9 @@ export async function generateMuscleMapPng(
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const sharp = require('sharp') as typeof import('sharp');
   const svg = buildSvgString(muscleStatuses);
-  const buffer = await sharp(Buffer.from(svg)).png().toBuffer();
+  const buffer = await sharp(Buffer.from(svg))
+    .resize(600, 640)
+    .png()
+    .toBuffer();
   return buffer;
 }

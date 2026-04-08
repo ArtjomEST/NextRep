@@ -124,6 +124,7 @@ export default function AccountPage() {
 
   const [deloadHidden, setDeloadHidden] = useState<boolean>(false);
   const [deloadHiddenLoaded, setDeloadHiddenLoaded] = useState(false);
+  const [timerNotificationsEnabled, setTimerNotificationsEnabled] = useState<boolean>(true);
   const [editDays, setEditDays] = useState<number>(4);
   const [editBench, setEditBench] = useState('');
   const [editSquat, setEditSquat] = useState('');
@@ -147,7 +148,10 @@ export default function AccountPage() {
         return [] as Preset[];
       }),
     ]).then(([s, p]) => {
-      if (s) setSettings(s as UserSettings);
+      if (s) {
+        setSettings(s as UserSettings);
+        setTimerNotificationsEnabled((s as UserSettings).timerNotificationsEnabled ?? true);
+      }
       if (Array.isArray(p)) setPresets(p);
     }).finally(() => setLoading(false));
   }, []);
@@ -808,6 +812,72 @@ export default function AccountPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* ─── Rest Timer Alerts toggle ──────────────────────────────── */}
+      <div
+        style={{
+          background: ui.cardBg,
+          border: ui.cardBorder,
+          borderRadius: ui.cardRadius,
+          padding: 18,
+          boxShadow: ui.cardShadow,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: 12,
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <h3 style={{ color: ui.textPrimary, fontSize: 15, fontWeight: 700, margin: '0 0 4px' }}>
+              🔔 Rest Timer Alerts
+            </h3>
+            <p style={{ color: ui.textMuted, fontSize: 13, margin: 0, lineHeight: 1.4 }}>
+              Telegram notification when timer ends
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={timerNotificationsEnabled}
+            onClick={async () => {
+              const next = !timerNotificationsEnabled;
+              setTimerNotificationsEnabled(next);
+              try {
+                await updateSettings({ timerNotificationsEnabled: next });
+              } catch {
+                setTimerNotificationsEnabled(!next);
+              }
+            }}
+            style={{
+              flexShrink: 0,
+              width: 44,
+              height: 24,
+              borderRadius: 12,
+              border: 'none',
+              background: timerNotificationsEnabled ? ui.accent : 'rgba(255,255,255,0.12)',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'background 0.2s',
+            }}
+          >
+            <span
+              style={{
+                position: 'absolute',
+                top: 2,
+                left: timerNotificationsEnabled ? 22 : 2,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: '#fff',
+                transition: 'left 0.2s',
+              }}
+            />
+          </button>
+        </div>
       </div>
 
       {/* ─── Recovery Status Card toggle ───────────────────────────── */}

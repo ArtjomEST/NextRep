@@ -7,11 +7,23 @@ export interface FreeReportInput {
   targetDaysPerWeek: number | null;
 }
 
+export interface ExerciseHistoryEntry {
+  exerciseName: string;
+  primaryMuscles: string[];
+}
+
 export interface ProReportInput {
   firstName: string;
   workoutsThisWeek: number;
   totalVolumeKg: number;
   analysis: MuscleAnalysisResult;
+  /** Distinct exercises the user has done in the last 4 weeks, grouped by muscle */
+  exerciseHistory: ExerciseHistoryEntry[];
+}
+
+export interface ProReportResult {
+  text: string;
+  caption: string;
 }
 
 /**
@@ -47,12 +59,27 @@ export async function generateFreeReportText(input: FreeReportInput): Promise<st
   }
 }
 
+/** Build a muscle → exercise names mapping from history */
+function buildMuscleExerciseMap(history: ExerciseHistoryEntry[]): Record<string, string[]> {
+  const map: Record<string, string[]> = {};
+  for (const entry of history) {
+    for (const muscle of entry.primaryMuscles) {
+      if (!map[muscle]) map[muscle] = [];
+      if (!map[muscle].includes(entry.exerciseName)) {
+        map[muscle].push(entry.exerciseName);
+      }
+    }
+  }
+  return map;
+}
+
 /**
- * Generates a detailed muscle balance report for PRO users.
+ * Generates a detailed muscle balance report for PRO users in a conversational coach style.
+ * Also generates a short dynamic caption for the MuscleMap photo.
  * Falls back to a structured template if OpenAI fails.
  */
-export async function generateProReportText(input: ProReportInput): Promise<string> {
-  const { firstName, workoutsThisWeek, totalVolumeKg, analysis } = input;
+export async function generateProReportText(input: ProReportInput): Promise<ProReportResult> {
+  const { firstName, workoutsThisWeek, totalVolumeKg, analysis, exerciseHistory } = input;
 
   const overworkedList = analysis.overworkedMuscles.join(', ') || 'none';
   const underworkedList = analysis.underworkedMuscles.join(', ') || 'none';
@@ -61,75 +88,102 @@ export async function generateProReportText(input: ProReportInput): Promise<stri
 
   let balanceNote = '';
   if (analysis.pushPullLabel === 'push-heavy') {
-    balanceNote = 'Your training is push-heavy this week. Add more pulling movements (rows, pull-ups) to balance it out.';
+    balanceNote = 'Push-heavy this week — needs more pulling movements.';
   } else if (analysis.pushPullLabel === 'pull-heavy') {
-    balanceNote = 'Your training is pull-heavy this week. Adding more pressing work next week will help maintain balance.';
+    balanceNote = 'Pull-heavy this week — could use more pressing work.';
   } else {
-    balanceNote = 'Your push/pull balance looks good this week.';
+    balanceNote = 'Push/pull balance is solid.';
   }
+
+  const muscleExerciseMap = buildMuscleExerciseMap(exerciseHistory);
+
+  // Build exercise history context for the AI
+  const historyLines: string[] = [];
+  for (const [muscle, exNames] of Object.entries(muscleExerciseMap)) {
+    historyLines.push(`${muscle}: ${exNames.slice(0, 5).join(', ')}`);
+  }
+  const historyBlock = historyLines.length > 0
+    ? `\nExercises the user has done in the last 4 weeks (by muscle group):\n${historyLines.join('\n')}`
+    : '\nNo exercise history from the last 4 weeks.';
 
   try {
     const text = await openaiChatCompletion({
       messages: [
         {
           role: 'system',
-          content: 'You are Alex, a fitness coach for the NextRep app. Write a weekly fitness report as plain text. Use NO markdown formatting. No **bold**, no *italic*, no bullet points with dashes, no numbered lists with dots. Use emojis as visual separators instead. Plain text only.',
+          content: `You are Alex, a friendly and slightly casual fitness coach. You write like you're texting a friend who trains — warm, direct, motivating. You use emojis naturally but not on every line. You vary your sentence structure so you never sound like a template. You NEVER use markdown formatting: no **bold**, no *italic*, no bullet points with dashes, no numbered lists, no section headers. Plain flowing text only, separated by line breaks.`,
         },
         {
           role: 'user',
-          content: `Write a weekly fitness report for ${firstName}.
+          content: `Write a weekly fitness report for ${firstName}. Express everything naturally as flowing text — like a coach talking, not a program printout.
 
-Stats:
-Workouts completed: ${workoutsThisWeek}
+Stats this week:
+Workouts: ${workoutsThisWeek}
 Total volume: ${volumeStr}
-Overworked muscles: ${overworkedList}
 Well-trained muscles: ${normalList}
-Untrained muscles: ${underworkedList}
-Push/pull balance: ${analysis.pushPullLabel} (push workouts: ${analysis.pushWorkouts}, pull workouts: ${analysis.pullWorkouts})
-Balance note: ${balanceNote}
+Overworked muscles: ${overworkedList}
+Undertrained muscles: ${underworkedList}
+Balance: ${balanceNote}
+${historyBlock}
 
-Format the report exactly like this example (plain text, emojis only for structure):
+Structure (express naturally, NOT as rigid sections):
 
-Hey ${firstName}, this is Alex 👋
+1) Opening: energetic, specific to their week. Not "you completed X workouts" — something like "Solid week — you showed up 3 times and put in real work." Make it feel personal.
 
-This week you completed X workout(s) with a total volume of Y kg 💪
+2) Muscle balance: 1-2 sentences about what got trained well, woven naturally into the flow.
 
-💪 Well-trained: [muscles]
-🔴 Overworked: [muscles]
-😴 Untrained: [muscles]
+3) Overworked muscles: if any, casual callout with a reason to back off. Use one of these emojis contextually: 🔴 or 🥵 or ⚠️
 
-[One sentence about push/pull balance.]
+4) Undertrained muscles: if any, call it out conversationally. Use one of these emojis contextually: 😴 or 👀 or 💤
 
-🏋️ Recommendations for next week:
-[Exercise name] — [benefit], [sets x reps]
-[Exercise name] — [benefit], [sets x reps]
+5) Recommendations (use one of: 🎯 or 💡 or 🏋️):
+- FIRST PRIORITY: suggest exercises the user has actually done before (from the history above) that target the undertrained muscles. Frame as progression or variation.
+- SECOND PRIORITY: if no history exists for an undertrained muscle group, suggest one simple well-known exercise.
+- Write as flowing sentences, not a bullet list.
 
-[One closing motivational line with emoji]
+6) End with a short motivational closer.
 
-No dashes, no asterisks, no numbered lists. Plain text only.`,
+Start with "Hey ${firstName}," — keep it under 600 tokens. Plain text only, no markdown.
+
+ALSO: After the report, on a new line write CAPTION: followed by a short punchy photo caption (under 100 chars) for a muscle map image. Vary it each time — something like "Here's how your muscles balanced out this week 👇" or "Your muscle map this week 💪" etc.`,
         },
       ],
-      maxTokens: 400,
-      temperature: 0.7,
+      maxTokens: 650,
+      temperature: 0.8,
     });
 
-    return text.replace(/<br\s*\/?>/gi, '\n');
+    const cleaned = text.replace(/<br\s*\/?>/gi, '\n');
+
+    // Extract caption from the response
+    const captionMatch = cleaned.match(/CAPTION:\s*(.+)/i);
+    let caption = captionMatch?.[1]?.trim() ?? '';
+    const reportText = cleaned.replace(/\n*CAPTION:\s*.+/i, '').trim();
+
+    // Ensure caption is under 100 chars
+    if (!caption || caption.length > 100) {
+      caption = `${firstName}'s muscle balance this week 💪`;
+    }
+
+    return { text: reportText, caption };
   } catch {
     // Template fallback
-    return `Hey ${firstName}, this is Alex 👋
+    const text = `Hey ${firstName}, this is Alex 👋
 
-This week you completed ${workoutsThisWeek} workout(s) with a total volume of ${volumeStr} 💪
+Solid effort this week — ${workoutsThisWeek} workout${workoutsThisWeek !== 1 ? 's' : ''} logged with ${volumeStr} total volume.
 
-💪 Well-trained: ${normalList}
-🔴 Overworked: ${overworkedList}
-😴 Untrained: ${underworkedList}
+Your ${normalList !== 'none' ? normalList : 'training'} work looked good this week. ${balanceNote}
 
-${balanceNote}
+${overworkedList !== 'none' ? `🔴 ${overworkedList} got hit pretty hard — ease up a bit next week to let them recover properly.` : ''}
 
-🏋️ Recommendations for next week:
-Focus on undertrained muscle groups with compound movements.
-Aim for balanced push/pull sessions next week.
+${underworkedList !== 'none' ? `😴 ${underworkedList} could use some love next week. Try adding a few sets targeting those areas.` : ''}
 
-Keep it up — progress takes time! 🚀`;
+🎯 Focus on balancing things out next week and keep the momentum going.
+
+You're building something real here — keep showing up! 🚀`;
+
+    return {
+      text: text.replace(/\n{3,}/g, '\n\n').trim(),
+      caption: `${firstName}'s muscle balance this week 💪`,
+    };
   }
 }

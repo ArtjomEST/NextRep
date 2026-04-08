@@ -9,8 +9,8 @@
 
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { timerSessions, users } from '@/lib/db/schema';
-import { and, eq, lte, isNull } from 'drizzle-orm';
+import { timerSessions, users, userProfiles } from '@/lib/db/schema';
+import { and, eq, lte } from 'drizzle-orm';
 import { sendRestEndedMessage } from '@/lib/telegram/notify';
 
 export const maxDuration = 60;
@@ -25,9 +25,11 @@ async function checkAndNotify() {
       id: timerSessions.id,
       userId: timerSessions.userId,
       telegramUserId: users.telegramUserId,
+      timerNotificationsEnabled: userProfiles.timerNotificationsEnabled,
     })
     .from(timerSessions)
     .innerJoin(users, eq(timerSessions.userId, users.id))
+    .leftJoin(userProfiles, eq(timerSessions.userId, userProfiles.userId))
     .where(
       and(
         lte(timerSessions.endsAt, now),
@@ -38,9 +40,11 @@ async function checkAndNotify() {
 
   for (const session of expired) {
     try {
-      if (!session.telegramUserId) continue;
-
-      const msgId = await sendRestEndedMessage(session.telegramUserId);
+      // Always mark notified to clean up the session; skip message if notifications disabled
+      let msgId: number | null = null;
+      if (session.telegramUserId && session.timerNotificationsEnabled !== false) {
+        msgId = await sendRestEndedMessage(session.telegramUserId);
+      }
 
       await db
         .update(timerSessions)

@@ -142,6 +142,7 @@ export default function ActiveWorkoutPage() {
 
   function handleRestAddSet() {
     setShowRest(false);
+    cleanupTimerApi(draft.id).catch(console.error);
     if (draft.activeExerciseId) {
       dispatch({ type: 'ADD_SET', exerciseEntryId: draft.activeExerciseId });
     }
@@ -149,6 +150,7 @@ export default function ActiveWorkoutPage() {
 
   function handleRestFinishExercise() {
     setShowRest(false);
+    cleanupTimerApi(draft.id).catch(console.error);
     if (draft.activeExerciseId) {
       handleFinishExercise(draft.activeExerciseId);
     }
@@ -821,7 +823,7 @@ export default function ActiveWorkoutPage() {
         onExpand={() => setRestMinimized(false)}
         onAddSet={handleRestAddSet}
         onFinishExercise={handleRestFinishExercise}
-        onDismiss={() => { setShowRest(false); setRestMinimized(false); }}
+        onDismiss={() => { setShowRest(false); setRestMinimized(false); cleanupTimerApi(draft.id).catch(console.error); }}
       />
 
       {/* ─── Exercise Info Sheet ─── */}

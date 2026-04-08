@@ -1,0 +1,1 @@
+ALTER TABLE "user_profiles" ADD COLUMN "timer_notifications_enabled" boolean DEFAULT true NOT NULL;

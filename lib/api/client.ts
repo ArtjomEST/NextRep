@@ -642,6 +642,7 @@ export interface UserSettings {
   bestLifts: { benchPress?: number; squat?: number; deadlift?: number } | null;
   injuries: string[] | null;
   onboardingCompleted: boolean;
+  timerNotificationsEnabled: boolean;
 }
 
 export interface UserProfile extends UserSettings {

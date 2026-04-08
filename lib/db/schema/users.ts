@@ -53,6 +53,7 @@ export const userProfiles = pgTable('user_profiles', {
   trialUsed: boolean('trial_used').default(false).notNull(),
   deloadDismissCount: integer('deload_dismiss_count').notNull().default(0),
   deloadHidden: boolean('deload_hidden').notNull().default(false),
+  timerNotificationsEnabled: boolean('timer_notifications_enabled').notNull().default(true),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

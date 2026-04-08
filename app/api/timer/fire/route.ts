@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { timerSessions, users } from '@/lib/db/schema';
+import { timerSessions, users, userProfiles } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { authenticateRequest } from '@/lib/auth/helpers';
 import { sendRestEndedMessage } from '@/lib/telegram/notify';
@@ -18,9 +18,11 @@ export async function POST(req: NextRequest) {
       .select({
         id: timerSessions.id,
         telegramUserId: users.telegramUserId,
+        timerNotificationsEnabled: userProfiles.timerNotificationsEnabled,
       })
       .from(timerSessions)
       .innerJoin(users, eq(timerSessions.userId, users.id))
+      .leftJoin(userProfiles, eq(timerSessions.userId, userProfiles.userId))
       .where(
         and(
           eq(timerSessions.userId, auth.userId),
@@ -30,11 +32,15 @@ export async function POST(req: NextRequest) {
       )
       .limit(1);
 
-    if (!session?.telegramUserId) {
+    if (!session) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    const msgId = await sendRestEndedMessage(session.telegramUserId);
+    // Always mark notified so we clean up the session, but skip the message if disabled
+    let msgId: number | null = null;
+    if (session.telegramUserId && session.timerNotificationsEnabled !== false) {
+      msgId = await sendRestEndedMessage(session.telegramUserId);
+    }
 
     await db
       .update(timerSessions)

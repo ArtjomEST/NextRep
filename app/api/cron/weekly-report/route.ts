@@ -16,7 +16,7 @@ import { users, userProfiles, workouts, workoutExercises, exercises, weeklyRepor
 import { and, eq, gte, isNotNull, isNull } from 'drizzle-orm';
 import { analyzeMuscleBalance } from '@/lib/utils/weeklyMuscleAnalysis';
 import { generateMuscleMapPng } from '@/lib/utils/muscleMapSvg';
-import { generateFreeReportText, generateProReportText } from '@/lib/ai/weeklyReportText';
+import { generateFreeReportText, generateProReportText, type ExerciseHistoryEntry } from '@/lib/ai/weeklyReportText';
 import { sendWeeklyReportFree, sendWeeklyReportPro } from '@/lib/telegram/notify';
 
 export const maxDuration = 300;
@@ -146,12 +146,36 @@ export async function GET(req: Request) {
               })),
             );
 
-            const [reportText, pngBuffer] = await Promise.all([
-              generateProReportText({ firstName, workoutsThisWeek, totalVolumeKg, analysis }),
+            // Fetch distinct exercises the user did in the last 4 weeks, grouped by muscle
+            const fourWeeksAgo = new Date();
+            fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+            const historyRows = await db
+              .selectDistinctOn([exercises.name], {
+                exerciseName: exercises.name,
+                primaryMuscles: exercises.primaryMuscles,
+              })
+              .from(workoutExercises)
+              .innerJoin(workouts, eq(workouts.id, workoutExercises.workoutId))
+              .innerJoin(exercises, eq(exercises.id, workoutExercises.exerciseId))
+              .where(
+                and(
+                  eq(workouts.userId, user.userId),
+                  gte(workouts.endedAt, fourWeeksAgo),
+                  isNotNull(workouts.endedAt),
+                ),
+              )
+              .orderBy(exercises.name);
+
+            const exerciseHistory: ExerciseHistoryEntry[] = historyRows
+              .filter((r) => r.primaryMuscles && r.primaryMuscles.length > 0)
+              .map((r) => ({ exerciseName: r.exerciseName, primaryMuscles: r.primaryMuscles! }));
+
+            const [reportResult, pngBuffer] = await Promise.all([
+              generateProReportText({ firstName, workoutsThisWeek, totalVolumeKg, analysis, exerciseHistory }),
               generateMuscleMapPng(analysis.muscleStatuses),
             ]);
 
-            sent = await sendWeeklyReportPro(tgId, firstName, reportText, pngBuffer);
+            sent = await sendWeeklyReportPro(tgId, reportResult.text, reportResult.caption, pngBuffer);
           } else {
             const reportText = await generateFreeReportText({
               firstName,

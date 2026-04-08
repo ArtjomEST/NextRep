@@ -48,6 +48,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Mark all matching sessions as notified before deletion.
+    // This closes the race window where the cron could see an expired session
+    // between the user dismissing the timer and the DELETE completing.
+    await db
+      .update(timerSessions)
+      .set({ notified: true })
+      .where(
+        and(
+          eq(timerSessions.workoutId, workoutId),
+          eq(timerSessions.userId, auth.userId),
+        ),
+      );
+
     // Delete all timer sessions for this workout + user
     const result = await db
       .delete(timerSessions)

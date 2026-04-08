@@ -19,6 +19,7 @@ function serializeSettings(profile: any) {
     bestLifts: profile.bestLifts ?? null,
     injuries: profile.injuries ?? null,
     onboardingCompleted: profile.onboardingCompleted ?? false,
+    timerNotificationsEnabled: profile.timerNotificationsEnabled ?? true,
   };
 }
 
@@ -50,6 +51,7 @@ export async function GET(req: NextRequest) {
         bestLifts: null,
         injuries: null,
         onboardingCompleted: false,
+        timerNotificationsEnabled: true,
       },
     });
   } catch (err) {
@@ -71,7 +73,7 @@ export async function PATCH(req: NextRequest) {
 
     const body = await req.json();
 
-    const allowed = ['heightCm', 'weightKg', 'age', 'units', 'experienceLevel', 'goal', 'splitPreference', 'trainingDaysPerWeek', 'bestLifts', 'injuries'] as const;
+    const allowed = ['heightCm', 'weightKg', 'age', 'units', 'experienceLevel', 'goal', 'splitPreference', 'trainingDaysPerWeek', 'bestLifts', 'injuries', 'timerNotificationsEnabled'] as const;
     const updates: Record<string, unknown> = {};
     for (const key of allowed) {
       if (key in body) {

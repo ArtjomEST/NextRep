@@ -25,7 +25,8 @@
       "Bash(curl -v -L \"https://github.com/dejavu-fonts/dejavu-fonts/releases/download/version_2.37/dejavu-fonts-ttf-2.37.zip\" -o /tmp/dejavu.zip)",
       "Bash(cp \"C:/Windows/Fonts/DejaVuSans.ttf\" \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans.ttf\")",
       "Bash(cp \"C:/Windows/Fonts/DejaVuSans-Bold.ttf\" \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans-Bold.ttf\")",
-      "Bash(xxd \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans.ttf\")"
+      "Bash(xxd \"C:/Users/User/Desktop/NextRep/public/fonts/DejaVuSans.ttf\")",
+      "mcp__8865dfff-350c-47f2-88f3-f442e712d3e4__get_project"
     ]
   }
 }
