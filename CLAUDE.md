@@ -209,6 +209,8 @@ success: '#22C55E'      warning: '#F59E0B'     error: '#EF4444'  info: '#3B82F6'
 | `OPENAI_API_KEY` | OpenAI API ключ |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob токен |
 | `TELEGRAM_BOT_TOKEN` | Telegram Bot API токен |
+| `CRON_SECRET` | Secret for cron endpoints (`/api/cron/*`); verified via `x-cron-secret` header |
+| `DEV_SECRET` | Secret for dev test endpoints (`/api/dev/*`); verified via `x-dev-secret` header; optional, only needed if testing dev endpoints |
 
 ---
 

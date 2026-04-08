@@ -43,6 +43,7 @@
 ./app/api/timer/cleanup/route.ts
 ./app/api/timer/cron/route.ts
 ./app/api/cron/weekly-report/route.ts
+./app/api/dev/test-weekly-report/route.ts
 ./app/api/timer/fire/route.ts
 ./app/api/timer/pause/route.ts
 ./app/api/timer/resume/route.ts
@@ -460,7 +461,10 @@
 - **POST** `/api/timer/cron` — No auth (Vercel cron) → fires all expired non-notified timer sessions
 
 #### `app/api/cron/weekly-report/route.ts`
-- **GET** `/api/cron/weekly-report` — Auth: `x-cron-secret` header → sends weekly fitness report to all eligible users via Telegram; free users get text+PRO upsell button, PRO users get muscle map PNG + AI analysis caption
+- **GET** `/api/cron/weekly-report` — Auth: `x-cron-secret` header → sends weekly fitness report to all eligible users via Telegram; free users get text+PRO upsell button, PRO users get muscle map PNG (no legend, emerald/red/dark colors) + conversational AI coach report with dynamic caption; queries 4-week exercise history for personalized recommendations
+
+#### `app/api/dev/test-weekly-report/route.ts`
+- **POST** `/api/dev/test-weekly-report` — Auth: `x-dev-secret` header (must match `DEV_SECRET` env var) → tests PRO weekly report for hardcoded user `telegram_user_id='951560156'`; runs same logic as cron endpoint (muscle balance analysis, 4-week exercise history, AI report generation, muscle map PNG, Telegram send); returns stats and report preview; useful for debugging report generation without waiting for cron or affecting all users
 
 #### `app/api/upload/workout-photo/route.ts`
 - **POST** `/api/upload/workout-photo` — Auth: required → multipart form with `file` → uploads to Vercel Blob → `{ photoUrl: string }`
@@ -925,6 +929,7 @@
 | `trial_used` | BOOLEAN | default false |
 | `deload_dismiss_count` | INTEGER | default 0 |
 | `deload_hidden` | BOOLEAN | default false |
+| `timer_notifications_enabled` | BOOLEAN | default true |
 | `created_at` | TIMESTAMP TZ | |
 | `updated_at` | TIMESTAMP TZ | auto-updated |
 
