@@ -70,6 +70,7 @@ export async function GET(req: Request) {
       isPro: userProfiles.isPro,
       proExpiresAt: userProfiles.proExpiresAt,
       trialEndsAt: userProfiles.trialEndsAt,
+      injuries: userProfiles.injuries,
     })
     .from(users)
     .innerJoin(userProfiles, eq(userProfiles.userId, users.id))
@@ -171,7 +172,7 @@ export async function GET(req: Request) {
               .map((r) => ({ exerciseName: r.exerciseName, primaryMuscles: r.primaryMuscles! }));
 
             const [reportResult, pngBuffer] = await Promise.all([
-              generateProReportText({ firstName, workoutsThisWeek, totalVolumeKg, analysis, exerciseHistory }),
+              generateProReportText({ firstName, workoutsThisWeek, totalVolumeKg, analysis, exerciseHistory, injuries: user.injuries ?? [] }),
               generateMuscleMapPng(analysis.muscleStatuses),
             ]);
 

@@ -63,6 +63,7 @@ export async function POST(req: Request) {
         isPro: userProfiles.isPro,
         proExpiresAt: userProfiles.proExpiresAt,
         trialEndsAt: userProfiles.trialEndsAt,
+        injuries: userProfiles.injuries,
       })
       .from(users)
       .innerJoin(userProfiles, eq(userProfiles.userId, users.id))
@@ -247,6 +248,7 @@ export async function POST(req: Request) {
       totalVolumeKg,
       analysis,
       exerciseHistory,
+      injuries: user.injuries ?? [],
     });
     console.log('[test-weekly-report] Report generated:', {
       textLength: reportResult.text.length,

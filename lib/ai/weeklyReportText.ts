@@ -19,6 +19,8 @@ export interface ProReportInput {
   analysis: MuscleAnalysisResult;
   /** Distinct exercises the user has done in the last 4 weeks, grouped by muscle */
   exerciseHistory: ExerciseHistoryEntry[];
+  /** User's self-reported injuries/restrictions (e.g. ["knee", "lower back"]) */
+  injuries: string[];
 }
 
 export interface ProReportResult {
@@ -73,18 +75,55 @@ function buildMuscleExerciseMap(history: ExerciseHistoryEntry[]): Record<string,
   return map;
 }
 
+/** Group individual muscles into body regions for concise display (max 3-4 groups) */
+function groupUndertrainedByRegion(muscles: string[]): string {
+  const regions: Record<string, string[]> = {
+    legs: [],
+    back: [],
+    arms: [],
+    core: [],
+    shoulders: [],
+  };
+
+  const regionMap: Record<string, string> = {
+    Quads: 'legs', Hamstrings: 'legs', Glutes: 'legs', Calves: 'legs',
+    Adductors: 'legs', Abductors: 'legs',
+    Back: 'back', 'Lower Back': 'back', Traps: 'back',
+    Biceps: 'arms', Triceps: 'arms', Forearms: 'arms',
+    Abs: 'core', Obliques: 'core',
+    'Front Delts': 'shoulders', 'Rear Delts': 'shoulders',
+    Chest: 'core',
+  };
+
+  for (const m of muscles) {
+    const region = regionMap[m] ?? 'other';
+    if (regions[region]) regions[region].push(m.toLowerCase());
+    else regions[region] = [m.toLowerCase()];
+  }
+
+  const parts: string[] = [];
+  for (const [region, items] of Object.entries(regions)) {
+    if (items.length === 0) continue;
+    if (items.length === 1) parts.push(items[0]);
+    else parts.push(`${region} (${items.join(', ')})`);
+  }
+
+  return parts.slice(0, 4).join(', ') || 'none';
+}
+
 /**
  * Generates a detailed muscle balance report for PRO users in a conversational coach style.
  * Also generates a short dynamic caption for the MuscleMap photo.
  * Falls back to a structured template if OpenAI fails.
  */
 export async function generateProReportText(input: ProReportInput): Promise<ProReportResult> {
-  const { firstName, workoutsThisWeek, totalVolumeKg, analysis, exerciseHistory } = input;
+  const { firstName, workoutsThisWeek, totalVolumeKg, analysis, exerciseHistory, injuries } = input;
 
   const overworkedList = analysis.overworkedMuscles.join(', ') || 'none';
-  const underworkedList = analysis.underworkedMuscles.join(', ') || 'none';
+  const underworkedGrouped = groupUndertrainedByRegion(analysis.underworkedMuscles);
   const normalList = analysis.normalMuscles.join(', ') || 'none';
   const volumeStr = totalVolumeKg > 0 ? `${Math.round(totalVolumeKg).toLocaleString()} kg` : 'N/A';
+  const hasOverworked = analysis.overworkedMuscles.length > 0;
 
   let balanceNote = '';
   if (analysis.pushPullLabel === 'push-heavy') {
@@ -106,12 +145,24 @@ export async function generateProReportText(input: ProReportInput): Promise<ProR
     ? `\nExercises the user has done in the last 4 weeks (by muscle group):\n${historyLines.join('\n')}`
     : '\nNo exercise history from the last 4 weeks.';
 
+  // Build injury/restriction context
+  const injuryBlock = injuries.length > 0
+    ? `\nIMPORTANT — User's injuries/restrictions: ${injuries.join(', ')}
+NEVER suggest exercises that could aggravate these. Examples:
+- Knee issues → avoid squats, lunges, leg press, box jumps. Suggest leg curls, hip thrusts, seated calf raises instead.
+- Lower back issues → avoid deadlifts, heavy barbell squats, good mornings. Suggest cable rows, lat pulldowns, planks instead.
+- Shoulder issues → avoid overhead press, upright rows. Suggest lateral raises (light), face pulls instead.
+Always suggest safer alternatives that still target the needed muscle groups.`
+    : '';
+
   try {
     const text = await openaiChatCompletion({
       messages: [
         {
           role: 'system',
-          content: `You are Alex, a friendly and slightly casual fitness coach. You write like you're texting a friend who trains — warm, direct, motivating. You use emojis naturally but not on every line. You vary your sentence structure so you never sound like a template. You NEVER use markdown formatting: no **bold**, no *italic*, no bullet points with dashes, no numbered lists, no section headers. Plain flowing text only, separated by line breaks.`,
+          content: `You are Alex, a friendly and slightly casual fitness coach. You write like you're texting a friend who trains — warm, direct, motivating. You use emojis naturally but not on every line. You vary your sentence structure so you never sound like a template. You NEVER use markdown formatting: no **bold**, no *italic*, no bullet points with dashes, no numbered lists, no section headers. Plain flowing text only, separated by line breaks.
+
+CRITICAL RULE about emojis: emojis ALWAYS go at the START of a line or sentence, never at the end. Example: "🔴 Your chest got hammered this week" NOT "Your chest got hammered this week 🔴". The only exception is the very first greeting line.`,
         },
         {
           role: 'user',
@@ -122,9 +173,9 @@ Workouts: ${workoutsThisWeek}
 Total volume: ${volumeStr}
 Well-trained muscles: ${normalList}
 Overworked muscles: ${overworkedList}
-Undertrained muscles: ${underworkedList}
+Undertrained muscles (grouped by region): ${underworkedGrouped}
 Balance: ${balanceNote}
-${historyBlock}
+${historyBlock}${injuryBlock}
 
 Structure (express naturally, NOT as rigid sections):
 
@@ -132,16 +183,20 @@ Structure (express naturally, NOT as rigid sections):
 
 2) Muscle balance: 1-2 sentences about what got trained well, woven naturally into the flow.
 
-3) Overworked muscles: if any, casual callout with a reason to back off. Use one of these emojis contextually: 🔴 or 🥵 or ⚠️
+3) Overworked muscles: ${hasOverworked
+  ? 'Casual callout with a reason to back off. Start the line with one of: 🔴 or 🥵 or ⚠️'
+  : 'No muscles are overworked — mention this positively. Start the line with ✅ or 💪 to celebrate the balanced training.'}
 
-4) Undertrained muscles: if any, call it out conversationally. Use one of these emojis contextually: 😴 or 👀 or 💤
+4) Undertrained muscles: if any, call it out conversationally using grouped body regions (e.g. "legs (quads, hamstrings)" not listing 6 individual muscles). Start the line with one of: 😴 or 👀 or 💤
 
-5) Recommendations (use one of: 🎯 or 💡 or 🏋️):
+5) Recommendations (start the line with one of: 🎯 or 💡 or 🏋️):
 - FIRST PRIORITY: suggest exercises the user has actually done before (from the history above) that target the undertrained muscles. Frame as progression or variation.
-- SECOND PRIORITY: if no history exists for an undertrained muscle group, suggest one simple well-known exercise.
+- SECOND PRIORITY: if no history exists for an undertrained muscle group, suggest one simple well-known exercise.${injuries.length > 0 ? `\n- SAFETY: The user has ${injuries.join(', ')} issues. NEVER recommend exercises that stress those areas. Always pick safer alternatives.` : ''}
 - Write as flowing sentences, not a bullet list.
 
 6) End with a short motivational closer.
+
+REMEMBER: emojis go at the START of lines/sentences, never trailing at the end.
 
 Start with "Hey ${firstName}," — keep it under 600 tokens. Plain text only, no markdown.
 
@@ -167,19 +222,27 @@ ALSO: After the report, on a new line write CAPTION: followed by a short punchy 
     return { text: reportText, caption };
   } catch {
     // Template fallback
+    const overworkedLine = hasOverworked
+      ? `🔴 ${overworkedList} got hit pretty hard — ease up a bit next week to let them recover properly.`
+      : `✅ No muscles overworked — solid balance this week.`;
+
+    const undertrainedLine = underworkedGrouped !== 'none'
+      ? `😴 ${underworkedGrouped} could use some love next week. Try adding a few sets targeting those areas.`
+      : '';
+
     const text = `Hey ${firstName}, this is Alex 👋
 
 Solid effort this week — ${workoutsThisWeek} workout${workoutsThisWeek !== 1 ? 's' : ''} logged with ${volumeStr} total volume.
 
 Your ${normalList !== 'none' ? normalList : 'training'} work looked good this week. ${balanceNote}
 
-${overworkedList !== 'none' ? `🔴 ${overworkedList} got hit pretty hard — ease up a bit next week to let them recover properly.` : ''}
+${overworkedLine}
 
-${underworkedList !== 'none' ? `😴 ${underworkedList} could use some love next week. Try adding a few sets targeting those areas.` : ''}
+${undertrainedLine}
 
 🎯 Focus on balancing things out next week and keep the momentum going.
 
-You're building something real here — keep showing up! 🚀`;
+You're building something real here — keep showing up!`;
 
     return {
       text: text.replace(/\n{3,}/g, '\n\n').trim(),
