@@ -44,6 +44,7 @@
 ./app/api/timer/cron/route.ts
 ./app/api/cron/weekly-report/route.ts
 ./app/api/dev/test-weekly-report/route.ts
+./app/api/dev/exercises-audit/route.ts
 ./app/api/timer/fire/route.ts
 ./app/api/timer/pause/route.ts
 ./app/api/timer/resume/route.ts
@@ -462,6 +463,9 @@
 
 #### `app/api/cron/weekly-report/route.ts`
 - **GET** `/api/cron/weekly-report` — Auth: `x-cron-secret` header → sends weekly fitness report to all eligible users via Telegram; free users get text+PRO upsell button, PRO users get muscle map PNG (no legend, emerald/red/dark colors) + conversational AI coach report with dynamic caption; queries 4-week exercise history for personalized recommendations
+
+#### `app/api/dev/exercises-audit/route.ts`
+- **GET** `/api/dev/exercises-audit` — No auth → returns exercise table stats: total count, count with empty primary_muscles, count with empty secondary_muscles, 10 example exercises with empty primary_muscles (id, name)
 
 #### `app/api/dev/test-weekly-report/route.ts`
 - **POST** `/api/dev/test-weekly-report` — Auth: `x-dev-secret` header (must match `DEV_SECRET` env var) → tests PRO weekly report for hardcoded user `telegram_user_id='951560156'`; runs same logic as cron endpoint (muscle balance analysis, 4-week exercise history, AI report generation, muscle map PNG, Telegram send); returns stats and report preview; useful for debugging report generation without waiting for cron or affecting all users
