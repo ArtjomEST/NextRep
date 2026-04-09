@@ -44,6 +44,7 @@
 ./app/api/timer/cron/route.ts
 ./app/api/cron/weekly-report/route.ts
 ./app/api/dev/test-weekly-report/route.ts
+./app/api/dev/duplicate-exercises/route.ts
 ./app/api/dev/fill-missing-muscles/route.ts
 ./app/api/dev/exercises-audit/route.ts
 ./app/api/timer/fire/route.ts
@@ -464,6 +465,9 @@
 
 #### `app/api/cron/weekly-report/route.ts`
 - **GET** `/api/cron/weekly-report` — Auth: `x-cron-secret` header → sends weekly fitness report to all eligible users via Telegram; free users get text+PRO upsell button, PRO users get muscle map PNG (no legend, emerald/red/dark colors) + conversational AI coach report with dynamic caption; queries 4-week exercise history for personalized recommendations
+
+#### `app/api/dev/duplicate-exercises/route.ts`
+- **GET** `/api/dev/duplicate-exercises` — Auth: `x-dev-secret` header → sends all exercise names to gpt-4o-mini, returns grouped duplicates (same exercise, trivial name diff) and variants (same concept, different equipment/grip); read-only; includes `meta.exercisesToRemove` count; post-processes AI keep/remove choices using source+muscles+name-length priority
 
 #### `app/api/dev/fill-missing-muscles/route.ts`
 - **POST** `/api/dev/fill-missing-muscles` — Auth: `x-dev-secret` header → one-time job: fetches all exercises with empty primary/secondary muscles, calls OpenAI gpt-4o-mini per exercise, validates against allowed muscle list, updates DB; returns `{ summary: { total, updated, failed, skipped }, log[] }`
